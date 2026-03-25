@@ -564,6 +564,164 @@ body.mode-apple #hero { transition: all 0.8s var(--ease); }
 body.mode-apple .art-img { border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
 body.mode-apple #track-title { font-family: 'Inter', sans-serif !important; font-weight: 700; letter-spacing: -0.02em; font-size: clamp(32px, 5vw, 64px); }
 body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; font-style: normal; opacity: 0.8; }
+
+/* ── FLUID GRADIENT BACKGROUND ── */
+#fluid-gradient-bg {
+  position:absolute;inset:-80px;z-index:1;
+  opacity:0;pointer-events:none;
+  filter:blur(80px) saturate(1.8) brightness(0.55);
+  background-size:400% 400%;
+  animation:fluidMove 10s ease-in-out infinite alternate;
+  transition:opacity 2s var(--ease), background 2s var(--ease);
+  will-change:opacity,background-position;
+}
+#fluid-gradient-bg.on { opacity:1; }
+@keyframes fluidMove {
+  0%   { background-position:0% 50%;   transform:scale(1.05) translate(0,0); }
+  33%  { background-position:60% 20%;  transform:scale(1.1)  translate(-15px,10px); }
+  66%  { background-position:100% 80%; transform:scale(1.07) translate(10px,-12px); }
+  100% { background-position:30% 100%; transform:scale(1.12) translate(-8px,15px); }
+}
+
+/* ── VINYL MODE ── */
+@keyframes vinylSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Pochette → disque */
+.art-wrap.vinyl .art-img,
+.art-wrap.vinyl .fallback-art {
+  border-radius: 50% !important;
+  animation: vinylSpin 1.82s linear infinite;
+  animation-play-state: paused;
+}
+.art-wrap.vinyl .art-glow { border-radius: 50%; }
+.art-wrap.vinyl.playing .art-img,
+.art-wrap.vinyl.playing .fallback-art {
+  animation-play-state: running;
+}
+
+/* Microsillons overlay */
+.vinyl-grooves {
+  position:absolute;inset:0;border-radius:50%;
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px, transparent 5px,
+    rgba(0,0,0,.18) 5px, rgba(0,0,0,.18) 6px
+  );
+  pointer-events:none;z-index:3;
+  opacity:0;transition:opacity .4s var(--ease);
+}
+.art-wrap.vinyl .vinyl-grooves { opacity:1; }
+
+/* Centre du vinyle */
+.vinyl-center {
+  position:absolute;
+  width:18%;height:18%;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:radial-gradient(circle, #2a2a2a 60%, #111 100%);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 0 0 1px rgba(0,0,0,.5);
+  pointer-events:none;z-index:4;
+  opacity:0;transition:opacity .4s var(--ease);
+}
+.art-wrap.vinyl .vinyl-center { opacity:1; }
+
+/* Bras de lecture (Tonearm) */
+.tonearm-wrap {
+  position:absolute;
+  top:-22px;right:-34px;
+  width:70px;height:110px;
+  transform-origin:72% 12%;
+  transform:rotate(-26deg);
+  pointer-events:none;z-index:10;
+  opacity:0;
+  transition:opacity .4s var(--ease), transform .9s cubic-bezier(0.34,1.2,0.64,1);
+}
+.art-wrap.vinyl .tonearm-wrap { opacity:1; }
+.art-wrap.vinyl.playing .tonearm-wrap { transform:rotate(-5deg); }
+
+.tonearm-pivot {
+  position:absolute;top:0;right:4px;
+  width:13px;height:13px;border-radius:50%;
+  background:linear-gradient(135deg,#ccc,#888);
+  border:1px solid rgba(255,255,255,.3);
+  box-shadow:0 2px 6px rgba(0,0,0,.6);
+}
+.tonearm-arm {
+  position:absolute;top:6px;right:9px;
+  width:2.5px;height:92px;
+  background:linear-gradient(to bottom,rgba(210,210,210,.9),rgba(140,140,140,.5));
+  border-radius:2px;transform-origin:top center;
+  transform:rotate(-6deg);
+}
+.tonearm-head {
+  position:absolute;bottom:0;right:3px;
+  width:10px;height:6px;
+  background:rgba(180,180,180,.75);
+  border-radius:2px;
+  box-shadow:0 1px 4px rgba(0,0,0,.5);
+}
+
+/* ── EQUALIZER VISUALIZER ── */
+#eq-viz {
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  gap:3px;
+  height:26px;
+  margin-top:18px;
+}
+body.show-eq #eq-viz { display:flex; }
+
+.eq-bar {
+  width:3px;
+  border-radius:3px 3px 1px 1px;
+  background:var(--accent);
+  transform-origin:bottom center;
+  box-shadow:0 0 6px var(--accent);
+}
+.eq-bar:nth-child(1){ height:10px; animation:eqB 0.55s ease-in-out infinite alternate; animation-delay:0s; }
+.eq-bar:nth-child(2){ height:18px; animation:eqB 0.75s ease-in-out infinite alternate; animation-delay:0.07s; }
+.eq-bar:nth-child(3){ height:24px; animation:eqB 0.5s  ease-in-out infinite alternate; animation-delay:0.04s; }
+.eq-bar:nth-child(4){ height:16px; animation:eqB 0.65s ease-in-out infinite alternate; animation-delay:0.12s; }
+.eq-bar:nth-child(5){ height:12px; animation:eqB 0.85s ease-in-out infinite alternate; animation-delay:0.09s; }
+.eq-bar:nth-child(6){ height:20px; animation:eqB 0.6s  ease-in-out infinite alternate; animation-delay:0.03s; }
+.eq-bar:nth-child(7){ height:9px;  animation:eqB 0.7s  ease-in-out infinite alternate; animation-delay:0.14s; }
+
+@keyframes eqB {
+  from { transform:scaleY(0.2); opacity:0.5; }
+  to   { transform:scaleY(1);   opacity:1;   }
+}
+body:not(.is-playing) .eq-bar {
+  animation-play-state:paused;
+  transform:scaleY(0.2);
+  opacity:0.3;
+}
+body.is-playing .eq-bar { animation-play-state:running; }
+
+/* ── KEYBOARD SHORTCUT HINT ── */
+.sp-shortcuts {
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  margin-top:6px;
+}
+.sp-shortcut {
+  display:flex;align-items:center;gap:8px;
+  padding:6px 10px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:8px;
+}
+.sp-key {
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  padding:2px 7px;border-radius:5px;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  color:rgba(255,255,255,.8);flex-shrink:0;
+}
+.sp-key-label { font-size:11px;color:rgba(255,255,255,.4); }
 </style>
 </head>
 <body>
@@ -606,6 +764,7 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 </div>
 
 <div id="s-player">
+  <div id="fluid-gradient-bg"></div>
   <div class="bg-layer" id="bg-a"></div>
   <div class="bg-layer" id="bg-b"></div>
   <div class="bg-filter" id="bg-filter"></div>
@@ -624,8 +783,14 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
         <div class="art-glow" id="art-glow"></div>
         <div class="fallback-art" id="fallback-a"></div>
         <div class="fallback-art" id="fallback-b"></div>
-        <img class="art-img" id="art-a" src="" alt=""/>
-        <img class="art-img" id="art-b" src="" alt=""/>
+        <img class="art-img" id="art-a" src="" alt="" crossorigin="anonymous"/>
+        <img class="art-img" id="art-b" src="" alt="" crossorigin="anonymous"/>
+        <div class="vinyl-grooves"></div>
+        <div class="vinyl-center"></div>
+        <div class="tonearm-wrap">
+          <div class="tonearm-pivot"></div>
+          <div class="tonearm-arm"><div class="tonearm-head"></div></div>
+        </div>
       </div>
       <div id="track-title" class="fade-up-text">—</div>
       <div id="artist-row" class="fade-up-text">
@@ -634,6 +799,11 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
       </div>
       <div id="progress-container">
         <div id="progress-bar"></div>
+      </div>
+      <div id="eq-viz">
+        <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+        <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+        <div class="eq-bar"></div>
       </div>
     </div>
   </div>
@@ -823,6 +993,54 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
       </div>
     </div>
 
+    <div class="sp-section">
+      <div class="sp-section-label">Effets Premium</div>
+      <div class="sp-row">
+        <span class="sp-row-label">🎵 Mode Vinyle (disque tournant)</span>
+        <label class="toggle">
+          <input type="checkbox" id="set-vinyl-mode">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="sp-row">
+        <span class="sp-row-label">🎨 Couleur adaptative (pochette)</span>
+        <label class="toggle">
+          <input type="checkbox" id="set-color-thief">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="sp-row">
+        <span class="sp-row-label">🌊 Fond Fluid Gradient</span>
+        <label class="toggle">
+          <input type="checkbox" id="set-fluid-gradient">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="sp-row">
+        <span class="sp-row-label">📊 Visualiseur Égaliseur</span>
+        <label class="toggle">
+          <input type="checkbox" id="set-eq-viz">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="sp-section">
+      <div class="sp-section-label">Raccourcis Clavier</div>
+      <div class="sp-shortcuts">
+        <div class="sp-shortcut"><span class="sp-key">L</span><span class="sp-key-label">Paroles</span></div>
+        <div class="sp-shortcut"><span class="sp-key">H</span><span class="sp-key-label">Historique</span></div>
+        <div class="sp-shortcut"><span class="sp-key">S</span><span class="sp-key-label">Paramètres</span></div>
+        <div class="sp-shortcut"><span class="sp-key">F</span><span class="sp-key-label">Plein écran</span></div>
+        <div class="sp-shortcut"><span class="sp-key">M</span><span class="sp-key-label">Masquer UI</span></div>
+        <div class="sp-shortcut"><span class="sp-key">Esc</span><span class="sp-key-label">Fermer tout</span></div>
+      </div>
+    </div>
+
     <button class="sp-logout" id="btn-logout">Se déconnecter</button>
   </div>
 
@@ -879,7 +1097,13 @@ const S={
   appleMode: false,
   showProgress: true,
   bgAnimation: 'none',
-  fontChoice: 'default'
+  fontChoice: 'default',
+  
+  // Premium effects
+  vinylMode: false,
+  colorThief: false,
+  fluidGradient: false,
+  eqViz: false
 };
 
 /* ═══════════════════════════════════════
@@ -946,6 +1170,13 @@ const $={
   userSearch:document.getElementById('user-search'),
   setAppleMode:document.getElementById('set-apple-mode'),
   setShowProgress:document.getElementById('set-show-progress'),
+  
+  // Premium effects UI
+  setVinylMode:document.getElementById('set-vinyl-mode'),
+  setColorThief:document.getElementById('set-color-thief'),
+  setFluidGradient:document.getElementById('set-fluid-gradient'),
+  setEqViz:document.getElementById('set-eq-viz'),
+  fluidGradientBg:document.getElementById('fluid-gradient-bg'),
 };
 
 /* ═══════════════════════════════════════
@@ -996,6 +1227,12 @@ function applySettings(){
   
   $.setAppleMode.checked=S.appleMode;
   $.setShowProgress.checked=S.showProgress;
+  
+  // Premium effects checkboxes
+  $.setVinylMode.checked=S.vinylMode;
+  $.setColorThief.checked=S.colorThief;
+  $.setFluidGradient.checked=S.fluidGradient;
+  $.setEqViz.checked=S.eqViz;
 
   $.artWrap.style.opacity=S.showArt?'1':'0';
   $.artGlow.style.display=S.showGlow?'block':'none';
@@ -1029,6 +1266,15 @@ function applySettings(){
   
   // Appliquer l'animation des orbes
   $.orbBg.style.opacity = (S.bgAnimation === 'blobs') ? '1' : '0';
+  
+  // Vinyl mode
+  $.artWrap.classList.toggle('vinyl', S.vinylMode);
+  
+  // EQ viz
+  document.body.classList.toggle('show-eq', S.eqViz);
+  
+  // Fluid gradient: hide if disabled
+  if(!S.fluidGradient) $.fluidGradientBg.classList.remove('on');
 }
 
 function updateSliderFill(el){
@@ -1053,6 +1299,10 @@ $.setGrain.addEventListener('change',()=>{S.showGrain=$.setGrain.checked;applySe
 $.setAutoscroll.addEventListener('change',()=>{S.autoScroll=$.setAutoscroll.checked;applySettings();saveSettings()});
 $.setAppleMode.addEventListener('change',()=>{S.appleMode=$.setAppleMode.checked;applySettings();saveSettings()});
 $.setShowProgress.addEventListener('change',()=>{S.showProgress=$.setShowProgress.checked;applySettings();saveSettings()});
+$.setVinylMode.addEventListener('change',()=>{S.vinylMode=$.setVinylMode.checked;applySettings();saveSettings()});
+$.setColorThief.addEventListener('change',()=>{S.colorThief=$.setColorThief.checked;if(!S.colorThief){document.documentElement.style.setProperty('--accent',S.accentColor);}else if(currentTrack){triggerColorThief();}saveSettings()});
+$.setFluidGradient.addEventListener('change',()=>{S.fluidGradient=$.setFluidGradient.checked;if(!S.fluidGradient){$.fluidGradientBg.classList.remove('on');}else if(currentTrack){triggerColorThief();}saveSettings()});
+$.setEqViz.addEventListener('change',()=>{S.eqViz=$.setEqViz.checked;applySettings();saveSettings()});
 
 document.querySelectorAll('[data-bg]').forEach(b=>{b.addEventListener('click',()=>{S.bgMode=b.dataset.bg;applySettings();saveSettings();});});
 document.querySelectorAll('[data-panel]').forEach(b=>{b.addEventListener('click',()=>{S.defaultPanel=b.dataset.panel;applySettings();saveSettings();});});
@@ -1268,10 +1518,17 @@ function handleTrack(track){
     $.content.style.opacity='0';
     $.mq.textContent='— — — — — — — — — — — — — — — — — — — — — — — — —';
     cancelAnimationFrame(progressRAF);
+    $.artWrap.classList.remove('playing');
+    document.body.classList.remove('is-playing');
+    if(!S.colorThief) {}
+    else document.documentElement.style.setProperty('--accent',S.accentColor);
+    if(S.fluidGradient) $.fluidGradientBg.classList.remove('on');
     return;
   }
   $.noTrack.classList.remove('on');
   $.content.style.opacity='1';
+  $.artWrap.classList.add('playing');
+  document.body.classList.add('is-playing');
 
   const id=trackId(track);
   if(id===trackId(currentTrack))return;
@@ -1326,6 +1583,59 @@ function handleTrack(track){
   if(lyricsOpen)loadLyrics(artist,title);
 }
 
+/* ═══════════════════════════════════════
+   COLOR THIEF — CANVAS EXTRACTION
+═══════════════════════════════════════ */
+function extractDominantColors(imgEl, count=4){
+  try{
+    const canvas=document.createElement('canvas');
+    const size=50;canvas.width=size;canvas.height=size;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(imgEl,0,0,size,size);
+    const data=ctx.getImageData(0,0,size,size).data;
+    const buckets={};
+    for(let i=0;i<data.length;i+=4){
+      const r=Math.round(data[i]/28)*28;
+      const g=Math.round(data[i+1]/28)*28;
+      const b=Math.round(data[i+2]/28)*28;
+      const key=`${r},${g},${b}`;
+      buckets[key]=(buckets[key]||0)+1;
+    }
+    const sorted=Object.entries(buckets)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([k])=>{const[r,g,b]=k.split(',').map(Number);return{r,g,b};});
+    const filtered=sorted.filter(c=>{
+      const lum=(c.r*299+c.g*587+c.b*114)/1000;
+      return lum>20&&lum<230;
+    });
+    return(filtered.length>=2?filtered:sorted).slice(0,count);
+  }catch(e){return null;}
+}
+
+function triggerColorThief(){
+  const activeImg=(artSlot==='a'?$.artB:$.artA); // current showing img
+  const img=activeImg.naturalWidth>0?activeImg:(artSlot==='a'?$.artA:$.artB);
+  if(!img||!img.naturalWidth)return;
+  const colors=extractDominantColors(img,4);
+  if(!colors||colors.length<2)return;
+  
+  if(S.colorThief){
+    // Utilise la 2ème couleur la plus dominante (évite le noir/blanc pur)
+    const vivid=colors.find(c=>{const l=(c.r*299+c.g*587+c.b*114)/1000;return l>40&&l<200;})
+               ||colors[0];
+    const accentHex=`#${vivid.r.toString(16).padStart(2,'0')}${vivid.g.toString(16).padStart(2,'0')}${vivid.b.toString(16).padStart(2,'0')}`;
+    document.documentElement.style.setProperty('--accent',accentHex);
+  }
+  
+  if(S.fluidGradient){
+    const c=(i)=>`rgb(${colors[i]?.r||0},${colors[i]?.g||0},${colors[i]?.b||0})`;
+    const grad=`linear-gradient(135deg, ${c(0)}, ${c(1)}, ${c(2)||c(1)}, ${c(3)||c(0)}, ${c(0)})`;
+    $.fluidGradientBg.style.background=grad;
+    $.fluidGradientBg.style.backgroundSize='400% 400%';
+    $.fluidGradientBg.classList.add('on');
+  }
+}
+
 function fallbackGradient(artistName){
   let h1=0,h2=0;
   for(let i=0;i<artistName.length;i++){h1=(h1+artistName.charCodeAt(i)*7)%360;h2=(h2+artistName.charCodeAt(i)*13)%360}
@@ -1356,6 +1666,7 @@ function swapArt(url,artist,title){
     return;
   }
 
+  back.crossOrigin='anonymous';
   back.src=url;
   back.onerror=()=>{
     fbBack.style.background=grad;
@@ -1378,6 +1689,8 @@ function swapArt(url,artist,title){
     updateBg(url,null);
     $.artGlow.style.backgroundImage=`url('${url}')`;
     $.artGlow.style.background='transparent';
+    // Trigger color extraction after image loads
+    setTimeout(()=>triggerColorThief(),200);
   };
   if(back.complete&&back.naturalWidth)back.onload();
 }
@@ -1516,6 +1829,48 @@ document.addEventListener('fullscreenchange',()=>{
   ico.innerHTML=document.fullscreenElement
     ?'<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>'
     :'<path d="M3 3h6v2H5v4H3V3zm12 0h6v6h-2V5h-4V3zM3 15h2v4h4v2H3v-6zm16 4h-4v2h6v-6h-2v4z"/>';
+});
+
+/* ═══════════════════════════════════════
+   KEYBOARD SHORTCUTS
+═══════════════════════════════════════ */
+document.addEventListener('keydown',e=>{
+  // Ignore si on tape dans un input
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  // Ignore si le player n'est pas actif
+  if(!$.player.classList.contains('on'))return;
+  
+  switch(e.key.toUpperCase()){
+    case 'L':
+      e.preventDefault();
+      $.btnLyrics.click();
+      break;
+    case 'H':
+      e.preventDefault();
+      $.btnHist.click();
+      break;
+    case 'S':
+      e.preventDefault();
+      $.btnSettings.click();
+      break;
+    case 'F':
+      e.preventDefault();
+      $.btnFs.click();
+      break;
+    case 'M':
+      e.preventDefault();
+      $.ui.classList.toggle('hidden');
+      if($.ui.classList.contains('hidden')) document.body.style.cursor='none';
+      else { document.body.style.cursor='default'; resetIdle(); }
+      break;
+    case 'ESCAPE':
+      // Ferme tous les panels ouverts
+      if(settingsOpen){ settingsOpen=false;$.settingsPanel.classList.remove('on');$.btnSettings.classList.remove('active');}
+      if(lyricsOpen){lyricsOpen=false;$.lyricsPanel.classList.remove('on');$.btnLyrics.classList.remove('active');$.hero.classList.remove('shifted');}
+      if(histOpen){histOpen=false;$.histPanel.classList.remove('on');$.btnHist.classList.remove('active');$.hero.classList.remove('shifted');}
+      resetIdle();
+      break;
+  }
 });
 
 $.bgA.style.backgroundImage='linear-gradient(135deg,#0f0524 0%,#06172e 50%,#0d0d0d 100%)';

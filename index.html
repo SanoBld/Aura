@@ -1325,7 +1325,7 @@ $.userSearch.addEventListener('keydown', (e) => {
     // Forcer le rechargement immédiat
     clearInterval(pollTimer);
     poll();
-    pollTimer = setInterval(poll, 6000);
+    pollTimer = setInterval(poll, 2000);
   }
 });
 
@@ -1471,7 +1471,7 @@ async function fetchArtistImage(artist){
 /* ═══════════════════════════════════════
    POLLING
 ═══════════════════════════════════════ */
-function startPolling(){poll();pollTimer=setInterval(poll,6000)}
+function startPolling(){poll();pollTimer=setInterval(poll,2000)}
 
 async function poll(){
   try{

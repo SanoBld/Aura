@@ -362,7 +362,7 @@ $.userSearch.addEventListener('keydown', (e) => {
     setStatus('loading', target !== '' ? 'Vue : ' + target : 'Retour…');
     clearInterval(pollTimer);
     poll();
-    pollTimer = setInterval(poll, 2000);
+    pollTimer = setInterval(poll, 1000);
   }
 });
 
@@ -601,7 +601,7 @@ async function updateArtistAvatar(artist, title) {
 /* ═══════════════════════════════════════
    POLLING (Last.fm)
 ═══════════════════════════════════════ */
-function startPolling() { poll(); pollTimer = setInterval(poll, 2000); }
+function startPolling() { poll(); pollTimer = setInterval(poll, 1000); }
 
 async function poll() {
   // Source priority logic

@@ -361,9 +361,10 @@ body.hero-minimal #progress-container {
   position: relative; width: 36px; height: 36px; border-radius: 50%;
   border: 1.5px solid rgba(255,255,255,.2); overflow: hidden; flex-shrink: 0;
   box-shadow: 0 2px 12px rgba(0,0,0,.4); background: rgba(255,255,255,.06);
-  opacity: 0; transition: opacity var(--t2) var(--ease), transform .3s var(--spring);
+  opacity: 0; transition: opacity var(--t2) var(--ease) 0.4s, transform .3s var(--spring) 0.4s;
+  transform: scale(0.85);
 }
-.avatar-circle.on { opacity: 1; }
+.avatar-circle.on { opacity: 1; transform: scale(1); }
 .avatar-circle:hover { transform: scale(1.1); }
 
 .avatar-circle img#artist-avatar {
@@ -482,7 +483,7 @@ body.show-canvas-viz #viz-canvas { display: block; }
 
 /* LRC container — slides via translateY, GPU-composited */
 #lrc-container {
-  padding: 36vh 0;
+  padding: 36vh 0 52vh;
   will-change: transform;
   transition: transform 0.55s var(--snap);
 }
@@ -564,10 +565,11 @@ body.show-canvas-viz #viz-canvas { display: block; }
   background: transparent; border: none; border-bottom: 2px solid transparent;
   color: rgba(255,255,255,.3); font-family: 'Instrument Sans', sans-serif;
   font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
-  cursor: pointer; transition: color var(--t1), border-color var(--t1);
+  cursor: pointer; transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease);
+  border-radius: 6px 6px 0 0;
 }
-.sp-tab:hover  { color: rgba(255,255,255,.6); }
-.sp-tab.active { color: #fff; border-bottom-color: var(--accent); }
+.sp-tab:hover  { color: rgba(255,255,255,.7); background: rgba(255,255,255,.04); }
+.sp-tab.active { color: #fff; border-bottom-color: var(--accent); background: transparent; }
 
 .sp-tab-pane {
   display: none; overflow-y: auto; flex: 1;
@@ -596,7 +598,18 @@ body.show-canvas-viz #viz-canvas { display: block; }
   transition: all .3s;
 }
 
+.sp-divider {
+  border: none; border-top: 1px solid rgba(255,255,255,.08);
+  margin: 4px 0 22px; display: block;
+}
+
 .sp-priority-info { font-size: 12px; color: rgba(255,255,255,.3); line-height: 1.5; margin-bottom: 4px; }
+#hero-scale-val {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: rgba(255,255,255,.5); margin-left: auto; font-weight: 400;
+  letter-spacing: 0;
+}
+
 .sp-priority-desc {
   margin-top: 10px; padding: 9px 12px;
   background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
@@ -665,9 +678,11 @@ body.show-canvas-viz #viz-canvas { display: block; }
 .sp-option {
   padding: 7px 14px; border-radius: 8px;
   background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
-  font-size: 12px; color: rgba(255,255,255,.5); cursor: pointer; transition: all var(--t1);
+  font-size: 12px; color: rgba(255,255,255,.5); cursor: pointer;
+  transition: background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease), transform .15s var(--spring);
 }
-.sp-option:hover  { background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); }
+.sp-option:hover  { background: rgba(255,255,255,.12); color: rgba(255,255,255,.9); border-color: rgba(255,255,255,.2); transform: scale(1.03); }
+.sp-option:active { transform: scale(.97); }
 .sp-option.active { background: rgba(255,255,255,.9); color: #000; border-color: transparent; font-weight: 500; }
 
 .sp-swatches { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
@@ -865,12 +880,12 @@ body.show-canvas-viz #viz-canvas { display: block; }
   color: rgba(255,255,255,.7);
   font-family: 'Instrument Sans', sans-serif; font-weight: 500; font-size: 12px; letter-spacing: .04em;
   cursor: pointer; backdrop-filter: blur(12px);
-  transition: background var(--t1), color var(--t1), transform var(--t1) var(--spring), border-color var(--t1);
+  transition: background var(--t1), color var(--t1), transform var(--t1) var(--spring), border-color var(--t1), opacity var(--t2) var(--ease);
   will-change: transform;
 }
 .btn-pill:hover  { background: rgba(255,255,255,.16); color: #fff; transform: scale(1.04); border-color: rgba(255,255,255,.25); }
 .btn-pill:active { transform: scale(.96); }
-.btn-pill.active { background: rgba(255,255,255,.9); color: #000; border-color: transparent; }
+.btn-pill.active { background: rgba(255,255,255,.06); color: var(--accent); border-color: rgba(255,255,255,.18); }
 
 /* icon button */
 .btn-icon {
@@ -879,12 +894,18 @@ body.show-canvas-viz #viz-canvas { display: block; }
   color: rgba(255,255,255,.65);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; backdrop-filter: blur(12px);
-  transition: background var(--t1), transform var(--t1) var(--spring);
+  transition: background var(--t1), transform var(--t1) var(--spring), opacity var(--t2) var(--ease);
   will-change: transform;
 }
 .btn-icon:hover  { background: rgba(255,255,255,.18); transform: scale(1.08); }
 .btn-icon svg    { width: 15px; height: 15px; fill: currentColor; }
 .btn-icon.active { background: rgba(255,255,255,.9); color: #000; border-color: transparent; }
+
+/* hide all buttons except the active pill when lyrics / history panel is open */
+.top-actions.icons-hidden .btn-icon,
+.top-actions.icons-hidden .btn-pill:not(.active) {
+  opacity: 0; pointer-events: none; transform: scale(0.82);
+}
 
 .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 26px 32px; display: flex; align-items: flex-end; justify-content: flex-end; }
 
@@ -930,6 +951,18 @@ body.show-canvas-viz #viz-canvas { display: block; }
   33%  { background-position: 60% 20%;  transform: scale(1.1)  translate(-15px, 10px); }
   66%  { background-position: 100% 80%; transform: scale(1.07) translate(10px, -12px); }
   100% { background-position: 30% 100%; transform: scale(1.12) translate(-8px, 15px); }
+}
+
+
+/* source indicator — subtle border glow on hero depending on active source */
+body.source-lanyard #track-content::after {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: calc(var(--art-radius) + 6px);
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(29,185,84,.18), 0 0 40px rgba(29,185,84,.06);
+  pointer-events: none; z-index: -1;
+  opacity: 1; transition: opacity 1s var(--ease);
 }
 
 

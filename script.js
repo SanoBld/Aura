@@ -148,6 +148,9 @@ const $ = {
   vizCanvas: document.getElementById('viz-canvas'),
 };
 
+/* Extra DOM ref not in $ map */
+const $topActions = document.querySelector('.top-actions');
+
 /* ---- CACHE / PERSISTENCE ---- */
 function saveCache() { try { localStorage.setItem('aura_user', originalUser); localStorage.setItem('aura_key', apiKey); } catch(e) {} }
 function loadCache() { try { return { u: localStorage.getItem('aura_user') || '', k: localStorage.getItem('aura_key') || '' }; } catch(e) { return { u: '', k: '' }; } }
@@ -289,6 +292,8 @@ function applySettings() {
   const scale = (S.heroScale || 100) / 100;
   document.documentElement.style.setProperty('--hero-scale', scale);
   if ($.setHeroScale) { $.setHeroScale.value = S.heroScale; updateSliderFill($.setHeroScale); }
+  const heroScaleVal = document.getElementById('hero-scale-val');
+  if (heroScaleVal) heroScaleVal.textContent = (S.heroScale || 100) + '%';
 
   // Hero layout — remove all, add the active one
   document.body.classList.remove('hero-focus', 'hero-minimal');
@@ -894,10 +899,10 @@ function handleTrack(track, fromLanyard = false) {
   if (!track) {
     $.noTrack.classList.add('on');
     $.content.style.opacity = '0';
-    $.mq.textContent = '— — — — — — — — — — — — — — — — — — — — — — — — —';
+    $.mq.textContent = ('· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ').repeat(3);
     cancelAnimationFrame(progressRAF);
     $.artWrap.classList.remove('playing');
-    document.body.classList.remove('is-playing', 'is-paused');
+    document.body.classList.remove('is-playing', 'is-paused', 'source-lanyard');
     if (S.colorThief) document.documentElement.style.setProperty('--accent', S.accentColor);
     if (S.fluidGradient) $.fluidGradientBg.classList.remove('on');
     stopLRC();
@@ -929,6 +934,8 @@ function handleTrack(track, fromLanyard = false) {
   $.artWrap.classList.add('playing');
   document.body.classList.add('is-playing');
   document.body.classList.remove('is-paused');
+  // Source indicator — green border glow when playing from Lanyard/Spotify
+  document.body.classList.toggle('source-lanyard', !!track._fromLanyard);
 
   // Timestamps — Lanyard provides exact start, otherwise use now
   if (track._fromLanyard && track._timestampStart > 0) {
@@ -1001,8 +1008,8 @@ function extractDominantColors(imgEl, count = 4) {
 }
 
 function triggerColorThief() {
-  const img = artSlot === 'a' ? $.artB : $.artA;
-  const activeImg = img.naturalWidth > 0 ? img : (artSlot === 'a' ? $.artA : $.artB);
+  // After swapArt, artSlot already points to the newly active slot
+  const activeImg = artSlot === 'a' ? $.artA : $.artB;
   if (!activeImg || !activeImg.naturalWidth) return;
   const colors = extractDominantColors(activeImg, 4);
   if (!colors || colors.length < 2) return;
@@ -1256,7 +1263,10 @@ async function fetchLyricsFromLRCLIB(artist, title) {
 async function loadLyrics(artist, title) {
   stopLRC();
 
-  $.lpBody.innerHTML = '<div id="lrc-container"><span class="lp-empty">Loading lyrics…</span></div>';
+  // Write directly into the persistent #lrc-container — never replace $.lpBody.innerHTML
+  // (replacing it creates a new element and breaks the $.lrcContainer reference)
+  $.lrcContainer.innerHTML = '<span class="lp-empty">Chargement des paroles…</span>';
+  $.lpBody.classList.remove('lrc-mode');
   setLPBadge('');
 
   const cached = getLRCCache(artist, title);
@@ -1267,7 +1277,7 @@ async function loadLyrics(artist, title) {
   }
 
   if (!lyrData) {
-    $.lrcContainer.innerHTML = `<span class="lp-empty">No lyrics found.<br/>Try <a href="https://genius.com/search?q=${encodeURIComponent(artist + ' ' + title)}" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Genius →</a></span>`;
+    $.lrcContainer.innerHTML = `<span class="lp-empty">Aucune parole trouvée.<br/>Essayer sur <a href="https://genius.com/search?q=${encodeURIComponent(artist + ' ' + title)}" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Genius →</a></span>`;
     setLPBadge('plain');
     return;
   }
@@ -1294,7 +1304,7 @@ async function loadLyrics(artist, title) {
   const plain = lyrData.plainLyrics ? lyrData.plainLyrics.trim().replace(/</g, '&lt;').replace(/\n/g, '<br>') : '';
   $.lrcContainer.innerHTML = plain
     ? `<div class="plain-lyrics">${plain}</div>`
-    : `<span class="lp-empty">No lyrics found.</span>`;
+    : `<span class="lp-empty">Aucune parole trouvée.</span>`;
   setLPBadge('plain');
 }
 
@@ -1359,6 +1369,7 @@ function closeAllPanels() {
   if (histOpen)    { histOpen = false;      $.histPanel.classList.remove('on');   $.btnHist.classList.remove('active'); }
   if (settingsOpen){ settingsOpen = false;  $.settingsPanel.classList.remove('on'); $.btnSettings.classList.remove('active'); }
   $.hero.classList.remove('shifted');
+  $topActions.classList.remove('icons-hidden');
 }
 
 $.btnLyrics.addEventListener('click', () => {
@@ -1369,11 +1380,12 @@ $.btnLyrics.addEventListener('click', () => {
     $.lyricsPanel.classList.add('on');
     $.btnLyrics.classList.add('active');
     $.hero.classList.add('shifted');
+    $topActions.classList.add('icons-hidden');
     if (currentTrack) {
       const artist = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
       loadLyrics(artist, currentTrack.name || '');
     } else {
-      $.lpBody.innerHTML = '<div id="lrc-container"><span class="lp-empty">Waiting for a track…</span></div>';
+      $.lrcContainer.innerHTML = '<span class="lp-empty">En attente d\'un titre…</span>';
       setLPBadge('');
     }
   }
@@ -1388,6 +1400,7 @@ $.btnHist.addEventListener('click', () => {
     $.histPanel.classList.add('on');
     $.btnHist.classList.add('active');
     $.hero.classList.add('shifted');
+    $topActions.classList.add('icons-hidden');
   }
   resetIdle();
 });

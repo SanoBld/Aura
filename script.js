@@ -1,19 +1,24 @@
-/* AURA — script.js v6
+/* AURA — script.js v7
    ─────────────────────────────────────────────────────────────────────────────
-   CHANGES vs v5:
-   · [data-lyrics-font] buttons wired (was broken — used select ref that doesn't exist)
-   · Marquee speed: dir=rtl removed; CSS var maps high=fast via (70-value)s
-   · Fluid gradient: always shows with fallback palette when no art is loaded
-   · Album ctx-menu: Last.fm + Share only (no like/copy). Wired from HTML directly.
-   · injectAlbumHoverMenu() removed (was duplicating HTML ctx-menu)
-   · checkTitleOverflow(): auto-scrolling marquee when title overflows container
-   · S.albumAnim + body.album-anim for artwork float animation toggle
-   · New bg animation modes: legere / energique / flottante (body class switching)
-   · [data-fps] buttons wired
-   · All sliders update their sp-slider-val % displays
-   · generateShareImage() kept; openLastFmPage() added for ctx-btn-lastfm
+   CHANGES vs v6:
+   · [REMOVED] btn-lanyard-status (éclair) button and all associated functions
+   · [NEW] Lyrics auto-color: detects album art brightness → white/black text
+   · [NEW] Lyrics backdrop blur slider (0-100%) with CSS var --lyrics-backdrop-blur
+   · [NEW] Lyrics text shadow opacity slider (0-100%)
+   · [NEW] Lyrics blur mode: 'standard' | 'apple' (Apple Music vibrant gradients)
+   · [NEW] Animated glow (pulsed) for album art
+   · [NEW] applyLyricsColors() — auto text color from album art luminance
+   · [NEW] applyLyricsAmBg() — Apple Music animated gradient behind lyrics
+   · [FIX] tickLRC(): lyrics now advance +500ms early (sync fix)
+   · [FIX] resetIdle(): 2s delay in zen/focus mode (was 0 — instant)
+   · [FIX] toggleZenMode(): no longer instantly adds is-idle; uses resetIdle()
+   · [FIX] Zen mode closes lyrics panel too; focus = art only
+   · [NEW] setLyricsBlurMode buttons wired
    ─────────────────────────────────────────────────────────────────────────────
 */
+
+/* ---- LYRICS TIMING OFFSET ---- */
+const LYRICS_ADVANCE_MS = 500; // Show lyrics 500ms earlier to compensate delay
 
 /* ---- STATE ---- */
 let apiKey = '', username = '', originalUser = '', currentTrack = null, artSlot = 'a', bgSlot = 'a';
@@ -38,6 +43,12 @@ const S = {
   lanyardId: '', sourcePriority: 'lanyard', vizFPS: 60,
   lyricsSize: 100, lyricsFontChoice: 'serif', lyricsAnim: true,
   albumAnim: true,
+  // NEW v7
+  lyricsBackdropBlur: 40,   // 0-100 → maps to 0-60px blur
+  lyricsShadowOpacity: 70,  // 0-100 → text shadow opacity %
+  lyricsAutoColor: true,    // auto detect text color from album art
+  lyricsBlurMode: 'standard', // 'standard' | 'apple'
+  animatedGlow: false,      // pulsed glow on album art
 };
 
 /* ---- DOM REFS ---- */
@@ -78,6 +89,7 @@ const $ = {
   lpBody:          document.getElementById('lp-body'),
   lpBadge:         document.getElementById('lp-badge'),
   lrcContainer:    document.getElementById('lrc-container'),
+  lyricsAmBg:      document.getElementById('lyrics-am-bg'),
   histPanel:       document.getElementById('hist-panel'),
   hpList:          document.getElementById('hp-list'),
   settingsPanel:   document.getElementById('settings-panel'),
@@ -119,8 +131,6 @@ const $ = {
   lanyardDot:      document.getElementById('lanyard-dot'),
   lanyardStatusText: document.getElementById('lanyard-status-text'),
   lanyardWsBadge:  document.getElementById('lanyard-ws-badge'),
-  btnLanyardStatus:document.getElementById('btn-lanyard-status'),
-  lanyardBadge:    document.getElementById('lanyard-badge'),
   setLyricsSize:   document.getElementById('set-lyrics-size'),
   setLyricsSizeVal:document.getElementById('set-lyrics-size-val'),
   setLyricsAnim:   document.getElementById('set-lyrics-anim'),
@@ -135,6 +145,14 @@ const $ = {
   // Album ctx buttons (from HTML)
   ctxBtnLastfm:    document.getElementById('ctx-btn-lastfm'),
   ctxBtnShare:     document.getElementById('ctx-btn-share'),
+  // NEW v7 — Lyrics legibility controls
+  setLyricsBlur:   document.getElementById('set-lyrics-blur'),
+  setLyricsShadow: document.getElementById('set-lyrics-shadow'),
+  setLyricsAutoColor: document.getElementById('set-lyrics-auto-color'),
+  setAnimatedGlow: document.getElementById('set-animated-glow'),
+  valLyricsBlur:   document.getElementById('val-lyrics-blur'),
+  valLyricsShadow: document.getElementById('val-lyrics-shadow'),
+  lyricsModeDesc:  document.getElementById('lyrics-mode-desc'),
 };
 
 /* ---- CACHE / PERSISTENCE ---- */
@@ -222,6 +240,78 @@ function pctLabel(value, min, max) {
   return Math.round(((value - min) / (max - min)) * 100) + '%';
 }
 
+/* ============================================================
+   IMAGE LUMINANCE — for auto text color
+   ============================================================ */
+function getImageLuminance(imgEl) {
+  try {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 24;
+    const ctx = cv.getContext('2d');
+    ctx.drawImage(imgEl, 0, 0, 24, 24);
+    const data = ctx.getImageData(0, 0, 24, 24).data;
+    let total = 0, count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      total += (data[i] * 299 + data[i+1] * 587 + data[i+2] * 114) / 1000;
+      count++;
+    }
+    return count > 0 ? total / count : 128;
+  } catch { return 128; }
+}
+
+/* ============================================================
+   LYRICS AUTO COLOR — adapt text color to album brightness
+   ============================================================ */
+function applyLyricsColors() {
+  if (!S.lyricsAutoColor) {
+    document.body.classList.remove('lyrics-on-light');
+    return;
+  }
+  const img = artSlot === 'a' ? $.artA : $.artB;
+  if (!img || !img.naturalWidth) {
+    document.body.classList.remove('lyrics-on-light');
+    return;
+  }
+  const lum = getImageLuminance(img);
+  // If album is light (> 155), use dark text; otherwise use white text
+  document.body.classList.toggle('lyrics-on-light', lum > 155);
+}
+
+/* ============================================================
+   APPLE MUSIC LYRICS BACKGROUND — vibrant animated gradients
+   ============================================================ */
+function applyLyricsAmBg() {
+  if (!$.lyricsAmBg) return;
+  if (S.lyricsBlurMode !== 'apple') {
+    document.body.classList.remove('lyrics-apple-mode');
+    return;
+  }
+  document.body.classList.add('lyrics-apple-mode');
+
+  const img = artSlot === 'a' ? $.artA : $.artB;
+  let colors = null;
+  if (img && img.naturalWidth) colors = extractDominantColors(img, 4);
+  if (!colors || colors.length < 2) colors = FLUID_FALLBACK;
+
+  const [c0, c1, c2, c3] = [colors[0], colors[1], colors[2] || colors[0], colors[3] || colors[1]];
+  const [r0, r1, r2, r3] = [c0, c1, c2, c3].map(c => `rgb(${c.r},${c.g},${c.b})`);
+
+  $.lyricsAmBg.style.backgroundImage = [
+    `radial-gradient(ellipse at 15% 25%, ${r0}ee 0%, transparent 60%)`,
+    `radial-gradient(ellipse at 85% 75%, ${r1}cc 0%, transparent 60%)`,
+    `radial-gradient(ellipse at 78% 18%, ${r2}aa 0%, transparent 55%)`,
+    `radial-gradient(ellipse at 22% 82%, ${r3}99 0%, transparent 55%)`,
+  ].join(', ');
+}
+
+/* ============================================================
+   ANIMATED GLOW (pulsed)
+   ============================================================ */
+function applyAnimatedGlow() {
+  if (!$.artGlow) return;
+  $.artGlow.classList.toggle('pulsed', S.animatedGlow);
+}
+
 /* ---- APPLY SETTINGS ---- */
 function applySettings() {
   document.documentElement.style.setProperty('--accent', S.accentColor);
@@ -236,8 +326,7 @@ function applySettings() {
   if ($.setSaturate)   { $.setSaturate.value    = S.saturate;     updateSliderFill($.setSaturate); }
   if ($.setMqSpeed)    { $.setMqSpeed.value     = S.marqueeSpeed; updateSliderFill($.setMqSpeed); }
 
-  /* Marquee speed: high slider value = fast = short duration.
-     Formula: (70 − value)s → at max 60 → 10s (fast), at min 10 → 60s (slow). */
+  /* Marquee speed */
   document.documentElement.style.setProperty('--mq-speed', (70 - S.marqueeSpeed) + 's');
 
   /* % value labels */
@@ -264,6 +353,7 @@ function applySettings() {
   t($.setEqViz,        S.eqViz);
   t($.setCanvasViz,    S.canvasViz);
   t($.setAlbumAnim,    S.albumAnim);
+  t($.setAnimatedGlow, S.animatedGlow);
 
   /* Art / avatar visibility */
   $.artWrap.style.opacity        = S.showArt   ? '1' : '0';
@@ -335,13 +425,15 @@ function applySettings() {
   if (S.heroAlign === 'right') document.body.classList.add('hero-right');
   document.querySelectorAll('[data-align]').forEach(b => b.classList.toggle('active', b.dataset.align === S.heroAlign));
 
+  /* Animated glow */
+  applyAnimatedGlow();
+
   applyLyricsSettings();
 }
 
 /* ---- LYRICS SETTINGS ---- */
 function applyLyricsSettings() {
   const size = S.lyricsSize || 100;
-  /* --lyrics-size is a float multiplier: 100 → 1.0, 150 → 1.5 */
   document.documentElement.style.setProperty('--lyrics-size', (size / 100).toFixed(2));
 
   if ($.setLyricsSize) { $.setLyricsSize.value = size; updateSliderFill($.setLyricsSize); }
@@ -358,6 +450,41 @@ function applyLyricsSettings() {
   /* Animation */
   document.body.classList.toggle('lyrics-anim-off', !S.lyricsAnim);
   if ($.setLyricsAnim) $.setLyricsAnim.checked = S.lyricsAnim;
+
+  /* NEW: Backdrop blur */
+  const blurPx = Math.round((S.lyricsBackdropBlur / 100) * 60); // 0-100% → 0-60px
+  document.documentElement.style.setProperty('--lyrics-backdrop-blur', blurPx + 'px');
+  // background opacity: more blur = slightly more opaque
+  const bgOpacity = S.lyricsBackdropBlur > 5 ? (0.05 + (S.lyricsBackdropBlur / 100) * 0.35).toFixed(2) : '0';
+  document.documentElement.style.setProperty('--lyrics-bg-opacity', bgOpacity);
+
+  if ($.setLyricsBlur) { $.setLyricsBlur.value = S.lyricsBackdropBlur; updateSliderFill($.setLyricsBlur); }
+  if ($.valLyricsBlur) $.valLyricsBlur.textContent = pctLabel(S.lyricsBackdropBlur, 0, 100);
+
+  /* NEW: Text shadow opacity */
+  const shadowAlpha = (S.lyricsShadowOpacity / 100).toFixed(2);
+  document.documentElement.style.setProperty('--lyrics-shadow-opacity', shadowAlpha);
+
+  if ($.setLyricsShadow) { $.setLyricsShadow.value = S.lyricsShadowOpacity; updateSliderFill($.setLyricsShadow); }
+  if ($.valLyricsShadow) $.valLyricsShadow.textContent = pctLabel(S.lyricsShadowOpacity, 0, 100);
+
+  /* NEW: Auto color toggle */
+  if ($.setLyricsAutoColor) $.setLyricsAutoColor.checked = S.lyricsAutoColor;
+  applyLyricsColors();
+
+  /* NEW: Blur mode buttons */
+  const bm = S.lyricsBlurMode || 'standard';
+  document.querySelectorAll('[data-lyrics-blur-mode]').forEach(b =>
+    b.classList.toggle('active', b.dataset.lyricsBlurMode === bm)
+  );
+  applyLyricsAmBg();
+
+  // Update mode desc
+  if ($.lyricsModeDesc) {
+    $.lyricsModeDesc.textContent = bm === 'apple'
+      ? 'Dégradés de couleurs vibrantes extraits de la pochette.'
+      : 'Flou standard avec teinte noire légère.';
+  }
 }
 
 function updateLayoutDesc() {
@@ -386,6 +513,7 @@ boolToggle($.setAppleMode,    'appleMode');
 boolToggle($.setShowProgress, 'showProgress');
 boolToggle($.setVinylMode,    'vinylMode');
 boolToggle($.setAlbumAnim,    'albumAnim');
+boolToggle($.setAnimatedGlow, 'animatedGlow');
 
 if ($.setColorThief) $.setColorThief.addEventListener('change', () => {
   S.colorThief = $.setColorThief.checked;
@@ -422,6 +550,27 @@ if ($.setLyricsAnim) $.setLyricsAnim.addEventListener('change', () => {
   S.lyricsAnim = $.setLyricsAnim.checked;
   applyLyricsSettings(); saveSettings();
 });
+
+/* NEW: Lyrics backdrop blur */
+if ($.setLyricsBlur) $.setLyricsBlur.addEventListener('input', () => {
+  S.lyricsBackdropBlur = parseInt($.setLyricsBlur.value);
+  applyLyricsSettings(); saveSettings();
+});
+/* NEW: Lyrics shadow opacity */
+if ($.setLyricsShadow) $.setLyricsShadow.addEventListener('input', () => {
+  S.lyricsShadowOpacity = parseInt($.setLyricsShadow.value);
+  applyLyricsSettings(); saveSettings();
+});
+/* NEW: Lyrics auto color */
+if ($.setLyricsAutoColor) $.setLyricsAutoColor.addEventListener('change', () => {
+  S.lyricsAutoColor = $.setLyricsAutoColor.checked;
+  applyLyricsSettings(); saveSettings();
+});
+/* NEW: Lyrics blur mode buttons */
+document.querySelectorAll('[data-lyrics-blur-mode]').forEach(b => b.addEventListener('click', () => {
+  S.lyricsBlurMode = b.dataset.lyricsBlurMode;
+  applyLyricsSettings(); saveSettings();
+}));
 
 /* Button groups */
 document.querySelectorAll('[data-bg]').forEach(b        => b.addEventListener('click', () => { S.bgMode         = b.dataset.bg;        applySettings(); saveSettings(); }));
@@ -567,22 +716,19 @@ function resetIdle() {
   document.body.style.cursor = 'default';
   clearTimeout(idleTimer);
   if (settingsOpen || histOpen) return;
-  if (zenMode) {
-    document.body.classList.add('is-idle');
-    document.body.style.cursor = 'none';
-    return;
-  }
+  // Zen/focus mode: shorter 2s delay before hiding UI
+  const delay = zenMode ? 2000 : 5000;
   idleTimer = setTimeout(() => {
     document.body.classList.add('is-idle');
     document.body.style.cursor = 'none';
-  }, 5000);
+  }, delay);
 }
 document.addEventListener('mousemove', resetIdle);
 document.addEventListener('click',     resetIdle);
 document.addEventListener('keydown',   resetIdle);
 
 /* ============================================================
-   ZEN MODE
+   ZEN / FOCUS ALBUM MODE
    ============================================================ */
 function toggleZenMode() {
   zenMode = !zenMode;
@@ -591,14 +737,16 @@ function toggleZenMode() {
   if (btn) {
     btn.classList.toggle('active', zenMode);
     btn.setAttribute('aria-pressed', zenMode ? 'true' : 'false');
-    btn.setAttribute('aria-label', zenMode ? 'Désactiver le mode Zen' : 'Activer le mode Zen');
+    btn.setAttribute('aria-label', zenMode ? 'Désactiver le mode Focus Album' : 'Activer le mode Focus Album');
   }
   if (zenMode) {
-    if (histOpen || settingsOpen) closeAllPanels();
-    document.body.classList.add('is-idle'); document.body.style.cursor = 'none';
-    clearTimeout(idleTimer);
+    // Close all panels (including lyrics) when entering focus mode
+    if (lyricsOpen || histOpen || settingsOpen) closeAllPanels();
+    // Let resetIdle handle the 2s delay (instead of immediately hiding)
+    resetIdle();
   } else {
-    document.body.classList.remove('is-idle'); document.body.style.cursor = 'default';
+    document.body.classList.remove('is-idle');
+    document.body.style.cursor = 'default';
     resetIdle();
   }
 }
@@ -610,10 +758,13 @@ if (btnZen) btnZen.addEventListener('click', () => { toggleZenMode(); resetIdle(
    ============================================================ */
 function injectAriaLabels() {
   const labels = {
-    'btn-lyrics': 'Ouvrir les paroles', 'btn-hist': "Ouvrir l'historique",
-    'btn-settings': 'Ouvrir les paramètres', 'btn-fs': 'Plein écran',
-    'btn-logout': 'Se déconnecter', 'btn-lanyard-status': 'Statut Lanyard',
-    'ctx-btn-lastfm': 'Ouvrir sur Last.fm', 'ctx-btn-share': 'Partager (Story 9:16)',
+    'btn-lyrics':   'Ouvrir les paroles',
+    'btn-hist':     "Ouvrir l'historique",
+    'btn-settings': 'Ouvrir les paramètres',
+    'btn-fs':       'Plein écran',
+    'btn-logout':   'Se déconnecter',
+    'ctx-btn-lastfm': 'Ouvrir sur Last.fm',
+    'ctx-btn-share':  'Partager (Story 9:16)',
   };
   for (const [id, label] of Object.entries(labels)) {
     const el = document.getElementById(id);
@@ -638,7 +789,7 @@ async function fetchArtistAvatarHD(artist) {
     if (r.ok) { const d = await r.json(); const img = d.data?.[0]?.picture_xl || d.data?.[0]?.picture_big; if (img) return img; }
   } catch {}
   try {
-    const mbR = await fetch(`https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(artist)}&fmt=json&limit=1`, { headers: { 'User-Agent': 'AURA/6.0' } });
+    const mbR = await fetch(`https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(artist)}&fmt=json&limit=1`, { headers: { 'User-Agent': 'AURA/7.0' } });
     if (mbR.ok) {
       const mbid = (await mbR.json()).artists?.[0]?.id;
       if (mbid) {
@@ -719,7 +870,6 @@ function lanyardConnect(discordId) {
   lanyardCurrentDiscordId = discordId;
   lanyardDisconnect();
   setLanyardStatus('connecting', 'Connexion…');
-  if ($.btnLanyardStatus) $.btnLanyardStatus.style.display = 'flex';
   try { lanyardWs = new WebSocket('wss://api.lanyard.rest/socket'); }
   catch { setLanyardStatus('error', 'WebSocket non supporté'); return; }
 
@@ -756,7 +906,6 @@ function lanyardDisconnect() {
   if (lanyardWs) { try { lanyardWs.close(); } catch {} lanyardWs = null; }
   if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
   setLanyardStatus('off', 'Désactivé — entrez un ID pour activer');
-  if ($.btnLanyardStatus) $.btnLanyardStatus.style.display = 'none';
 }
 function lanyardHandlePresence(data) {
   let spotifyData = null, trackPaused = false;
@@ -802,15 +951,15 @@ function lanyardHandlePresence(data) {
     if (S.sourcePriority !== 'lastfm') handleTrack(null);
   }
 }
+/* setLanyardStatus — éclair button removed, only updates settings panel dot */
 function setLanyardStatus(state, text) {
-  const dot = $.lanyardDot, txtEl = $.lanyardStatusText, badge = $.lanyardBadge;
-  if (!dot || !badge) return;
-  dot.className = 'lanyard-dot'; badge.className = 'lanyard-badge';
-  if      (state === 'connecting') { dot.classList.add('connecting'); badge.classList.add('inactive'); }
-  else if (state === 'connected')  { dot.classList.add('connected');  badge.classList.add('active'); }
-  else if (state === 'no-music')   { dot.classList.add('no-music');   badge.classList.add('inactive'); }
-  else if (state === 'error')      { dot.classList.add('error');      badge.classList.add('inactive'); }
-  else                             { badge.classList.add('inactive'); }
+  const dot = $.lanyardDot, txtEl = $.lanyardStatusText;
+  if (!dot) return;
+  dot.className = 'lanyard-dot';
+  if      (state === 'connecting') dot.classList.add('connecting');
+  else if (state === 'connected')  dot.classList.add('connected');
+  else if (state === 'no-music')   dot.classList.add('no-music');
+  else if (state === 'error')      dot.classList.add('error');
   if (txtEl) txtEl.textContent = text;
 }
 
@@ -978,6 +1127,10 @@ function triggerColorThief() {
     ].join(', ');
     $.fluidGradientBg.classList.add('on');
   }
+
+  // Also update lyrics colors and Apple Music background
+  applyLyricsColors();
+  applyLyricsAmBg();
 }
 
 /* ---- ART SWAP ---- */
@@ -1000,6 +1153,8 @@ function swapArt(url, artist, title) {
     artSlot = artSlot==='a' ? 'b' : 'a';
     updateBg(null, grad); $.artGlow.style.background = grad; $.artGlow.style.backgroundImage = 'none';
     if (S.fluidGradient) triggerColorThief();
+    // Update lyrics colors even when no art
+    setTimeout(() => { applyLyricsColors(); applyLyricsAmBg(); }, 100);
     return;
   }
   back.crossOrigin = 'anonymous';
@@ -1017,7 +1172,11 @@ function swapArt(url, artist, title) {
     updateBg(url, null);
     $.artGlow.style.backgroundImage = `url('${url}')`;
     $.artGlow.style.background = 'transparent';
-    setTimeout(() => triggerColorThief(), 200);
+    setTimeout(() => {
+      triggerColorThief();
+      applyLyricsColors();    // auto text color on new art
+      applyLyricsAmBg();      // Apple Music background update
+    }, 200);
   };
   back.src = url;
   if (back.complete && back.naturalWidth) back.onload();
@@ -1120,10 +1279,12 @@ function renderLRCLines(lines) {
   });
 }
 
+/* FIXED: tickLRC now advances by LYRICS_ADVANCE_MS (500ms) to compensate display lag */
 function tickLRC() {
   if (!lyricsOpen || !lrcSynced || !lrcLines.length) { lrcRAF = null; return; }
   if (isPaused) { lrcRAF = requestAnimationFrame(tickLRC); return; }
-  const ms = getElapsedMs();
+  // Add LYRICS_ADVANCE_MS so lines highlight 0.5s earlier than their timestamp
+  const ms = getElapsedMs() + LYRICS_ADVANCE_MS;
   let ni = -1;
   for (let i = lrcLines.length-1; i >= 0; i--) { if (ms >= lrcLines[i].timeMs) { ni = i; break; } }
   if (ni !== lrcActiveIndex) { lrcActiveIndex = ni; updateLRCDisplay(); }

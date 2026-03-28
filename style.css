@@ -1,15 +1,17 @@
-/* AURA — style.css v8
+/* AURA — style.css v9
    ─────────────────────────────────────────────────────────────────────────────
-   [CHANGES vs v7]
-   · Fluid gradient z-index fix: was 1 (hidden under bg-filter z-2). Now 2.
-     bg-filter bumped to 3, bg-vignette to 4.
-   · Grain opacity: .on now opacity 0.14 (was 0.065) — clearly visible.
-   · Marquee speed slider: dir=rtl removed; CSS fill now correctly fills when fast.
-   · New bg animation modes: légère, énergique, flottante via body classes.
-   · Album art float animation: body.album-anim.is-playing .art-wrap (non-vinyl).
-   · sp-slider-val style: mono inline value display next to slider labels.
-   · Apple Music option moved to Visual tab (no CSS change needed).
-   · ctx-btn updated for Last.fm + Share only (no like/copy).
+   [CHANGES vs v8]
+   · Bouton éclair (btn-lanyard-status / .lanyard-badge) : supprimé du CSS.
+   · Nouvelles variables CSS : --lyrics-backdrop-blur, --shadow-dx/dy/blur/opacity.
+   · --text-shadow-legible utilise désormais les variables shadow pour contrôle total.
+   · Mode Focus Album (zen) : suppression du !important sur #ui → l'overlay
+     réapparaît lors des mouvements de souris (is-idle system), se cache après 2s.
+   · Lyrics lisibilité : backdrop-filter sur le panel, ombre paramétrable.
+   · body.lyrics-light-text : texte adapté pour fond clair (algo JS → classe CSS).
+   · Lyrics blur modes : .lyrics-blur-standard (frosted glass) + .lyrics-blur-apple
+     (gradient animé vibrant façon Apple Music).
+   · Art glow pulsé : body.art-glow-pulse → animation glowPulse sur .art-glow.
+   · Album art scale up en mode Focus (1.15×, était 1.06×).
    ─────────────────────────────────────────────────────────────────────────────
 */
 
@@ -34,9 +36,18 @@
   --bg-brightness: 0.55;
   --bg-saturate:   1.4;
   --art-radius:    22px;
-  --mq-speed:      38s;   /* (70 - 32) = 38s default */
+  --mq-speed:      38s;
   --hero-scale:    1;
   --lyrics-size:   1;
+
+  /* [NEW] Lyrics backdrop blur (controlled by slider) */
+  --lyrics-backdrop-blur: 0px;
+
+  /* [NEW] Text shadow — fully parameterised */
+  --shadow-dx:      0px;
+  --shadow-dy:      1px;
+  --shadow-blur:    3px;
+  --shadow-opacity: 0.55;
 
   --ui-solid:   rgba(255, 255, 255, 1.00);
   --ui-bright:  rgba(255, 255, 255, 0.85);
@@ -46,7 +57,10 @@
   --ui-ghost:   rgba(255, 255, 255, 0.10);
   --ui-faint:   rgba(255, 255, 255, 0.04);
 
-  --text-shadow-legible: 0 1px 3px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
+  /* [UPDATED] Uses parameterised shadow vars */
+  --text-shadow-legible:
+    var(--shadow-dx) var(--shadow-dy) var(--shadow-blur) rgba(0,0,0,var(--shadow-opacity)),
+    0 2px 8px rgba(0,0,0,calc(var(--shadow-opacity) * 0.73));
 }
 
 html, body {
@@ -65,7 +79,6 @@ svg[aria-hidden="true"] { pointer-events: none; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    NOISE GRAIN (z 9999)
-   opacity 0.14 on .on — was 0.065, now clearly visible.
 ═══════════════════════════════════════════════════════════════════════════ */
 #global-noise {
   position: fixed; inset: 0; z-index: 9999;
@@ -212,7 +225,6 @@ svg[aria-hidden="true"] { pointer-events: none; }
   filter: blur(var(--blur-amount)) saturate(var(--bg-saturate)) brightness(var(--bg-brightness));
   transition: opacity 2s var(--ease); will-change: transform, opacity;
 }
-/* Default drift animations */
 #bg-a { z-index: 1; opacity: 1; animation: drift1 28s ease-in-out infinite alternate; }
 #bg-b { z-index: 1; opacity: 0; animation: drift2 34s ease-in-out infinite alternate; }
 
@@ -228,7 +240,6 @@ svg[aria-hidden="true"] { pointer-events: none; }
   100% { transform: scale(1.12) translate(18px, -10px); }
 }
 
-/* ── LÉGÈRE — very slow, ultra-subtle ─────────────────────────────────── */
 body.bg-legere #bg-a { animation: driftLegere1 70s ease-in-out infinite alternate; }
 body.bg-legere #bg-b { animation: driftLegere2 90s ease-in-out infinite alternate; }
 @keyframes driftLegere1 {
@@ -241,7 +252,6 @@ body.bg-legere #bg-b { animation: driftLegere2 90s ease-in-out infinite alternat
   100% { transform: scale(1.08) translate(-5px, 6px); }
 }
 
-/* ── ÉNERGIQUE — fast, dramatic ───────────────────────────────────────── */
 body.bg-energique #bg-a { animation: driftEnergique1 7s ease-in-out infinite alternate; }
 body.bg-energique #bg-b { animation: driftEnergique2 10s ease-in-out infinite alternate; }
 @keyframes driftEnergique1 {
@@ -257,7 +267,6 @@ body.bg-energique #bg-b { animation: driftEnergique2 10s ease-in-out infinite al
   100% { transform: scale(1.28) translate(20px, -28px); }
 }
 
-/* ── FLOTTANTE — dreamy floating with scale breaths ───────────────────── */
 body.bg-flottante #bg-a { animation: driftFlottante1 22s ease-in-out infinite; }
 body.bg-flottante #bg-b { animation: driftFlottante2 28s ease-in-out infinite; }
 @keyframes driftFlottante1 {
@@ -274,7 +283,6 @@ body.bg-flottante #bg-b { animation: driftFlottante2 28s ease-in-out infinite; }
   100% { transform: scale(1.15) translate(12px, -10px); }
 }
 
-/* z-index fixed: 3 (above fluid gradient z-2) */
 .bg-filter   { position: absolute; inset: 0; z-index: 3; background: rgba(0,0,0,.35); transition: background .6s var(--ease); }
 .bg-vignette { position: absolute; inset: 0; z-index: 4; background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 30%, rgba(0,0,0,.62) 100%); }
 
@@ -404,7 +412,6 @@ body.source-lanyard #track-content::after {
   transition: border-radius .4s var(--ease);
 }
 
-/* Album float animation — triggered when is-playing AND album-anim is on */
 @keyframes artFloat {
   0%   { transform: translateY(0px)  rotate(0deg)   scale(1); }
   30%  { transform: translateY(-7px) rotate(0.4deg) scale(1.012); }
@@ -413,6 +420,27 @@ body.source-lanyard #track-content::after {
 }
 body.album-anim.is-playing .art-wrap:not(.vinyl) {
   animation: artFloat 7s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   [NEW] ART GLOW PULSÉ (Premium) — body.art-glow-pulse
+   ───────────────────────────────────────────────────────────────────────── */
+@keyframes artGlowPulse {
+  0%, 100% {
+    opacity: 0.45;
+    filter: blur(36px);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    filter: blur(22px);
+    transform: scale(1.06);
+  }
+}
+
+body.art-glow-pulse .art-glow {
+  animation: artGlowPulse 2.8s ease-in-out infinite !important;
+  opacity: 0.7 !important;
 }
 
 .art-glow {
@@ -483,7 +511,6 @@ body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !imp
   font-size: 0.5625rem; font-weight: 600;
   letter-spacing: .08em; text-transform: uppercase; line-height: 1;
 }
-/* Last.fm button accent */
 #ctx-btn-lastfm { color: rgba(212,2,49,0.7); }
 #ctx-btn-lastfm:hover { color: #D40231; background: rgba(212,2,49,0.12); }
 
@@ -515,7 +542,10 @@ body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !imp
   display: inline-block;
 }
 
-/* Marquee animation when title overflows */
+/* [NEW] Adaptive text color — dark backgrounds (default) vs light backgrounds */
+body.lyrics-light-text #track-title  { color: #111; }
+body.lyrics-light-text #track-artist { color: rgba(0,0,0,0.65); }
+
 @keyframes titleMarquee {
   0%, 10%   { transform: translateX(0); }
   45%, 55%  { transform: translateX(var(--title-overflow, -40%)); }
@@ -661,7 +691,7 @@ body.show-canvas-viz #viz-canvas { display: block; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   APPLE MUSIC MODE
+   APPLE MUSIC MODE (UI style)
 ═══════════════════════════════════════════════════════════════════════════ */
 body.mode-apple #hero         { transition: all 0.8s var(--ease); }
 body.mode-apple .art-img      { border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
@@ -677,10 +707,54 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   display: flex; flex-direction: column; justify-content: center;
   padding: 3rem 2.75rem 3rem 2rem;
   transform: translateX(102%); opacity: 0;
-  transition: transform var(--t3) var(--ease), opacity var(--t3) var(--ease);
+  transition: transform var(--t3) var(--ease), opacity var(--t3) var(--ease),
+              backdrop-filter .5s var(--ease), background .5s var(--ease);
   pointer-events: none;
+  overflow: hidden;
 }
 #lyrics-panel.on { transform: translateX(0); opacity: 1; pointer-events: all; }
+
+/* [NEW] Standard blur mode — frosted glass behind the lyrics panel */
+#lyrics-panel.lyrics-blur-standard {
+  backdrop-filter: blur(var(--lyrics-backdrop-blur)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--lyrics-backdrop-blur)) saturate(1.6);
+  background: rgba(0,0,0,0.12);
+  border-left: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px 0 0 20px;
+}
+
+/* [NEW] Apple Music blur mode — animated vibrant gradient layer */
+#lyrics-panel.lyrics-blur-apple {
+  backdrop-filter: blur(calc(var(--lyrics-backdrop-blur) * 1.4)) saturate(2);
+  -webkit-backdrop-filter: blur(calc(var(--lyrics-backdrop-blur) * 1.4)) saturate(2);
+  background: rgba(0,0,0,0.08);
+  border-radius: 20px 0 0 20px;
+}
+
+#lyrics-panel.lyrics-blur-apple::before {
+  content: '';
+  position: absolute;
+  inset: -40px;
+  z-index: -1;
+  border-radius: 40px;
+  background:
+    radial-gradient(ellipse at 20% 20%, var(--accent) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(79,172,254,0.7) 0%, transparent 55%),
+    radial-gradient(ellipse at 55% 45%, rgba(118,75,162,0.55) 0%, transparent 65%);
+  filter: blur(50px);
+  opacity: 0.55;
+  animation: appleLyricsMove 9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes appleLyricsMove {
+  0%   { transform: scale(1.0) translate(0%,   0%); opacity: 0.45; }
+  20%  { transform: scale(1.12) translate(4%, -6%); opacity: 0.60; }
+  40%  { transform: scale(1.06) translate(-5%, 8%); opacity: 0.50; }
+  60%  { transform: scale(1.15) translate(7%,  4%); opacity: 0.68; }
+  80%  { transform: scale(1.08) translate(-3%,-5%); opacity: 0.55; }
+  100% { transform: scale(1.0) translate(5%,   3%); opacity: 0.45; }
+}
 
 .lp-header-row { display: none; }
 .lp-badge { display: none; }
@@ -719,6 +793,9 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   transition: transform 0.55s var(--snap);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   LRC LINES — uses parameterised shadow + adaptive text color
+   ───────────────────────────────────────────────────────────────────────── */
 .lrc-line {
   padding: 0.5rem 0;
   font-style: italic;
@@ -742,6 +819,14 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 body.lyrics-anim-off .lrc-line {
   transition: none !important;
   filter: none !important;
+}
+
+/* [NEW] Adaptive light-text mode — light backgrounds */
+body.lyrics-light-text .lrc-line       { color: rgba(0,0,0,0.22); }
+body.lyrics-light-text .lrc-line.near  { color: rgba(0,0,0,0.50); }
+body.lyrics-light-text .lrc-line.active {
+  color: rgba(0,0,0,0.88);
+  text-shadow: 0 0 18px rgba(0,0,0,.2), var(--text-shadow-legible);
 }
 
 /* Lyrics font variants */
@@ -894,7 +979,6 @@ body.lf-display .lrc-line { font-family: 'Bebas Neue', sans-serif !important; fo
   transition: all .3s;
 }
 
-/* Slider value display — mono inline next to label */
 .sp-slider-val {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.625rem; color: var(--ui-mid);
@@ -1009,6 +1093,7 @@ body.lf-display .lrc-line { font-family: 'Bebas Neue', sans-serif !important; fo
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LANYARD / AURA SYNC STATUS
+   [NOTE] btn-lanyard-status & .lanyard-badge removed — button suppressed.
 ═══════════════════════════════════════════════════════════════════════════ */
 .aura-sync-desc { font-size: 0.75rem; color: var(--ui-dim); line-height: 1.6; margin-bottom: 0.625rem; }
 
@@ -1043,16 +1128,6 @@ body.lf-display .lrc-line { font-family: 'Bebas Neue', sans-serif !important; fo
 .lanyard-help strong { color: rgba(255,255,255,.5); }
 .lanyard-help em     { color: rgba(255,255,255,.4); }
 
-#btn-lanyard-status { position: relative; }
-.lanyard-badge {
-  position: absolute; top: -3px; right: -3px;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #1DB954; border: 2px solid rgba(0,0,0,.5);
-  animation: blink 2s ease-in-out infinite; transition: background .3s;
-}
-.lanyard-badge.active   { background: #1DB954; animation: none; }
-.lanyard-badge.inactive { background: rgba(255,255,255,.2); animation: none; }
-
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UI OVERLAY (z 8)
@@ -1060,7 +1135,7 @@ body.lf-display .lrc-line { font-family: 'Bebas Neue', sans-serif !important; fo
 #ui {
   position: fixed; inset: 0; z-index: 8;
   pointer-events: none;
-  transition: opacity .6s var(--ease);
+  transition: opacity .6s var(--ease), filter .6s var(--ease);
 }
 #ui.hidden { opacity: 0; }
 #ui > * { pointer-events: all; }
@@ -1125,16 +1200,44 @@ body.is-idle #status {
 
 
 /* ════════════════════════════════════════════════════════════════════════════
-   ZEN MODE
+   MODE FOCUS ALBUM (ex "Zen Mode")
+   [FIX] Suppression du !important sur #ui : le système is-idle reprend la main.
+   Le bouton Focus Album masque tout → is-idle est forcé par le JS.
+   Dès qu'on bouge la souris, le JS retire is-idle → l'UI réapparaît 2s.
 ════════════════════════════════════════════════════════════════════════════ */
-body.zen-mode #ui        { opacity: 0 !important; pointer-events: none !important; filter: blur(3px); }
-body.zen-mode #status    { opacity: 0 !important; filter: blur(2px); }
+/* Défaut zen : tout masqué */
+body.zen-mode #ui {
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(3px);
+  transition: opacity .5s var(--ease), filter .5s var(--ease);
+}
+body.zen-mode #status {
+  opacity: 0;
+  filter: blur(2px);
+  transition: opacity .5s var(--ease), filter .5s var(--ease);
+}
+
+/* [NEW] Réapparition temporaire sur mouvement de souris (not idle) */
+body.zen-mode:not(.is-idle) #ui {
+  opacity: 1;
+  pointer-events: all;
+  filter: none;
+}
+body.zen-mode:not(.is-idle) #status {
+  opacity: 1;
+  filter: none;
+}
+
+/* Panneaux : toujours cachés en focus mode */
 body.zen-mode #hist-panel,
 body.zen-mode #settings-panel {
   opacity: 0 !important; pointer-events: none !important;
   transform: translateX(102%) !important;
 }
-body.zen-mode #hero      { transform: none !important; }
+body.zen-mode #hero { transform: none !important; }
+
+/* Tout masqué sauf la pochette */
 body.zen-mode #track-title,
 body.zen-mode #artist-row,
 body.zen-mode #progress-container,
@@ -1145,8 +1248,10 @@ body.zen-mode #mq-wrap {
   transition: opacity var(--t2) cubic-bezier(0.4, 0, 0.2, 1), filter var(--t2) cubic-bezier(0.4, 0, 0.2, 1);
   filter: blur(2px);
 }
+
+/* [UPDATED] Album art centré et agrandi en mode Focus */
 body.zen-mode .album-wrapper {
-  transform: scale(1.06);
+  transform: scale(1.15);
   transition: transform var(--t3) var(--spring);
 }
 
@@ -1183,10 +1288,7 @@ body.zen-mode .album-wrapper {
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FLUID GRADIENT BG
-   FIX: z-index raised to 2 (was 1, hidden behind bg-filter z-2).
-   bg-filter → z-index 3, bg-vignette → z-index 4.
-   filter improved: blur(80px) saturate(2.5) brightness(1.4) for more visibility.
+   FLUID GRADIENT BG (z 2)
 ═══════════════════════════════════════════════════════════════════════════ */
 #fluid-gradient-bg {
   position: absolute; inset: -100px; z-index: 2;
@@ -1228,6 +1330,8 @@ body.zen-mode .album-wrapper {
   }
   body.is-idle .album-ctx-menu,
   body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !important; }
+  /* Mobile focus mode: album slightly smaller */
+  body.zen-mode .album-wrapper { transform: scale(1.05); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1240,4 +1344,6 @@ body.zen-mode .album-wrapper {
   #mq { animation: none; }
   #track-title.scrolling { animation: none; }
   .art-wrap { animation: none !important; }
+  body.art-glow-pulse .art-glow { animation: none !important; }
+  #lyrics-panel.lyrics-blur-apple::before { animation: none; }
 }

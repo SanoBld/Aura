@@ -100,9 +100,6 @@
         </div>
       </div>
 
-      <!--
-        .track-title-wrap clips overflow; JS adds .scrolling when title overflows.
-      -->
       <div class="track-title-wrap">
         <div id="track-title" class="fade-up-text">&mdash;</div>
       </div>
@@ -173,7 +170,7 @@
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">&#9889; Priorit&eacute; de source</div>
+        <div class="sp-section-label">Priorit&eacute; de source</div>
         <div class="sp-priority-info">Lanyard est toujours prioritaire. Last.fm prend le relais automatiquement si aucun stream n&rsquo;est d&eacute;tect&eacute;.</div>
         <div class="sp-priority-desc" id="priority-desc">
           AURA Sync (Lanyard) est prioritaire. Last.fm prend le relais si aucun stream n&rsquo;est d&eacute;tect&eacute;.
@@ -257,6 +254,11 @@
           <span class="sp-row-label">Aura lumineuse (Glow)</span>
           <label class="toggle"><input type="checkbox" id="set-glow" checked aria-label="Album art glow"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
+        <!-- [NEW] Pulsed glow premium -->
+        <div class="sp-row">
+          <span class="sp-row-label">&#10024; Glow anim&eacute; (Premium)</span>
+          <label class="toggle"><input type="checkbox" id="set-art-glow-pulse" aria-label="Animated pulsed glow"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
         <div class="sp-row">
           <span class="sp-row-label">Pochette d&rsquo;album</span>
           <label class="toggle"><input type="checkbox" id="set-art" checked aria-label="Show album art"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
@@ -295,7 +297,8 @@
           <div class="sp-shortcut"><span class="sp-key">S</span><span class="sp-key-label">Param&egrave;tres</span></div>
           <div class="sp-shortcut"><span class="sp-key">F</span><span class="sp-key-label">Plein &eacute;cran</span></div>
           <div class="sp-shortcut"><span class="sp-key">M</span><span class="sp-key-label">Masquer UI</span></div>
-          <div class="sp-shortcut"><span class="sp-key">Z</span><span class="sp-key-label">Mode Zen</span></div>
+          <!-- [CHANGED] "Mode Zen" → "Focus Album" -->
+          <div class="sp-shortcut"><span class="sp-key">Z</span><span class="sp-key-label">Focus Album</span></div>
           <div class="sp-shortcut"><span class="sp-key">Esc</span><span class="sp-key-label">Fermer tout</span></div>
         </div>
       </div>
@@ -339,7 +342,6 @@
           <button class="sp-option" data-f="serif">Serif</button>
           <button class="sp-option" data-f="mono">Mono</button>
         </div>
-        <!-- Apple Music style moved here (font change) -->
         <div class="sp-row" style="margin-top:0.5rem">
           <span class="sp-row-label">&#127925; Style Apple Music</span>
           <label class="toggle"><input type="checkbox" id="set-apple-mode" aria-label="Apple Music style"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
@@ -418,7 +420,6 @@
 
       <div class="sp-section">
         <div class="sp-section-label">Vitesse du texte d&eacute;filant <span class="sp-slider-val" id="val-mq-speed">44%</span></div>
-        <!-- dir="rtl" removed — fill now correctly goes left=slow, right=fast -->
         <input type="range" class="sp-slider" id="set-mq-speed" min="10" max="60" value="32" aria-label="Marquee speed"/>
         <div class="sp-slider-label"><span>Lent</span><span>Rapide</span></div>
       </div>
@@ -456,6 +457,58 @@
         </div>
       </div>
 
+      <!-- [NEW] Lisibilité section -->
+      <div class="sp-section">
+        <div class="sp-section-label">&#127912; Lisibilit&eacute; des Paroles</div>
+
+        <div class="sp-row">
+          <span class="sp-row-label">Texte adaptatif (fond clair/sombre)</span>
+          <label class="toggle"><input type="checkbox" id="set-lyrics-adaptive-color" aria-label="Adaptive lyrics text color"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+
+        <div style="margin-top:0.875rem">
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">
+            Flou d&rsquo;arri&egrave;re-plan <span class="sp-slider-val" id="val-lyrics-backdrop">0%</span>
+          </div>
+          <input type="range" class="sp-slider" id="set-lyrics-backdrop" min="0" max="40" value="0" aria-label="Lyrics backdrop blur"/>
+          <div class="sp-slider-label"><span>Aucun</span><span>Max</span></div>
+        </div>
+
+        <div style="margin-top:0.875rem">
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">
+            D&eacute;calage ombre <span class="sp-slider-val" id="val-shadow-offset">1px</span>
+          </div>
+          <input type="range" class="sp-slider" id="set-shadow-offset" min="0" max="8" value="1" aria-label="Shadow offset"/>
+          <div class="sp-slider-label"><span>0px</span><span>8px</span></div>
+        </div>
+
+        <div style="margin-top:0.875rem">
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">
+            Flou de l&rsquo;ombre <span class="sp-slider-val" id="val-shadow-blur">3px</span>
+          </div>
+          <input type="range" class="sp-slider" id="set-shadow-blur" min="0" max="24" value="3" aria-label="Shadow blur"/>
+          <div class="sp-slider-label"><span>Net</span><span>Doux</span></div>
+        </div>
+
+        <div style="margin-top:0.875rem">
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">
+            Opacit&eacute; ombre <span class="sp-slider-val" id="val-shadow-opacity">55%</span>
+          </div>
+          <input type="range" class="sp-slider" id="set-shadow-opacity" min="0" max="100" value="55" aria-label="Shadow opacity"/>
+          <div class="sp-slider-label"><span>Invisible</span><span>Opaque</span></div>
+        </div>
+      </div>
+
+      <!-- [NEW] Mode de Flou -->
+      <div class="sp-section">
+        <div class="sp-section-label">&#127756; Mode de Flou</div>
+        <div class="sp-option-group" style="margin-bottom:0.625rem">
+          <button class="sp-option active" data-lyrics-blur="standard">Standard</button>
+          <button class="sp-option" data-lyrics-blur="apple">&#127822; Apple Music</button>
+        </div>
+        <div class="sp-layout-desc" id="blur-mode-desc">Flou classique avec panneau semi-transparent derrière les paroles.</div>
+      </div>
+
     </div>
 
   </div>
@@ -466,17 +519,15 @@
       <div class="top-actions">
         <button class="btn-pill" id="btn-lyrics" aria-label="Toggle lyrics panel">Lyrics</button>
         <button class="btn-pill" id="btn-hist" aria-label="Toggle history panel">Historique</button>
-        <button class="btn-icon" id="btn-lanyard-status" aria-label="AURA Sync (Lanyard) status" style="display:none">
-          <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-          <div class="lanyard-badge" id="lanyard-badge"></div>
-        </button>
+        <!-- [REMOVED] btn-lanyard-status (bouton éclair) -->
         <button class="btn-icon" id="btn-settings" aria-label="Open settings">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
         </button>
         <button class="btn-icon" id="btn-fs" aria-label="Toggle fullscreen">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h6v2H5v4H3V3zm12 0h6v6h-2V5h-4V3zM3 15h2v4h4v2H3v-6zm16 4h-4v2h6v-6h-2v4z"/></svg>
         </button>
-        <button class="btn-icon btn-zen" id="btn-zen" aria-label="Toggle Zen mode" aria-pressed="false">
+        <!-- [CHANGED] aria-label: "Toggle Focus Album mode" -->
+        <button class="btn-icon btn-zen" id="btn-zen" aria-label="Toggle Focus Album mode" aria-pressed="false">
           <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor" aria-hidden="true">
             <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
           </svg>

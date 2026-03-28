@@ -34,11 +34,11 @@
       <label>Clé API Last.fm</label>
       <input type="text" id="in-key" placeholder="32 caractères" autocomplete="off" spellcheck="false"/>
     </div>
-    <button class="l-btn" id="btn-connect">Entrer →</button>
+    <button class="l-btn" id="btn-connect">Entrer &rarr;</button>
     <div class="l-cached" id="cached-entry">
       <span class="l-cached-label">Continuer en tant que</span>
       <span class="l-cached-user" id="cached-name"></span>
-      <span class="l-cached-arrow">→</span>
+      <span class="l-cached-arrow">&rarr;</span>
     </div>
     <div id="l-error"></div>
   </div>
@@ -47,7 +47,7 @@
 <!-- LOADING -->
 <div id="loading" style="opacity:0;pointer-events:none">
   <div class="l-spinner"></div>
-  <div class="l-loading-text">Connexion…</div>
+  <div class="l-loading-text">Connexion&hellip;</div>
 </div>
 
 <!-- PLAYER -->
@@ -58,37 +58,27 @@
   <div class="bg-filter" id="bg-filter"></div>
   <div class="bg-vignette"></div>
 
-  <div id="mq-wrap"><div id="mq">— — — — — — — — — — — — — — — — — — — —</div></div>
+  <div id="mq-wrap"><div id="mq">&mdash; &mdash; &mdash; &mdash; &mdash; &mdash; &mdash; &mdash; &mdash; &mdash;</div></div>
 
   <div id="hero">
-    <!-- Waiting state (no track playing) -->
     <div id="no-track">
       <div class="nm-wave-container">
         <div class="nm-bar"></div><div class="nm-bar"></div><div class="nm-bar"></div>
         <div class="nm-bar"></div><div class="nm-bar"></div><div class="nm-bar"></div>
         <div class="nm-bar"></div>
       </div>
-      <div class="nt-title">En attente d'une onde musicale…</div>
+      <div class="nt-title">En attente d&rsquo;une onde musicale&hellip;</div>
       <div class="nt-sub">Joue une musique sur Spotify ou Last.fm</div>
     </div>
 
-    <!-- Active track display -->
     <div id="track-content">
-      <!--
-        CHANGE: `.art-wrap` is now wrapped in `.album-wrapper` to host the
-        contextual hover menu. The menu overlay is injected here as a sibling
-        of `.art-wrap`, absolutely positioned inside `.album-wrapper`.
-        crossorigin="anonymous" is already set on both img tags — required
-        for Color Thief CORS safety. Attribute order is intentional: set
-        crossOrigin BEFORE src at runtime in JS (see swapArt fix in script.js).
-      -->
       <div class="album-wrapper" id="album-wrapper">
         <div class="art-wrap" id="art-wrap">
           <div class="art-glow" id="art-glow"></div>
           <div class="fallback-art" id="fallback-a"></div>
           <div class="fallback-art" id="fallback-b"></div>
-          <img class="art-img" id="art-a" src="" alt="Pochette de l'album en lecture" crossorigin="anonymous"/>
-          <img class="art-img" id="art-b" src="" alt="Pochette précédente (transition)" crossorigin="anonymous"/>
+          <img class="art-img" id="art-a" src="" alt="Album art" crossorigin="anonymous"/>
+          <img class="art-img" id="art-b" src="" alt="Previous album art" crossorigin="anonymous"/>
           <div class="vinyl-grooves"></div>
           <div class="vinyl-center"></div>
           <div class="tonearm-wrap">
@@ -97,38 +87,32 @@
           </div>
         </div>
 
-        <!--
-          NEW: Album Context Menu — floats over the artwork on hover.
-          Three actions: Last.fm like, copy track info, share as story image.
-          Controlled by CSS `.album-wrapper:hover .album-ctx-menu` transition.
-        -->
-        <div class="album-ctx-menu" id="album-ctx-menu" role="toolbar" aria-label="Actions sur la piste en cours">
-          <button class="ctx-btn" id="ctx-btn-like" aria-label="Aimer cette piste sur Last.fm">
-            <!-- Heart icon -->
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            <span class="ctx-btn-label">Like</span>
+        <!-- Album context menu: Share only (Last.fm) -->
+        <div class="album-ctx-menu" id="album-ctx-menu" role="toolbar" aria-label="Track actions">
+          <button class="ctx-btn" id="ctx-btn-lastfm" aria-label="Ouvrir sur Last.fm">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+            <span class="ctx-btn-label">Last.fm</span>
           </button>
-          <button class="ctx-btn" id="ctx-btn-copy" aria-label="Copier le nom de la piste (Artiste – Titre)">
-            <!-- Copy icon -->
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-            <span class="ctx-btn-label">Copier</span>
-          </button>
-          <button class="ctx-btn" id="ctx-btn-share" aria-label="Partager la piste en image Story (9:16)">
-            <!-- Share icon -->
+          <button class="ctx-btn" id="ctx-btn-share" aria-label="Partager comme Story (9:16)">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
             <span class="ctx-btn-label">Partager</span>
           </button>
         </div>
       </div>
-      <!-- END .album-wrapper -->
 
-      <div id="track-title" class="fade-up-text">—</div>
+      <!--
+        .track-title-wrap clips overflow; JS adds .scrolling when title overflows.
+      -->
+      <div class="track-title-wrap">
+        <div id="track-title" class="fade-up-text">&mdash;</div>
+      </div>
+
       <div id="artist-row" class="fade-up-text">
         <div class="avatar-circle" id="avatar-circle">
-          <img id="artist-avatar" src="" alt="Photo de profil de l'artiste" crossorigin="anonymous"/>
+          <img id="artist-avatar" src="" alt="Artist avatar" crossorigin="anonymous"/>
           <div class="avatar-fallback" id="avatar-fallback"></div>
         </div>
-        <div id="track-artist">—</div>
+        <div id="track-artist">&mdash;</div>
       </div>
       <div id="progress-container">
         <div id="progress-bar"></div>
@@ -142,12 +126,7 @@
     </div>
   </div>
 
-  <!--
-    LYRICS PANEL
-    CHANGE: Added `.lrc-fade-mask` wrapper around `#lrc-container` to host the
-    CSS mask-image gradient fade effect (top + bottom transparent edges).
-    This avoids modifying `#lp-body` overflow which is needed for scrolling.
-  -->
+  <!-- LYRICS PANEL -->
   <div id="lyrics-panel">
     <div class="lp-header-row">
       <div class="lp-label">/ Paroles</div>
@@ -162,162 +141,71 @@
 
   <!-- HISTORY PANEL -->
   <div id="hist-panel">
-    <div class="hp-label">/ Historique récent</div>
+    <div class="hp-label">/ Historique r&eacute;cent</div>
     <div class="hp-list" id="hp-list"></div>
   </div>
 
-  <!-- DISCORD RPC PREVIEW PANEL -->
-  <div id="discord-preview-panel">
-    <div class="drpc-header">
-      <svg class="drpc-discord-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-      <span class="drpc-app-name">AURA Music</span>
-      <div class="drpc-header-status">
-        <div class="drpc-header-dot" id="drpc-header-dot"></div>
-        <span id="drpc-header-status-text">Aperçu</span>
-      </div>
-      <button id="drpc-close" aria-label="Fermer l'aperçu Discord RPC">✕</button>
-    </div>
-    <div class="drpc-body">
-      <div class="drpc-art-wrap">
-        <img id="drpc-art" src="" alt="Pochette Discord RPC"/>
-        <div id="drpc-art-fb" style="opacity:0"></div>
-        <div class="drpc-small-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
-      </div>
-      <div class="drpc-info">
-        <div class="drpc-playing-label" id="drpc-playing-label">🎵 EN ÉCOUTE</div>
-        <div id="drpc-title">—</div>
-        <div id="drpc-artist">—</div>
-        <div id="drpc-album"></div>
-        <div class="drpc-progress-row">
-          <span class="drpc-time" id="drpc-elapsed">0:00</span>
-          <div class="drpc-prog-track"><div id="drpc-progress-fill"></div></div>
-          <span class="drpc-time" id="drpc-total">—:——</span>
-        </div>
-        <div class="drpc-controls-row">
-          <div class="drpc-playstate" id="drpc-playstate">
-            <span class="drpc-playstate-icon" id="drpc-playstate-icon" aria-hidden="true">▶</span>
-            <span class="drpc-playstate-text" id="drpc-playstate-text">En lecture</span>
-          </div>
-          <button class="drpc-btn" id="drpc-btn-lyrics" aria-label="Ouvrir le panneau de paroles">🎵 Paroles</button>
-        </div>
-      </div>
-    </div>
-    <div class="drpc-pause-badge hidden" id="drpc-pause-badge">⏸ En pause</div>
-    <div class="drpc-extra-row" id="drpc-extra-row" style="display:none">
-      <div class="drpc-extra-item" id="drpc-extra-platform">
-        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-        <span id="drpc-platform-text">Spotify</span>
-      </div>
-      <div class="drpc-extra-item" id="drpc-extra-source">
-        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-        <span id="drpc-source-text">Lanyard</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- SETTINGS PANEL — 3 tabs: Sync / Layout / Visual -->
+  <!-- SETTINGS PANEL -->
   <div id="settings-panel">
     <div class="sp-header">
-      <div class="sp-title">Paramètres</div>
-      <div class="sp-tabs" role="tablist" aria-label="Onglets des paramètres">
-        <button class="sp-tab active" data-tab="sync" role="tab" aria-selected="true" aria-controls="tab-sync">Sync</button>
-        <button class="sp-tab" data-tab="layout" role="tab" aria-selected="false" aria-controls="tab-layout">Layout</button>
-        <button class="sp-tab" data-tab="visual" role="tab" aria-selected="false" aria-controls="tab-visual">Visual</button>
+      <div class="sp-title">Param&egrave;tres</div>
+      <div class="sp-tabs" role="tablist" aria-label="Settings tabs">
+        <button class="sp-tab active" data-tab="sync"   role="tab" aria-selected="true"  aria-controls="tab-sync">Sync</button>
+        <button class="sp-tab"        data-tab="layout" role="tab" aria-selected="false" aria-controls="tab-layout">Layout</button>
+        <button class="sp-tab"        data-tab="visual" role="tab" aria-selected="false" aria-controls="tab-visual">Visual</button>
+        <button class="sp-tab"        data-tab="lyrics" role="tab" aria-selected="false" aria-controls="tab-lyrics">Lyrics</button>
       </div>
     </div>
 
-    <!-- TAB 1: SYNC — Connection and data sources -->
+    <!-- TAB 1: SYNC -->
     <div class="sp-tab-pane active" id="tab-sync" role="tabpanel">
 
       <div class="sp-section">
         <div class="sp-section-label">Compte Last.fm</div>
         <div class="sp-row">
-          <span class="sp-row-label" style="font-size:12px;color:rgba(255,255,255,.4)">Utilisateur actif</span>
-          <span class="sp-row-label" style="font-size:12px;font-family:'JetBrains Mono',monospace" id="display-username">—</span>
+          <span class="sp-row-label" style="font-size:0.75rem;color:rgba(255,255,255,.4)">Utilisateur actif</span>
+          <span class="sp-row-label" style="font-size:0.75rem;font-family:'JetBrains Mono',monospace" id="display-username">&mdash;</span>
         </div>
         <div class="user-search-wrap">
-          <input type="text" id="user-search" class="user-search-input" placeholder="Voir un autre utilisateur…" aria-label="Chercher un autre utilisateur Last.fm">
+          <input type="text" id="user-search" class="user-search-input" placeholder="Voir un autre utilisateur&hellip;" aria-label="Search another Last.fm user">
         </div>
-        <div style="font-size:11px;color:rgba(255,255,255,.2);margin-top:6px">Appuyez sur Entrée pour changer</div>
+        <div style="font-size:0.6875rem;color:rgba(255,255,255,.2);margin-top:6px">Appuyez sur Entr&eacute;e pour changer</div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">⚡ Priorité de source</div>
-        <div class="sp-priority-info">Choisissez quelle source prime pour la musique.</div>
-        <div class="sp-option-group" style="margin-top:8px">
-          <button class="sp-option active" data-priority="lanyard">AURA Sync</button>
-          <button class="sp-option" data-priority="lastfm">Last.fm</button>
-          <button class="sp-option" data-priority="auto">Auto</button>
-        </div>
+        <div class="sp-section-label">&#9889; Priorit&eacute; de source</div>
+        <div class="sp-priority-info">Lanyard est toujours prioritaire. Last.fm prend le relais automatiquement si aucun stream n&rsquo;est d&eacute;tect&eacute;.</div>
         <div class="sp-priority-desc" id="priority-desc">
-          AURA Sync (Lanyard) est prioritaire. Last.fm prend le relais si aucun stream n'est détecté.
+          AURA Sync (Lanyard) est prioritaire. Last.fm prend le relais si aucun stream n&rsquo;est d&eacute;tect&eacute;.
         </div>
       </div>
 
       <hr class="sp-divider"/>
 
-      <!-- AURA Sync / Lanyard -->
       <div class="sp-section">
         <div class="sp-section-label">
           <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:#1DB954" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-          AURA Sync — Discord ID
+          AURA Sync &mdash; Discord ID
         </div>
-        <div class="aura-sync-desc">Synchronisez Spotify en temps réel via le WebSocket Lanyard.</div>
+        <div class="aura-sync-desc">Synchronisez Spotify en temps r&eacute;el via le WebSocket Lanyard.</div>
         <div class="lanyard-connect-wrap">
-          <input type="text" id="set-lanyard-id" class="user-search-input" placeholder="Votre Discord User ID…" autocomplete="off" spellcheck="false" aria-label="Entrez votre Discord User ID pour AURA Sync"/>
-          <button class="lanyard-connect-btn" id="btn-lanyard-connect" aria-label="Connecter AURA Sync via Lanyard">Connecter</button>
+          <input type="text" id="set-lanyard-id" class="user-search-input" placeholder="Votre Discord User ID&hellip;" autocomplete="off" spellcheck="false" aria-label="Discord user ID for AURA Sync"/>
+          <button class="lanyard-connect-btn" id="btn-lanyard-connect" aria-label="Connect AURA Sync">Connecter</button>
         </div>
         <div class="lanyard-status-row" id="lanyard-status-row" aria-live="polite">
           <div class="lanyard-dot" id="lanyard-dot"></div>
-          <span id="lanyard-status-text">Désactivé — entrez un ID pour activer</span>
+          <span id="lanyard-status-text">D&eacute;sactiv&eacute; &mdash; entrez un ID pour activer</span>
           <span class="lanyard-ws-badge" id="lanyard-ws-badge" style="display:none">WS</span>
         </div>
         <div class="lanyard-help">
           <strong>Comment trouver votre ID ?</strong><br/>
-          Discord → Paramètres → Avancé → Mode développeur ON<br/>
-          Puis clic droit sur votre profil → <em>Copier l'identifiant</em>
-        </div>
-      </div>
-
-      <!-- Discord Rich Presence -->
-      <div class="sp-section sp-section-discord">
-        <div class="sp-section-label">
-          <svg class="discord-icon-label" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-          Discord Rich Presence
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label">Activer Discord RPC</span>
-          <label class="toggle"><input type="checkbox" id="set-discord-enabled" aria-label="Activer ou désactiver Discord Rich Presence"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div id="discord-settings-body" class="collapsed">
-          <div class="discord-client-wrap">
-            <label for="set-discord-client-id">Application ID (Discord Developer Portal)</label>
-            <input type="text" id="set-discord-client-id" class="discord-client-input" placeholder="Ex: 1234567890123456789" autocomplete="off" spellcheck="false" aria-label="Application ID Discord Developer Portal"/>
-          </div>
-          <button id="discord-connect-btn" class="discord-connect-btn" aria-label="Se connecter à Discord Rich Presence">
-            <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#fff" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-            Se connecter à Discord
-          </button>
-          <div class="discord-status-row" aria-live="polite">
-            <div id="discord-status-dot"></div>
-            <span id="discord-status-text">Déconnecté</span>
-          </div>
-          <div class="sp-row" style="margin-top:12px">
-            <span class="sp-row-label" style="font-size:12px">Aperçu in-app (carte)</span>
-            <label class="toggle"><input type="checkbox" id="set-discord-preview-card" checked aria-label="Afficher la carte d'aperçu Discord RPC dans l'application"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-          </div>
-          <div class="discord-help">
-            <strong>Configuration :</strong><br/>
-            1. Créer une app sur <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">Discord Developer Portal</a><br/>
-            2. Copier l'<strong>Application ID</strong> ci-dessus<br/>
-            3. Cliquer sur « Se connecter »<br/><br/>
-            <strong>Note :</strong> La RPC WebSocket nécessite Discord installé.
-          </div>
+          Discord &rarr; Param&egrave;tres &rarr; Avanc&eacute; &rarr; Mode d&eacute;veloppeur ON<br/>
+          Puis clic droit sur votre profil &rarr; <em>Copier l&rsquo;identifiant</em>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Panneau par défaut</div>
+        <div class="sp-section-label">Panneau par d&eacute;faut</div>
         <div class="sp-option-group">
           <button class="sp-option active" data-panel="lyrics">Paroles</button>
           <button class="sp-option" data-panel="history">Historique</button>
@@ -325,23 +213,22 @@
         </div>
       </div>
 
-      <button class="sp-logout" id="btn-logout" aria-label="Se déconnecter et revenir à l'écran de connexion">Se déconnecter</button>
+      <button class="sp-logout" id="btn-logout" aria-label="Log out">Se d&eacute;connecter</button>
     </div>
 
-    <!-- TAB 2: LAYOUT — Hero size, modes, alignment, visibility -->
+    <!-- TAB 2: LAYOUT -->
     <div class="sp-tab-pane" id="tab-layout" role="tabpanel">
 
       <div class="sp-section">
-        <div class="sp-section-label">Taille du cadre Hero <span id="hero-scale-val">100%</span></div>
-        <input type="range" class="sp-slider" id="set-hero-scale" min="60" max="140" value="100" aria-label="Taille du cadre principal"/>
+        <div class="sp-section-label">Taille du cadre Hero <span class="sp-slider-val" id="val-hero-scale">100%</span></div>
+        <input type="range" class="sp-slider" id="set-hero-scale" min="60" max="140" value="100" aria-label="Hero frame size"/>
         <div class="sp-slider-label"><span>Compact</span><span>Large</span></div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Mode d'affichage</div>
+        <div class="sp-section-label">Mode d&rsquo;affichage</div>
         <div class="sp-option-group">
           <button class="sp-option active" data-layout="standard">Standard</button>
-          <button class="sp-option" data-layout="focus">Focus Titre</button>
           <button class="sp-option" data-layout="minimal">Minimaliste</button>
         </div>
         <div class="sp-layout-desc" id="layout-desc">Affichage complet avec pochette et infos de la piste.</div>
@@ -350,9 +237,9 @@
       <div class="sp-section">
         <div class="sp-section-label">Alignement</div>
         <div class="sp-option-group">
-          <button class="sp-option" data-align="left">← Gauche</button>
-          <button class="sp-option active" data-align="center">· Centre</button>
-          <button class="sp-option" data-align="right">Droite →</button>
+          <button class="sp-option" data-align="left">&larr; Gauche</button>
+          <button class="sp-option active" data-align="center">&middot; Centre</button>
+          <button class="sp-option" data-align="right">Droite &rarr;</button>
         </div>
       </div>
 
@@ -364,47 +251,39 @@
         <div class="sp-option-group" style="margin-bottom:0.875rem">
           <button class="sp-option active" data-art-shape="22px">Arrondi</button>
           <button class="sp-option" data-art-shape="50%">Cercle</button>
-          <button class="sp-option" data-art-shape="6px">Carré</button>
+          <button class="sp-option" data-art-shape="6px">Carr&eacute;</button>
         </div>
         <div class="sp-row">
           <span class="sp-row-label">Aura lumineuse (Glow)</span>
-          <label class="toggle"><input type="checkbox" id="set-glow" checked aria-label="Afficher l'effet lumineux autour de la pochette"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <label class="toggle"><input type="checkbox" id="set-glow" checked aria-label="Album art glow"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">Pochette d'album</span>
-          <label class="toggle"><input type="checkbox" id="set-art" checked aria-label="Afficher la pochette de l'album"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Pochette d&rsquo;album</span>
+          <label class="toggle"><input type="checkbox" id="set-art" checked aria-label="Show album art"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label">Animation pochette</span>
+          <label class="toggle"><input type="checkbox" id="set-album-anim" checked aria-label="Album art float animation"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Éléments visibles</div>
+        <div class="sp-section-label">&Eacute;l&eacute;ments visibles</div>
         <div class="sp-row">
-          <span class="sp-row-label">Arrière-plan (image album)</span>
-          <label class="toggle"><input type="checkbox" id="set-bg" checked aria-label="Afficher l'image de l'album en arrière-plan"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Arri&egrave;re-plan (image album)</span>
+          <label class="toggle"><input type="checkbox" id="set-bg" checked aria-label="Album background image"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
           <span class="sp-row-label">Photo de profil artiste</span>
-          <label class="toggle"><input type="checkbox" id="set-avatar" checked aria-label="Afficher la photo de profil de l'artiste"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <label class="toggle"><input type="checkbox" id="set-avatar" checked aria-label="Artist avatar"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">Texte défilant (marquee)</span>
-          <label class="toggle"><input type="checkbox" id="set-marquee" checked aria-label="Activer le texte défilant en haut de l'écran"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-      </div>
-
-      <div class="sp-section">
-        <div class="sp-section-label">Lecture</div>
-        <div class="sp-row">
-          <span class="sp-row-label">Style Apple Music</span>
-          <label class="toggle"><input type="checkbox" id="set-apple-mode" aria-label="Activer le style d'affichage Apple Music"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Texte d&eacute;filant (marquee)</span>
+          <label class="toggle"><input type="checkbox" id="set-marquee" checked aria-label="Scrolling marquee text"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
           <span class="sp-row-label">Barre de progression</span>
-          <label class="toggle"><input type="checkbox" id="set-show-progress" checked aria-label="Afficher la barre de progression de la piste"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label">Défilement auto des paroles</span>
-          <label class="toggle"><input type="checkbox" id="set-autoscroll" checked aria-label="Activer le défilement automatique des paroles"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <label class="toggle"><input type="checkbox" id="set-show-progress" checked aria-label="Progress bar"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
@@ -413,42 +292,57 @@
         <div class="sp-shortcuts">
           <div class="sp-shortcut"><span class="sp-key">L</span><span class="sp-key-label">Paroles</span></div>
           <div class="sp-shortcut"><span class="sp-key">H</span><span class="sp-key-label">Historique</span></div>
-          <div class="sp-shortcut"><span class="sp-key">S</span><span class="sp-key-label">Paramètres</span></div>
-          <div class="sp-shortcut"><span class="sp-key">F</span><span class="sp-key-label">Plein écran</span></div>
+          <div class="sp-shortcut"><span class="sp-key">S</span><span class="sp-key-label">Param&egrave;tres</span></div>
+          <div class="sp-shortcut"><span class="sp-key">F</span><span class="sp-key-label">Plein &eacute;cran</span></div>
           <div class="sp-shortcut"><span class="sp-key">M</span><span class="sp-key-label">Masquer UI</span></div>
           <div class="sp-shortcut"><span class="sp-key">Z</span><span class="sp-key-label">Mode Zen</span></div>
           <div class="sp-shortcut"><span class="sp-key">Esc</span><span class="sp-key-label">Fermer tout</span></div>
-          <div class="sp-shortcut"><span class="sp-key">D</span><span class="sp-key-label">Discord RPC</span></div>
         </div>
       </div>
 
     </div>
 
-    <!-- TAB 3: VISUAL — Effects, colors, background, fonts, visualizers -->
+    <!-- TAB 3: VISUAL -->
     <div class="sp-tab-pane" id="tab-visual" role="tabpanel">
 
       <div class="sp-section">
-        <div class="sp-section-label">Couleur accentuée</div>
-        <div class="sp-swatches" id="color-swatches" role="group" aria-label="Choisir une couleur d'accent">
-          <button class="sp-swatch active" data-color="#e0245e" style="background:#e0245e" aria-label="Couleur d'accent Rose"></button>
-          <button class="sp-swatch" data-color="#7c3aed" style="background:#7c3aed" aria-label="Couleur d'accent Violet"></button>
-          <button class="sp-swatch" data-color="#0891b2" style="background:#0891b2" aria-label="Couleur d'accent Cyan"></button>
-          <button class="sp-swatch" data-color="#059669" style="background:#059669" aria-label="Couleur d'accent Vert"></button>
-          <button class="sp-swatch" data-color="#d97706" style="background:#d97706" aria-label="Couleur d'accent Ambre"></button>
-          <button class="sp-swatch" data-color="#ec4899" style="background:#ec4899" aria-label="Couleur d'accent Pink"></button>
-          <button class="sp-swatch" data-color="#ffffff" style="background:#fff" aria-label="Couleur d'accent Blanc"></button>
+        <div class="sp-section-label">Couleur accentu&eacute;e</div>
+        <div class="sp-swatches" id="color-swatches" role="group" aria-label="Accent color">
+          <button class="sp-swatch active" data-color="#e0245e" style="background:#e0245e" aria-label="Rose"></button>
+          <button class="sp-swatch" data-color="#7c3aed" style="background:#7c3aed" aria-label="Violet"></button>
+          <button class="sp-swatch" data-color="#0891b2" style="background:#0891b2" aria-label="Cyan"></button>
+          <button class="sp-swatch" data-color="#059669" style="background:#059669" aria-label="Vert"></button>
+          <button class="sp-swatch" data-color="#d97706" style="background:#d97706" aria-label="Ambre"></button>
+          <button class="sp-swatch" data-color="#ec4899" style="background:#ec4899" aria-label="Pink"></button>
+          <button class="sp-swatch" data-color="#ffffff" style="background:#fff" aria-label="Blanc"></button>
         </div>
       </div>
 
       <div class="sp-section">
         <div class="sp-section-label">Effets Visuels</div>
         <div class="sp-row">
-          <span class="sp-row-label">🎵 Mode Vinyle</span>
-          <label class="toggle"><input type="checkbox" id="set-vinyl-mode" aria-label="Activer le mode vinyle"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127925; Mode Vinyle</span>
+          <label class="toggle"><input type="checkbox" id="set-vinyl-mode" aria-label="Vinyl mode"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">🎨 Couleur adaptative</span>
-          <label class="toggle"><input type="checkbox" id="set-color-thief" aria-label="Activer la couleur adaptative selon la pochette"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127912; Couleur adaptative</span>
+          <label class="toggle"><input type="checkbox" id="set-color-thief" aria-label="Adaptive color from artwork"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-section-label">Style de Police</div>
+        <div class="sp-option-group" style="margin-bottom:0.75rem">
+          <button class="sp-option active" data-f="default">Aura</button>
+          <button class="sp-option" data-f="inter">Inter</button>
+          <button class="sp-option" data-f="modern">Modern</button>
+          <button class="sp-option" data-f="serif">Serif</button>
+          <button class="sp-option" data-f="mono">Mono</button>
+        </div>
+        <!-- Apple Music style moved here (font change) -->
+        <div class="sp-row" style="margin-top:0.5rem">
+          <span class="sp-row-label">&#127925; Style Apple Music</span>
+          <label class="toggle"><input type="checkbox" id="set-apple-mode" aria-label="Apple Music style"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
@@ -465,65 +359,57 @@
         </div>
 
         <div class="sp-row" style="margin-bottom:0.5rem">
-          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Animation</span>
+          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Animation de fond</span>
         </div>
-        <div class="sp-option-group" style="margin-bottom:0.875rem">
+        <div class="sp-option-group" style="margin-bottom:0.875rem;flex-wrap:wrap">
           <button class="sp-option active" data-anim="none">Classique</button>
-          <button class="sp-option" data-anim="blobs">Apple Fluid</button>
+          <button class="sp-option" data-anim="blobs">Fluid</button>
+          <button class="sp-option" data-anim="legere">L&eacute;g&egrave;re</button>
+          <button class="sp-option" data-anim="energique">&Eacute;nerg&iacute;que</button>
+          <button class="sp-option" data-anim="flottante">Flottante</button>
         </div>
 
         <div class="sp-row">
-          <span class="sp-row-label">🌊 Fond Fluid Gradient</span>
-          <label class="toggle"><input type="checkbox" id="set-fluid-gradient" aria-label="Activer le fond dégradé fluide animé"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127754; Fond Fluid Gradient</span>
+          <label class="toggle"><input type="checkbox" id="set-fluid-gradient" aria-label="Fluid gradient background"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">✦ Grain de texture (Noise)</span>
-          <label class="toggle"><input type="checkbox" id="set-grain" aria-label="Activer le grain de texture"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#10022; Grain de texture</span>
+          <label class="toggle"><input type="checkbox" id="set-grain" aria-label="Film grain texture"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
 
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Flou</div>
-          <input type="range" class="sp-slider" id="set-blur" min="0" max="120" value="70" aria-label="Intensité du flou d'arrière-plan"/>
-          <div class="sp-slider-label"><span>Net</span><span>Très flou</span></div>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Flou <span class="sp-slider-val" id="val-blur">70%</span></div>
+          <input type="range" class="sp-slider" id="set-blur" min="0" max="120" value="70" aria-label="Background blur amount"/>
+          <div class="sp-slider-label"><span>Net</span><span>Tr&egrave;s flou</span></div>
         </div>
 
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Luminosité</div>
-          <input type="range" class="sp-slider" id="set-brightness" min="10" max="90" value="55" aria-label="Luminosité de l'arrière-plan"/>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Luminosit&eacute; <span class="sp-slider-val" id="val-brightness">55%</span></div>
+          <input type="range" class="sp-slider" id="set-brightness" min="10" max="90" value="55" aria-label="Background brightness"/>
           <div class="sp-slider-label"><span>Sombre</span><span>Clair</span></div>
         </div>
 
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Saturation</div>
-          <input type="range" class="sp-slider" id="set-saturate" min="0" max="30" value="14" aria-label="Saturation des couleurs de l'arrière-plan"/>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Saturation <span class="sp-slider-val" id="val-saturate">47%</span></div>
+          <input type="range" class="sp-slider" id="set-saturate" min="0" max="30" value="14" aria-label="Background saturation"/>
           <div class="sp-slider-label"><span>Gris</span><span>Vives</span></div>
-        </div>
-      </div>
-
-      <div class="sp-section">
-        <div class="sp-section-label">Style de Police</div>
-        <div class="sp-option-group">
-          <button class="sp-option active" data-f="default">Aura</button>
-          <button class="sp-option" data-f="inter">Inter</button>
-          <button class="sp-option" data-f="modern">Modern</button>
-          <button class="sp-option" data-f="serif">Serif</button>
-          <button class="sp-option" data-f="mono">Mono</button>
         </div>
       </div>
 
       <div class="sp-section">
         <div class="sp-section-label">Visualiseur Audio</div>
         <div class="sp-row">
-          <span class="sp-row-label">📊 Égaliseur CSS</span>
-          <label class="toggle"><input type="checkbox" id="set-eq-viz" aria-label="Activer le visualiseur égaliseur CSS"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#128202; &Eacute;galiseur CSS</span>
+          <label class="toggle"><input type="checkbox" id="set-eq-viz" aria-label="CSS equalizer visualizer"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">🌈 Spectre Canvas (AURA Sync)</span>
-          <label class="toggle"><input type="checkbox" id="set-canvas-viz" aria-label="Activer le visualiseur spectre canvas AURA Sync"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127752; Spectre Canvas</span>
+          <label class="toggle"><input type="checkbox" id="set-canvas-viz" aria-label="Canvas spectrum visualizer"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row sp-fps-row" id="sp-fps-row">
-          <span class="sp-row-label">🎯 Limite FPS visualiseur</span>
-          <div class="sp-option-group sp-fps-group" role="group" aria-label="Choisir la limite de FPS du visualiseur">
+          <span class="sp-row-label">&#127919; Limite FPS</span>
+          <div class="sp-option-group sp-fps-group" role="group" aria-label="Visualizer FPS cap">
             <button class="sp-option active" data-fps="60" aria-pressed="true">60 FPS</button>
             <button class="sp-option" data-fps="30" aria-pressed="false">30 FPS</button>
           </div>
@@ -531,44 +417,67 @@
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Vitesse du texte défilant</div>
-        <input type="range" class="sp-slider" id="set-mq-speed" min="10" max="60" value="32" dir="rtl" aria-label="Vitesse du texte défilant en haut de l'écran"/>
+        <div class="sp-section-label">Vitesse du texte d&eacute;filant <span class="sp-slider-val" id="val-mq-speed">44%</span></div>
+        <!-- dir="rtl" removed — fill now correctly goes left=slow, right=fast -->
+        <input type="range" class="sp-slider" id="set-mq-speed" min="10" max="60" value="32" aria-label="Marquee speed"/>
         <div class="sp-slider-label"><span>Lent</span><span>Rapide</span></div>
+      </div>
+
+    </div>
+
+    <!-- TAB 4: LYRICS -->
+    <div class="sp-tab-pane" id="tab-lyrics" role="tabpanel">
+
+      <div class="sp-section">
+        <div class="sp-section-label">Taille de la police <span class="sp-slider-val" id="set-lyrics-size-val">100%</span></div>
+        <input type="range" class="sp-slider" id="set-lyrics-size" min="70" max="160" value="100" aria-label="Lyrics font size"/>
+        <div class="sp-slider-label"><span>Petit</span><span>Grand</span></div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-section-label">Police des paroles</div>
+        <div class="sp-option-group">
+          <button class="sp-option active" data-lyrics-font="serif">Serif</button>
+          <button class="sp-option" data-lyrics-font="sans">Sans-Serif</button>
+          <button class="sp-option" data-lyrics-font="mono">Monospace</button>
+          <button class="sp-option" data-lyrics-font="display">Display</button>
+        </div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-section-label">Animations</div>
+        <div class="sp-row">
+          <span class="sp-row-label">Transitions de ligne (fondu / scale)</span>
+          <label class="toggle"><input type="checkbox" id="set-lyrics-anim" checked aria-label="Lyrics line transitions"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label">D&eacute;filement automatique</span>
+          <label class="toggle"><input type="checkbox" id="set-autoscroll" checked aria-label="Auto-scroll synced lyrics"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
       </div>
 
     </div>
 
   </div>
 
-  <!-- UI OVERLAY — top bar buttons + status indicator -->
+  <!-- UI OVERLAY -->
   <div id="ui">
     <div class="top-bar">
       <div class="top-actions">
-        <button class="btn-pill" id="btn-lyrics" aria-label="Afficher ou masquer le panneau de paroles">Lyrics</button>
-        <button class="btn-pill" id="btn-hist" aria-label="Afficher ou masquer l'historique récent">Historique</button>
-        <button class="btn-icon" id="btn-lanyard-status" aria-label="Statut AURA Sync (Lanyard)" style="display:none">
+        <button class="btn-pill" id="btn-lyrics" aria-label="Toggle lyrics panel">Lyrics</button>
+        <button class="btn-pill" id="btn-hist" aria-label="Toggle history panel">Historique</button>
+        <button class="btn-icon" id="btn-lanyard-status" aria-label="AURA Sync (Lanyard) status" style="display:none">
           <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
           <div class="lanyard-badge" id="lanyard-badge"></div>
         </button>
-        <button class="btn-icon" id="btn-discord-preview" aria-label="Afficher l'aperçu Discord Rich Presence" style="display:none">
-          <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-          <div class="discord-rpc-badge hidden" id="discord-rpc-badge"></div>
-        </button>
-        <button class="btn-icon" id="btn-settings" aria-label="Ouvrir les paramètres">
+        <button class="btn-icon" id="btn-settings" aria-label="Open settings">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
         </button>
-        <button class="btn-icon" id="btn-fs" aria-label="Activer ou quitter le mode plein écran">
+        <button class="btn-icon" id="btn-fs" aria-label="Toggle fullscreen">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h6v2H5v4H3V3zm12 0h6v6h-2V5h-4V3zM3 15h2v4h4v2H3v-6zm16 4h-4v2h6v-6h-2v4z"/></svg>
         </button>
-        <!--
-          NEW: Zen Mode button — top-right.
-          Toggles `.zen-mode` on <body>. Forces hide of ALL UI chrome,
-          leaving only artwork and lyrics visible. Keyboard shortcut: Z.
-          `aria-pressed` is toggled in JS alongside `.zen-mode` class.
-        -->
-        <button class="btn-icon btn-zen" id="btn-zen" aria-label="Activer le mode Zen (cinématique)" aria-pressed="false">
+        <button class="btn-icon btn-zen" id="btn-zen" aria-label="Toggle Zen mode" aria-pressed="false">
           <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor" aria-hidden="true">
-            <!--  Eye / cinema icon  -->
             <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
           </svg>
         </button>
@@ -578,7 +487,7 @@
     <div class="bottom-bar">
       <div id="status">
         <div id="st-dot" class="loading"></div>
-        <span id="st-text">Connexion…</span>
+        <span id="st-text">Connexion&hellip;</span>
       </div>
     </div>
   </div>

@@ -1,70 +1,43 @@
-/* AURA — style.css v6
-   Senior Front-End — optimisations structurelles complètes
+/* AURA — style.css v8
    ─────────────────────────────────────────────────────────────────────────────
-   [MAINTENANCE]
-   · Toutes les opacités rgba(255,255,255, x) centralisées dans :root
-     → --ui-soft / --ui-dim / --ui-ghost / --ui-muted / --ui-faint
-   · Spécificité réduite : .album-ctx-menu seul suffit (pas de cascade profonde)
-   · Unités px → rem sur les tailles de texte et les espacements de type
-     (les dimensions de layout restent en px/vw car elles ne dépendent pas
-      de la préférence de taille de police de l'utilisateur)
-
-   [LISIBILITÉ UI]
-   · text-shadow de lisibilité appliqué sur tous les textes secondaires flottants
-   · Masque LRC élargi : zone opaque de 15 % à 85 % (la ligne active ne se noie
-     plus dans le flou des bords)
-   · Marquee : mask-image gauche/droite pour fondu progressif des bords
-
-   [ERGONOMIE & UX]
-   · :active scale(.95) universel sur .btn-icon, .btn-pill, .sp-tab, .sp-option
-   · Touch targets : min 44×44 px sur .btn-icon (padding transparent)
-   · Scrollbar customisée fine + semi-transparente sur tous les panneaux
-
-   [IMMERSION]
-   · Transition idle : cubic-bezier(0.4, 0, 0.2, 1) + filter: blur(4px) sur
-     les éléments qui disparaissent → profondeur de champ photographique
-   · Durée idle passée à 0.6 s pour être plus douce
+   [CHANGES vs v7]
+   · Fluid gradient z-index fix: was 1 (hidden under bg-filter z-2). Now 2.
+     bg-filter bumped to 3, bg-vignette to 4.
+   · Grain opacity: .on now opacity 0.14 (was 0.065) — clearly visible.
+   · Marquee speed slider: dir=rtl removed; CSS fill now correctly fills when fast.
+   · New bg animation modes: légère, énergique, flottante via body classes.
+   · Album art float animation: body.album-anim.is-playing .art-wrap (non-vinyl).
+   · sp-slider-val style: mono inline value display next to slider labels.
+   · Apple Music option moved to Visual tab (no CSS change needed).
+   · ctx-btn updated for Last.fm + Share only (no like/copy).
    ─────────────────────────────────────────────────────────────────────────────
 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   DESIGN TOKENS — source unique de vérité
-   Modifier une variable ici change toute l'ambiance du site.
+   DESIGN TOKENS
 ════════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* ── courbes d'animation ───────────────────────────────────────────────── */
   --ease:      cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out:  cubic-bezier(0, 0, 0.2, 1);
   --spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
   --snap:      cubic-bezier(0.23, 1, 0.32, 1);
 
-  /* ── durées ───────────────────────────────────────────────────────────── */
   --t1: .25s;
   --t2: .55s;
   --t3: 1.1s;
 
-  /* ── couleurs dynamiques ──────────────────────────────────────────────── */
   --blur-amount:   70px;
   --accent:        #e0245e;
   --primary:       #7c3aed;
   --bg-brightness: 0.55;
   --bg-saturate:   1.4;
   --art-radius:    22px;
-  --mq-speed:      32s;
+  --mq-speed:      38s;   /* (70 - 32) = 38s default */
   --hero-scale:    1;
+  --lyrics-size:   1;
 
-  /* ── PALETTE D'OPACITÉS — centralisée ─────────────────────────────────
-     Changer l'ambiance globale : modifier ces 5 variables suffit.
-     · --ui-solid   : éléments de premier plan (titres, actif)
-     · --ui-bright  : texte principal readable
-     · --ui-mid     : texte secondaire (labels, artists dans l'historique)
-     · --ui-dim     : texte tertiaire (métadonnées, sous-labels)
-     · --ui-soft    : surfaces légèrement visibles (cards, rows)
-     · --ui-ghost   : contours, séparateurs
-     · --ui-faint   : quasi-invisible (bruit, overlays)
-  ────────────────────────────────────────────────────────────────────── */
   --ui-solid:   rgba(255, 255, 255, 1.00);
   --ui-bright:  rgba(255, 255, 255, 0.85);
   --ui-mid:     rgba(255, 255, 255, 0.60);
@@ -73,22 +46,8 @@
   --ui-ghost:   rgba(255, 255, 255, 0.10);
   --ui-faint:   rgba(255, 255, 255, 0.04);
 
-  /* ── text-shadow utilitaire — détache les textes fins du fond coloré ── */
   --text-shadow-legible: 0 1px 3px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
-
-  /* ── z-index layers ────────────────────────────────────────────────────
-     1-3  : background / fluid gradient
-     4    : marquee text
-     5    : hero
-     6    : lyrics / history panels
-     7    : settings panel
-     8    : UI overlay (buttons, status)
-     9    : discord preview card
-     10   : album context menu
-     9999 : noise overlay
-  ─────────────────────────────────────────────────────────────────────── */
 }
-
 
 html, body {
   width: 100%; height: 100%;
@@ -96,31 +55,32 @@ html, body {
   font-family: 'Instrument Sans', sans-serif;
 }
 
-/* ── font overrides ────────────────────────────────────────────────────── */
 body.f-modern, body.f-modern * { font-family: 'Outfit', sans-serif !important; }
 body.f-inter,  body.f-inter  * { font-family: 'Inter', sans-serif !important; }
 body.f-serif,  body.f-serif  * { font-family: 'Playfair Display', serif !important; }
 body.f-mono,   body.f-mono   * { font-family: 'JetBrains Mono', monospace !important; }
 
-/* décoratifs : jamais d'interception pointer */
 svg[aria-hidden="true"] { pointer-events: none; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
    NOISE GRAIN (z 9999)
+   opacity 0.14 on .on — was 0.065, now clearly visible.
 ═══════════════════════════════════════════════════════════════════════════ */
 #global-noise {
   position: fixed; inset: 0; z-index: 9999;
   pointer-events: none; opacity: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
   mix-blend-mode: overlay;
   transition: opacity var(--t2) var(--ease);
 }
-#global-noise.on { opacity: 0.06; }
+#global-noise.on { opacity: 0.14; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ORBS — fond animé en mode "blobs"
+   ORBS — blobs mode
 ═══════════════════════════════════════════════════════════════════════════ */
 .orb-container {
   position: fixed; inset: 0; z-index: 0; overflow: hidden;
@@ -245,13 +205,14 @@ svg[aria-hidden="true"] { pointer-events: none; }
 #s-player.on { opacity: 1; pointer-events: all; }
 
 
-/* ── BACKGROUND LAYERS (z 1-3) ─────────────────────────────────────────── */
+/* ── BACKGROUND LAYERS (z 1) ───────────────────────────────────────────── */
 .bg-layer {
   position: absolute; inset: -80px;
   background-size: cover; background-position: center;
   filter: blur(var(--blur-amount)) saturate(var(--bg-saturate)) brightness(var(--bg-brightness));
   transition: opacity 2s var(--ease); will-change: transform, opacity;
 }
+/* Default drift animations */
 #bg-a { z-index: 1; opacity: 1; animation: drift1 28s ease-in-out infinite alternate; }
 #bg-b { z-index: 1; opacity: 0; animation: drift2 34s ease-in-out infinite alternate; }
 
@@ -267,33 +228,66 @@ svg[aria-hidden="true"] { pointer-events: none; }
   100% { transform: scale(1.12) translate(18px, -10px); }
 }
 
-.bg-filter  { position: absolute; inset: 0; z-index: 2; background: rgba(0,0,0,.35); transition: background .6s var(--ease); }
-.bg-vignette { position: absolute; inset: 0; z-index: 3; background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 30%, rgba(0,0,0,.62) 100%); }
+/* ── LÉGÈRE — very slow, ultra-subtle ─────────────────────────────────── */
+body.bg-legere #bg-a { animation: driftLegere1 70s ease-in-out infinite alternate; }
+body.bg-legere #bg-b { animation: driftLegere2 90s ease-in-out infinite alternate; }
+@keyframes driftLegere1 {
+  0%   { transform: scale(1.05) translate(0px, 0px); }
+  50%  { transform: scale(1.07) translate(-6px, 4px); }
+  100% { transform: scale(1.06) translate(5px, -5px); }
+}
+@keyframes driftLegere2 {
+  0%   { transform: scale(1.06) translate(4px, -3px); }
+  100% { transform: scale(1.08) translate(-5px, 6px); }
+}
+
+/* ── ÉNERGIQUE — fast, dramatic ───────────────────────────────────────── */
+body.bg-energique #bg-a { animation: driftEnergique1 7s ease-in-out infinite alternate; }
+body.bg-energique #bg-b { animation: driftEnergique2 10s ease-in-out infinite alternate; }
+@keyframes driftEnergique1 {
+  0%   { transform: scale(1.2) translate(-35px, 20px); }
+  25%  { transform: scale(1.3) translate(28px, -32px); }
+  50%  { transform: scale(1.18) translate(-22px, -25px); }
+  75%  { transform: scale(1.28) translate(32px, 28px); }
+  100% { transform: scale(1.22) translate(-15px, 32px); }
+}
+@keyframes driftEnergique2 {
+  0%   { transform: scale(1.25) translate(25px, -12px); }
+  50%  { transform: scale(1.35) translate(-30px, 22px); }
+  100% { transform: scale(1.28) translate(20px, -28px); }
+}
+
+/* ── FLOTTANTE — dreamy floating with scale breaths ───────────────────── */
+body.bg-flottante #bg-a { animation: driftFlottante1 22s ease-in-out infinite; }
+body.bg-flottante #bg-b { animation: driftFlottante2 28s ease-in-out infinite; }
+@keyframes driftFlottante1 {
+  0%   { transform: scale(1.1) translate(0, 0); }
+  25%  { transform: scale(1.22) translate(-18px, 12px); }
+  50%  { transform: scale(1.15) translate(14px, -18px); }
+  75%  { transform: scale(1.24) translate(18px, 14px); }
+  100% { transform: scale(1.1) translate(0, 0); }
+}
+@keyframes driftFlottante2 {
+  0%   { transform: scale(1.15) translate(12px, -10px); }
+  33%  { transform: scale(1.28) translate(-16px, 18px); }
+  66%  { transform: scale(1.2) translate(20px, -12px); }
+  100% { transform: scale(1.15) translate(12px, -10px); }
+}
+
+/* z-index fixed: 3 (above fluid gradient z-2) */
+.bg-filter   { position: absolute; inset: 0; z-index: 3; background: rgba(0,0,0,.35); transition: background .6s var(--ease); }
+.bg-vignette { position: absolute; inset: 0; z-index: 4; background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 30%, rgba(0,0,0,.62) 100%); }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MARQUEE TEXT (z 4)
-   Fondu gauche/droite via mask-image pour éviter la coupure nette.
+   MARQUEE (z 4)
 ═══════════════════════════════════════════════════════════════════════════ */
 #mq-wrap {
   position: absolute; inset: 0; z-index: 4;
   display: flex; align-items: center; overflow: hidden;
   pointer-events: none; transition: opacity 0.5s var(--ease);
-  /* fondu progressif sur les bords pour que le texte ne soit pas coupé net */
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 6%,
-    #000 94%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 6%,
-    #000 94%,
-    transparent 100%
-  );
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  mask-image:         linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%);
 }
 #mq {
   font-family: 'Bebas Neue', sans-serif;
@@ -313,7 +307,7 @@ svg[aria-hidden="true"] { pointer-events: none; }
   position: absolute; inset: 0; z-index: 5;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  text-align: center; padding: 0 3rem;
+  text-align: center; padding: 0 2rem;
   transition: transform var(--t3) var(--ease), opacity var(--t2) var(--ease);
 }
 #hero.shifted { transform: translateX(-20%); }
@@ -326,7 +320,6 @@ svg[aria-hidden="true"] { pointer-events: none; }
   will-change: transform;
 }
 
-/* alignment variants */
 body.hero-left  #hero { align-items: flex-start; text-align: left;  padding-left: 5rem; }
 body.hero-right #hero { align-items: flex-end;   text-align: right; padding-right: 5rem; }
 body.hero-left  #artist-row    { justify-content: flex-start; }
@@ -334,26 +327,12 @@ body.hero-right #artist-row    { justify-content: flex-end; }
 body.hero-left  #track-content { align-items: flex-start; }
 body.hero-right #track-content { align-items: flex-end; }
 
-/* focus mode */
-body.hero-focus .art-wrap { display: none !important; }
-body.hero-focus #track-title {
-  font-size: clamp(72px, 11vw, 160px);
-  margin-bottom: 1.5rem;
-}
-body.hero-focus #hero::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 80% 70% at 50% 50%, rgba(255,255,255,.04), transparent 70%);
-  pointer-events: none; z-index: -1;
-}
-
-/* minimal mode */
 body.hero-minimal .art-wrap,
 body.hero-minimal #artist-row,
 body.hero-minimal #eq-viz,
 body.hero-minimal #viz-canvas { display: none !important; }
 body.hero-minimal #track-title {
-  font-size: clamp(24px, 3.5vw, 52px);
+  font-size: clamp(1.5rem, 3.5vw, 3.25rem);
   margin-bottom: 0.5rem;
 }
 body.hero-minimal #progress-container {
@@ -362,7 +341,6 @@ body.hero-minimal #progress-container {
   margin-top: 0.75rem;
 }
 
-/* source indicator — Lanyard/Spotify */
 body.source-lanyard #track-content::after {
   content: '';
   position: absolute; inset: -3px;
@@ -414,17 +392,27 @@ body.source-lanyard #track-content::after {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 44px;
+  margin-bottom: 1.5rem;
 }
 
 /* ── ALBUM ART ─────────────────────────────────────────────────────────── */
 .art-wrap {
   position: relative;
-  width: clamp(200px, 24vw, 320px);
-  height: clamp(200px, 24vw, 320px);
-  margin-bottom: 0;
+  width: clamp(180px, 22vw, 300px);
+  height: clamp(180px, 22vw, 300px);
   flex-shrink: 0;
   transition: border-radius .4s var(--ease);
+}
+
+/* Album float animation — triggered when is-playing AND album-anim is on */
+@keyframes artFloat {
+  0%   { transform: translateY(0px)  rotate(0deg)   scale(1); }
+  30%  { transform: translateY(-7px) rotate(0.4deg) scale(1.012); }
+  60%  { transform: translateY(-4px) rotate(-0.3deg) scale(1.006); }
+  100% { transform: translateY(0px)  rotate(0deg)   scale(1); }
+}
+body.album-anim.is-playing .art-wrap:not(.vinyl) {
+  animation: artFloat 7s ease-in-out infinite;
 }
 
 .art-glow {
@@ -455,75 +443,53 @@ body.source-lanyard #track-content::after {
   box-shadow: 0 32px 72px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.07);
 }
 
-/* ── CONTEXT MENU — flotte au-dessus de la pochette au hover ──────────── */
-/* Spécificité minimale : .album-ctx-menu seul, pas de cascade profonde */
+/* ── CONTEXT MENU ───────────────────────────────────────────────────────── */
 .album-ctx-menu {
   position: absolute;
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%) translateY(6px);
   z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: flex; align-items: center; gap: 6px;
   padding: 7px 10px;
   border-radius: 14px;
-  background: rgba(10, 10, 12, 0.82);
+  background: rgba(10,10,12,0.82);
   border: 1px solid rgba(255,255,255,.12);
   backdrop-filter: blur(24px) saturate(1.6);
   box-shadow: 0 8px 32px rgba(0,0,0,.55), inset 0 0 0 0.5px rgba(255,255,255,.06);
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    opacity .22s var(--ease),
-    transform .22s var(--spring);
+  opacity: 0; pointer-events: none;
+  transition: opacity .22s var(--ease), transform .22s var(--spring);
   will-change: opacity, transform;
 }
-
-/* reveal au hover parent */
 .album-wrapper:hover .album-ctx-menu {
-  opacity: 1;
-  pointer-events: all;
+  opacity: 1; pointer-events: all;
   transform: translateX(-50%) translateY(0);
 }
-
-/* masqué en idle ou zen */
 body.is-idle .album-ctx-menu,
 body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !important; }
 
 .ctx-btn {
-  /* touch target min 44×44 px via padding — icône reste petite visuellement */
   min-width: 44px; min-height: 44px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px;
-  padding: 8px 10px; border-radius: 10px;
-  background: transparent; border: none;
-  color: var(--ui-mid);
+  gap: 4px; padding: 8px 10px; border-radius: 10px;
+  background: transparent; border: none; color: var(--ui-mid);
   cursor: pointer;
   transition: background .18s var(--ease), color .18s var(--ease), transform .15s var(--spring);
-  will-change: transform;
 }
 .ctx-btn:hover  { background: var(--ui-soft); color: #fff; transform: scale(1.08); }
 .ctx-btn:active { transform: scale(.93); }
-
-.ctx-btn svg {
-  width: 16px; height: 16px; fill: currentColor; flex-shrink: 0;
-  transition: fill .18s var(--ease);
-}
-
-.ctx-btn.liked { color: var(--accent); }
-.ctx-btn.liked svg { fill: var(--accent); }
-
+.ctx-btn svg { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; }
 .ctx-btn-label {
   font-size: 0.5625rem; font-weight: 600;
-  letter-spacing: .08em; text-transform: uppercase;
-  color: inherit; line-height: 1;
+  letter-spacing: .08em; text-transform: uppercase; line-height: 1;
 }
+/* Last.fm button accent */
+#ctx-btn-lastfm { color: rgba(212,2,49,0.7); }
+#ctx-btn-lastfm:hover { color: #D40231; background: rgba(212,2,49,0.12); }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TRACK TEXT
-   text-shadow sur les textes secondaires pour lisibilité sur fond d'album
+   TRACK TEXT + MARQUEE TITLE
 ═══════════════════════════════════════════════════════════════════════════ */
 .fade-up-text {
   opacity: 0; transform: translateY(20px);
@@ -531,15 +497,46 @@ body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !imp
 }
 .fade-up-text.show { opacity: 1; transform: translateY(0); }
 
+.track-title-wrap {
+  max-width: min(72vw, 720px);
+  overflow: hidden;
+  position: relative;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%);
+  mask-image:         linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%);
+}
+
 #track-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(48px, 7vw, 108px);
+  font-size: clamp(3rem, 7vw, 6.75rem);
   line-height: .95; letter-spacing: .03em; color: #fff;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   text-shadow: var(--text-shadow-legible);
+  white-space: nowrap;
+  display: inline-block;
+}
+
+/* Marquee animation when title overflows */
+@keyframes titleMarquee {
+  0%, 10%   { transform: translateX(0); }
+  45%, 55%  { transform: translateX(var(--title-overflow, -40%)); }
+  90%, 100% { transform: translateX(0); }
+}
+#track-title.scrolling {
+  animation: titleMarquee 10s ease-in-out infinite;
+  animation-delay: 1.5s;
 }
 
 #artist-row { display: flex; align-items: center; justify-content: center; gap: 0.625rem; }
+
+#track-artist {
+  font-family: 'Instrument Serif', serif; font-style: italic;
+  font-size: clamp(1.125rem, 2.2vw, 2rem);
+  color: var(--ui-mid);
+  letter-spacing: .01em;
+  text-shadow: var(--text-shadow-legible);
+  max-width: 50vw;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 
 /* ── ARTIST AVATAR ──────────────────────────────────────────────────────── */
@@ -552,7 +549,6 @@ body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !imp
   transform: scale(0.85);
 }
 .avatar-circle.on { opacity: 1; transform: scale(1); }
-/* touch target agrandi */
 .avatar-circle:hover { transform: scale(1.1); }
 
 .avatar-circle img#artist-avatar {
@@ -570,20 +566,12 @@ body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !imp
   transition: opacity var(--t2) var(--ease);
 }
 
-#track-artist {
-  font-family: 'Instrument Serif', serif; font-style: italic;
-  font-size: clamp(18px, 2.2vw, 32px);
-  color: var(--ui-mid);
-  letter-spacing: .01em;
-  text-shadow: var(--text-shadow-legible);
-}
-
 
 /* ── PROGRESS BAR ───────────────────────────────────────────────────────── */
 #progress-container {
   width: clamp(200px, 40vw, 500px); height: 4px;
   background: var(--ui-ghost); border-radius: 10px;
-  margin-top: 1.5rem; position: relative; overflow: hidden; display: none;
+  margin-top: 1.25rem; position: relative; overflow: hidden; display: none;
 }
 #progress-bar {
   position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
@@ -593,7 +581,7 @@ body.show-progress #progress-container { display: block; }
 
 
 /* ── EQ BARS ────────────────────────────────────────────────────────────── */
-#eq-viz { display: none; align-items: flex-end; justify-content: center; gap: 3px; height: 26px; margin-top: 1.125rem; }
+#eq-viz { display: none; align-items: flex-end; justify-content: center; gap: 3px; height: 26px; margin-top: 1rem; }
 body.show-eq #eq-viz { display: flex; }
 
 .eq-bar {
@@ -619,7 +607,7 @@ body.is-playing        .eq-bar { animation-play-state: running; }
 
 /* ── CANVAS SPECTRUM ────────────────────────────────────────────────────── */
 #viz-canvas {
-  display: none; margin-top: 1.125rem; border-radius: 8px; opacity: .85;
+  display: none; margin-top: 1rem; border-radius: 8px; opacity: .85;
   width: 320px; height: 48px; max-width: 60vw;
 }
 body.show-canvas-viz #viz-canvas { display: block; }
@@ -658,14 +646,14 @@ body.show-canvas-viz #viz-canvas { display: block; }
 .art-wrap.vinyl .vinyl-center { opacity: 1; }
 
 .tonearm-wrap {
-  position: absolute; top: -22px; right: -34px;
+  position: absolute; top: -20px; right: -30px;
   width: 70px; height: 110px;
-  transform-origin: 72% 12%; transform: rotate(-26deg);
+  transform-origin: 72% 12%; transform: rotate(-28deg);
   pointer-events: none; z-index: 10; opacity: 0;
-  transition: opacity .4s var(--ease), transform .9s cubic-bezier(0.34, 1.2, 0.64, 1);
+  transition: opacity .4s var(--ease), transform 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 .art-wrap.vinyl .tonearm-wrap { opacity: 1; }
-.art-wrap.vinyl.playing .tonearm-wrap { transform: rotate(-5deg); }
+.art-wrap.vinyl.playing .tonearm-wrap { transform: rotate(-6deg); }
 
 .tonearm-pivot { position: absolute; top: 0; right: 4px; width: 13px; height: 13px; border-radius: 50%; background: linear-gradient(135deg, #ccc, #888); border: 1px solid rgba(255,255,255,.3); box-shadow: 0 2px 6px rgba(0,0,0,.6); }
 .tonearm-arm   { position: absolute; top: 6px; right: 9px; width: 2.5px; height: 92px; background: linear-gradient(to bottom, rgba(210,210,210,.9), rgba(140,140,140,.5)); border-radius: 2px; transform-origin: top center; transform: rotate(-6deg); }
@@ -677,17 +665,12 @@ body.show-canvas-viz #viz-canvas { display: block; }
 ═══════════════════════════════════════════════════════════════════════════ */
 body.mode-apple #hero         { transition: all 0.8s var(--ease); }
 body.mode-apple .art-img      { border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
-body.mode-apple #track-title  { font-family: 'Inter', sans-serif !important; font-weight: 700; letter-spacing: -0.02em; font-size: clamp(32px, 5vw, 64px); }
+body.mode-apple #track-title  { font-family: 'Inter', sans-serif !important; font-weight: 700; letter-spacing: -0.02em; font-size: clamp(2rem, 5vw, 4rem); }
 body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; font-style: normal; opacity: .8; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LYRICS PANEL (z 6)
-   ─────────────────────────────────────────────────────────────────────────
-   .lrc-fade-mask est l'enfant qui porte le mask-image, PAS .lp-body.
-   Cela évite le bug Safari où overflow-y: scroll est clippé par le mask.
-   Zone opaque élargie (15% → 85%) pour que la ligne active ne soit pas
-   dans la zone de fondu et reste parfaitement lisible.
 ═══════════════════════════════════════════════════════════════════════════ */
 #lyrics-panel {
   position: fixed; right: 0; top: 0; bottom: 0; width: 38%; z-index: 6;
@@ -699,52 +682,30 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 }
 #lyrics-panel.on { transform: translateX(0); opacity: 1; pointer-events: all; }
 
-/* Épuration Lyrics : header masqué pour un rendu minimaliste */
-.lp-header-row {
-  display: none;
-}
+.lp-header-row { display: none; }
+.lp-badge { display: none; }
 
-/* scrollable wrapper — overflow uniquement, pas de mask ici */
 .lp-body {
   font-family: 'Instrument Serif', serif; font-style: italic;
-  font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
+  font-size: calc(clamp(0.9375rem, 1.3vw, 1.125rem) * var(--lyrics-size));
   line-height: 2.0; color: var(--ui-mid);
   overflow-y: auto;
   max-height: 76vh;
   text-align: center;
-  /* scrollbar ultra-fine, immersive */
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,.10) transparent;
   position: relative;
 }
 .lp-body::-webkit-scrollbar       { width: 2px; }
-.lp-body::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,.10);
-  border-radius: 2px;
-}
+.lp-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.10); border-radius: 2px; }
 .lp-body::-webkit-scrollbar-track { background: transparent; }
 
-/* mode LRC synchronisé — pas de scrollbar */
 .lp-body.lrc-mode { overflow: hidden; }
 
-/* Masque interne — zone opaque 6%→94% pour ne pas écraser la ligne active */
 .lrc-fade-mask {
-  display: block;
-  width: 100%;
-  mask-image: linear-gradient(
-    to bottom,
-    transparent  0%,
-    #000         6%,
-    #000        94%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent  0%,
-    #000         6%,
-    #000        94%,
-    transparent 100%
-  );
+  display: block; width: 100%;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 6%, #000 94%, transparent 100%);
 }
 
 .lp-empty {
@@ -752,14 +713,12 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   text-shadow: var(--text-shadow-legible);
 }
 
-/* LRC container — translateY GPU, pas de jank scrollbar */
 #lrc-container {
   padding: 28vh 1rem 40vh;
   will-change: transform;
   transition: transform 0.55s var(--snap);
 }
 
-/* ligne de paroles individuelle */
 .lrc-line {
   padding: 0.5rem 0;
   font-style: italic;
@@ -769,22 +728,29 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   opacity: .3;
   transform: scale(.96);
   transform-origin: center center;
-  transition:
-    opacity .4s var(--ease),
-    filter .4s var(--ease),
-    color .4s var(--ease),
-    transform .35s var(--spring);
+  transition: opacity .4s var(--ease), filter .4s var(--ease), color .4s var(--ease), transform .35s var(--spring);
   cursor: pointer; line-height: 1.8; white-space: pre-wrap;
   text-shadow: var(--text-shadow-legible);
 }
 .lrc-line.active {
   color: var(--accent);
-  filter: blur(0);
-  opacity: 1;
-  transform: scale(1.04);
+  filter: blur(0); opacity: 1; transform: scale(1.04);
   text-shadow: 0 0 20px rgba(224,36,94,.3), var(--text-shadow-legible);
 }
 .lrc-line.near { opacity: .55; filter: blur(0.3px); color: rgba(255,255,255,.55); }
+
+body.lyrics-anim-off .lrc-line {
+  transition: none !important;
+  filter: none !important;
+}
+
+/* Lyrics font variants */
+body.lf-sans    .lp-body,
+body.lf-sans    .lrc-line { font-family: 'Instrument Sans', sans-serif !important; font-style: normal; }
+body.lf-mono    .lp-body,
+body.lf-mono    .lrc-line { font-family: 'JetBrains Mono', monospace !important; font-style: normal; }
+body.lf-display .lp-body,
+body.lf-display .lrc-line { font-family: 'Bebas Neue', sans-serif !important; font-style: normal; letter-spacing: .06em; }
 
 .plain-lyrics {
   white-space: pre-wrap; line-height: 2;
@@ -840,7 +806,7 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   text-shadow: var(--text-shadow-legible);
 }
-.hp-time   { font-size: 0.625rem; color: var(--ui-dim); font-family: 'Instrument Sans', sans-serif; }
+.hp-time    { font-size: 0.625rem; color: var(--ui-dim); font-family: 'Instrument Sans', sans-serif; }
 .hp-playing {
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--accent); box-shadow: 0 0 8px var(--accent);
@@ -850,7 +816,6 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SETTINGS PANEL (z 7)
-   Scrollbar immersive ultra-fine sur tous les onglets.
 ═══════════════════════════════════════════════════════════════════════════ */
 #settings-panel {
   position: fixed; right: 0; top: 0; bottom: 0; width: 360px; z-index: 7;
@@ -873,13 +838,12 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 
 .sp-tabs { display: flex; gap: 2px; }
 .sp-tab {
-  flex: 1; padding: 0.625rem 0.375rem;
-  /* touch target 44px minimum */
+  flex: 1; padding: 0.625rem 0.25rem;
   min-height: 44px;
   background: transparent; border: none; border-bottom: 2px solid transparent;
   color: var(--ui-dim);
   font-family: 'Instrument Sans', sans-serif;
-  font-size: 0.625rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+  font-size: 0.5625rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
   cursor: pointer;
   transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease), transform .15s var(--spring);
   border-radius: 6px 6px 0 0;
@@ -908,10 +872,7 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   display: flex; align-items: center; gap: 7px;
 }
 .sp-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-.sp-row-label {
-  font-size: 0.8125rem; color: var(--ui-mid);
-  text-shadow: var(--text-shadow-legible);
-}
+.sp-row-label { font-size: 0.8125rem; color: var(--ui-mid); text-shadow: var(--text-shadow-legible); }
 
 .sp-layout-desc {
   margin-top: 0.625rem; padding: 0.5625rem 0.75rem;
@@ -925,18 +886,19 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   margin: 0.25rem 0 1.375rem; display: block;
 }
 
-.sp-priority-info { font-size: 0.75rem; color: var(--ui-dim); line-height: 1.5; margin-bottom: 0.25rem; }
-
-#hero-scale-val {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.625rem;
-  color: var(--ui-mid); margin-left: auto; font-weight: 400; letter-spacing: 0;
-}
-
-.sp-priority-desc {
-  margin-top: 0.625rem; padding: 0.5625rem 0.75rem;
+.sp-priority-info  { font-size: 0.75rem; color: var(--ui-dim); line-height: 1.5; margin-bottom: 0.5rem; }
+.sp-priority-desc  {
+  margin-top: 0.25rem; padding: 0.5rem 0.75rem;
   background: var(--ui-faint); border: 1px solid rgba(255,255,255,.07);
   border-radius: 8px; font-size: 0.6875rem; color: var(--ui-dim); line-height: 1.5;
   transition: all .3s;
+}
+
+/* Slider value display — mono inline next to label */
+.sp-slider-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem; color: var(--ui-mid);
+  margin-left: auto; font-weight: 400; letter-spacing: 0;
 }
 
 .user-search-wrap { position: relative; }
@@ -949,15 +911,11 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 .user-search-input::placeholder { color: rgba(255,255,255,.2); }
 .user-search-input:focus { border-color: var(--accent); background: var(--ui-soft); }
 
-/* Lanyard input + bouton */
 .lanyard-connect-wrap { display: flex; gap: 8px; align-items: stretch; }
 .lanyard-connect-wrap .user-search-input { flex: 1; padding: 0.6875rem 0.875rem; }
 
 .lanyard-connect-btn {
-  flex-shrink: 0;
-  /* touch target */
-  min-height: 44px;
-  padding: 0 1rem;
+  flex-shrink: 0; min-height: 44px; padding: 0 1rem;
   background: rgba(29,185,84,.14); border: 1px solid rgba(29,185,84,.28);
   border-radius: 10px; color: #1DB954;
   font-family: 'Instrument Sans', sans-serif; font-size: 0.75rem; font-weight: 600;
@@ -1005,9 +963,7 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 /* ── OPTION GROUP ───────────────────────────────────────────────────────── */
 .sp-option-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .sp-option {
-  padding: 7px 14px;
-  /* touch target */
-  min-height: 36px;
+  padding: 7px 14px; min-height: 36px;
   border-radius: 8px;
   background: var(--ui-soft); border: 1px solid var(--ui-ghost);
   font-size: 0.75rem; color: var(--ui-mid); cursor: pointer;
@@ -1018,13 +974,11 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 .sp-option:active { transform: scale(.95); }
 .sp-option.active { background: rgba(255,255,255,.9); color: #000; border-color: transparent; font-weight: 500; }
 
-/* FPS limiter row */
 .sp-fps-row { align-items: center; display: none; }
 .sp-fps-row.fps-visible { display: flex; }
 .sp-fps-group { margin-top: 0; gap: 6px; }
 .sp-fps-group .sp-option { padding: 5px 11px; font-size: 0.6875rem; border-radius: 7px; }
 
-/* colour swatches */
 .sp-swatches { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .sp-swatch {
   width: 26px; height: 26px; border-radius: 50%;
@@ -1042,7 +996,6 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   border-radius: 10px; color: var(--accent);
   font-family: 'Instrument Sans', sans-serif; font-size: 0.8125rem; font-weight: 500;
   cursor: pointer; transition: background var(--t1), border-color var(--t1), transform .15s var(--spring);
-  /* touch target */
   min-height: 44px;
 }
 .sp-logout:hover  { background: rgba(224,36,94,.18); border-color: rgba(224,36,94,.35); }
@@ -1102,137 +1055,7 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   DISCORD RPC SETTINGS
-═══════════════════════════════════════════════════════════════════════════ */
-.sp-section-discord .sp-section-label { display: flex; align-items: center; gap: 7px; }
-.discord-icon-label { width: 15px; height: 15px; flex-shrink: 0; fill: #5865F2; }
-
-.discord-client-wrap { margin-top: 0.625rem; }
-.discord-client-wrap label { display: block; font-size: 0.625rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ui-dim); font-weight: 500; margin-bottom: 6px; }
-.discord-client-input {
-  width: 100%; padding: 0.625rem 0.75rem;
-  background: var(--ui-soft); border: 1px solid var(--ui-ghost);
-  border-radius: 8px; color: #fff;
-  font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;
-  outline: none; transition: border-color .2s, background .2s;
-}
-.discord-client-input:focus        { border-color: #5865F2; background: rgba(88,101,242,.08); }
-.discord-client-input::placeholder { color: rgba(255,255,255,.18); font-family: 'Instrument Sans', sans-serif; }
-
-.discord-connect-btn {
-  width: 100%; margin-top: 0.75rem; padding: 0.6875rem 0.875rem;
-  background: #5865F2; border: none; border-radius: 9px; color: #fff;
-  font-family: 'Instrument Sans', sans-serif; font-weight: 600; font-size: 0.75rem; letter-spacing: .03em;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: background .2s, transform .15s, box-shadow .2s;
-  /* touch target */
-  min-height: 44px;
-}
-.discord-connect-btn:hover  { background: #4752C4; transform: scale(1.02); box-shadow: 0 4px 16px rgba(88,101,242,.4); }
-.discord-connect-btn:active { transform: scale(.97); }
-.discord-connect-btn.disc-off { background: rgba(224,36,94,.5); }
-
-.discord-status-row { display: flex; align-items: center; gap: 8px; margin-top: 0.625rem; padding: 8px 10px; background: var(--ui-faint); border: 1px solid rgba(255,255,255,.07); border-radius: 8px; }
-#discord-status-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: rgba(255,255,255,.15); transition: background .3s, box-shadow .3s; }
-#discord-status-text { font-size: 0.6875rem; color: var(--ui-dim); flex: 1; transition: color .3s; }
-
-#discord-status-dot.dsc-connected  { background: #22c55e; box-shadow: 0 0 7px #22c55e; }
-#discord-status-dot.dsc-connecting { background: #f59e0b; box-shadow: 0 0 7px #f59e0b; animation: blink 1s ease-in-out infinite; }
-#discord-status-dot.dsc-preview    { background: #5865F2; box-shadow: 0 0 7px #5865F2; }
-
-.discord-help { margin-top: 0.75rem; padding: 0.625rem 0.75rem; background: rgba(88,101,242,.07); border: 1px solid rgba(88,101,242,.18); border-radius: 8px; font-size: 0.6875rem; line-height: 1.7; color: var(--ui-dim); }
-.discord-help strong { color: rgba(255,255,255,.5); }
-.discord-help a      { color: #5865F2; text-decoration: none; }
-.discord-help a:hover { text-decoration: underline; }
-
-#discord-settings-body { overflow: hidden; transition: max-height .4s var(--ease), opacity .3s var(--ease); max-height: 600px; opacity: 1; }
-#discord-settings-body.collapsed { max-height: 0; opacity: 0; pointer-events: none; }
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   DISCORD PREVIEW CARD (z 9)
-═══════════════════════════════════════════════════════════════════════════ */
-#discord-preview-panel {
-  position: fixed; bottom: 76px; left: 32px; width: 290px; z-index: 9;
-  background: rgba(24,25,28,.97); border: 1px solid rgba(255,255,255,.09);
-  border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.75), 0 0 0 1px var(--ui-faint);
-  backdrop-filter: blur(40px); padding: 14px;
-  opacity: 0; transform: translateY(10px) scale(.97); pointer-events: none;
-  transition: opacity .35s var(--ease), transform .35s var(--spring);
-  will-change: opacity, transform;
-}
-#discord-preview-panel.on { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
-
-.drpc-header { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,.07); }
-.drpc-discord-logo { width: 16px; height: 16px; fill: #5865F2; flex-shrink: 0; }
-.drpc-app-name { font-size: 0.625rem; letter-spacing: .14em; text-transform: uppercase; color: #5865F2; font-weight: 600; flex: 1; }
-.drpc-header-status { display: flex; align-items: center; gap: 5px; font-size: 0.625rem; color: var(--ui-dim); }
-.drpc-header-dot { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; transition: background .3s; animation: blink 2s ease-in-out infinite; }
-.drpc-header-dot.paused { background: #f59e0b; animation: none; }
-.drpc-header-dot.live   { background: #22c55e; animation: blink 2s ease-in-out infinite; }
-
-#drpc-close {
-  /* touch target minimal */
-  min-width: 28px; min-height: 28px;
-  width: 18px; height: 18px;
-  border-radius: 4px; background: transparent; border: none;
-  color: var(--ui-dim); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.6875rem; transition: background .15s, color .15s;
-}
-#drpc-close:hover { background: var(--ui-soft); color: #fff; }
-
-.drpc-body { display: flex; gap: 12px; align-items: flex-start; }
-.drpc-art-wrap { position: relative; width: 60px; height: 60px; flex-shrink: 0; border-radius: 8px; overflow: hidden; }
-#drpc-art    { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; transition: opacity .4s var(--ease); }
-#drpc-art-fb { position: absolute; inset: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.375rem; color: rgba(255,255,255,.6); transition: opacity .4s; }
-
-.drpc-small-badge { position: absolute; bottom: -4px; right: -4px; width: 18px; height: 18px; border-radius: 50%; background: #18191c; border: 2px solid #18191c; display: flex; align-items: center; justify-content: center; }
-.drpc-small-badge svg { width: 10px; height: 10px; fill: #5865F2; }
-
-.drpc-info { flex: 1; min-width: 0; }
-.drpc-playing-label { font-size: 0.5625rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ui-dim); font-weight: 600; margin-bottom: 4px; }
-#drpc-title  { font-size: 0.8125rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
-#drpc-artist { font-size: 0.75rem; color: var(--ui-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
-#drpc-album  { font-size: 0.6875rem; color: var(--ui-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
-
-.drpc-progress-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.drpc-time { font-size: 0.5625rem; color: var(--ui-dim); font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
-.drpc-prog-track { flex: 1; height: 3px; background: var(--ui-ghost); border-radius: 2px; overflow: hidden; }
-#drpc-progress-fill { height: 100%; background: #5865F2; border-radius: 2px; width: 0%; transition: width .5s linear; }
-
-.drpc-controls-row { display: flex; align-items: center; gap: 8px; }
-.drpc-playstate { display: flex; align-items: center; gap: 5px; padding: 4px 8px; background: var(--ui-soft); border: 1px solid var(--ui-ghost); border-radius: 6px; flex: 1; transition: background .3s, border-color .3s; }
-.drpc-playstate.paused { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.2); }
-.drpc-playstate-icon { font-size: 0.5625rem; color: var(--ui-mid); }
-.drpc-playstate.paused .drpc-playstate-icon { color: rgba(245,158,11,.7); }
-.drpc-playstate-text { font-size: 0.5625rem; color: var(--ui-dim); }
-.drpc-playstate.paused .drpc-playstate-text { color: rgba(245,158,11,.7); }
-
-.drpc-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--ui-soft); border: 1px solid rgba(255,255,255,.13); border-radius: 6px; font-size: 0.625rem; color: var(--ui-mid); cursor: pointer; transition: background .15s, color .15s; font-family: 'Instrument Sans', sans-serif; font-weight: 500; }
-.drpc-btn:hover  { background: rgba(255,255,255,.15); color: #fff; }
-.drpc-btn:active { transform: scale(.97); }
-
-.drpc-pause-badge { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; padding: 7px; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.2); border-radius: 7px; font-size: 0.6875rem; color: rgba(245,158,11,.8); }
-.drpc-pause-badge.hidden { display: none; }
-
-.drpc-extra-row { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.06); }
-.drpc-extra-item { display: flex; align-items: center; gap: 4px; font-size: 0.5625rem; color: var(--ui-dim); padding: 3px 7px; background: var(--ui-faint); border: 1px solid rgba(255,255,255,.07); border-radius: 5px; }
-
-#btn-discord-preview { position: relative; }
-.discord-rpc-badge { position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: #5865F2; border: 2px solid rgba(0,0,0,.5); transition: background .3s; }
-.discord-rpc-badge.dsc-live { background: #22c55e; }
-.discord-rpc-badge.hidden   { display: none; }
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
    UI OVERLAY (z 8)
-   ─────────────────────────────────────────────────────────────────────────
-   Auto-hide logic :
-   · .is-idle  — 3 s sans activité → masque tout + blur de profondeur
-   · .zen-mode — force-hide tout sauf pochette et paroles
-   Transition : cubic-bezier(0.4, 0, 0.2, 1) + filter blur pour effet
-   "profondeur de champ photographique" quand l'UI disparaît.
 ═══════════════════════════════════════════════════════════════════════════ */
 #ui {
   position: fixed; inset: 0; z-index: 8;
@@ -1242,46 +1065,32 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 #ui.hidden { opacity: 0; }
 #ui > * { pointer-events: all; }
 
-.top-bar  { position: absolute; top: 0; left: 0; right: 0; padding: 1.75rem 2rem; display: flex; align-items: center; justify-content: flex-end; }
+.top-bar     { position: absolute; top: 0; left: 0; right: 0; padding: 1.75rem 2rem; display: flex; align-items: center; justify-content: flex-end; }
 .top-actions { display: flex; align-items: center; gap: 0.625rem; }
 
-/* ── PILL BUTTON ─────────────────────────────────────────────────────────── */
 .btn-pill {
-  padding: 8px 18px;
-  /* touch target */
-  min-height: 44px;
+  padding: 8px 18px; min-height: 44px;
   border-radius: 100px;
   background: var(--ui-soft); border: 1px solid rgba(255,255,255,.15);
   color: var(--ui-mid);
   font-family: 'Instrument Sans', sans-serif; font-weight: 500;
   font-size: 0.75rem; letter-spacing: .04em;
   cursor: pointer; backdrop-filter: blur(12px);
-  transition:
-    background var(--t1),
-    color var(--t1),
-    transform var(--t1) var(--spring),
-    border-color var(--t1),
-    opacity var(--t2) var(--ease);
+  transition: background var(--t1), color var(--t1), transform var(--t1) var(--spring), border-color var(--t1), opacity var(--t2) var(--ease);
   will-change: transform;
 }
 .btn-pill:hover  { background: rgba(255,255,255,.16); color: #fff; transform: scale(1.04); border-color: rgba(255,255,255,.25); }
 .btn-pill:active { transform: scale(.95); }
 .btn-pill.active { background: var(--ui-faint); color: var(--accent); border-color: rgba(255,255,255,.18); }
 
-/* ── ICON BUTTON ─────────────────────────────────────────────────────────── */
 .btn-icon {
-  /* Touch target 44×44 px — zone cliquable agrandie, icône reste petite */
   width: 44px; height: 44px;
   border-radius: 50%;
   background: var(--ui-soft); border: 1px solid rgba(255,255,255,.15);
   color: rgba(255,255,255,.65);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; backdrop-filter: blur(12px);
-  transition:
-    background var(--t1),
-    transform var(--t1) var(--spring),
-    opacity var(--t2) var(--ease),
-    filter var(--t2) var(--ease);
+  transition: background var(--t1), transform var(--t1) var(--spring), opacity var(--t2) var(--ease), filter var(--t2) var(--ease);
   will-change: transform;
 }
 .btn-icon:hover  { background: rgba(255,255,255,.18); transform: scale(1.08); }
@@ -1289,7 +1098,6 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 .btn-icon svg    { width: 15px; height: 15px; fill: currentColor; }
 .btn-icon.active { background: rgba(255,255,255,.9); color: #000; border-color: transparent; }
 
-/* ── ZEN MODE BUTTON ─────────────────────────────────────────────────────── */
 .btn-zen[aria-pressed="true"],
 .btn-zen.active {
   background: rgba(224,36,94,.18);
@@ -1300,68 +1108,43 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 .btn-zen[aria-pressed="true"]:hover,
 .btn-zen.active:hover { background: rgba(224,36,94,.28); }
 
-/* ── PARTIAL HIDE (icons-hidden) ─────────────────────────────────────────── */
-.top-actions.icons-hidden .btn-icon,
-.top-actions.icons-hidden .btn-pill:not(.active) {
-  opacity: 0; pointer-events: none; transform: scale(0.82);
-}
 
 /* ════════════════════════════════════════════════════════════════════════════
-   AUTO-HIDE IDLE — profondeur de champ photographique
-   ──────────────────────────────────────────────────────────────────────────
-   Quand body.is-idle est actif :
-   · L'overlay #ui et ses enfants passent à opacity 0 avec un léger blur
-   · La transition utilise cubic-bezier(0.4, 0, 0.2, 1) (Material Design std)
-     pour un fondu naturel et non linéaire
-   · filter: blur donne l'impression que la mise au point passe sur la musique
+   AUTO-HIDE IDLE
 ════════════════════════════════════════════════════════════════════════════ */
 #ui,
 #status {
-  transition:
-    opacity .6s cubic-bezier(0.4, 0, 0.2, 1),
-    filter  .6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity .6s cubic-bezier(0.4, 0, 0.2, 1), filter .6s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 body.is-idle #ui {
-  opacity: 0;
-  pointer-events: none;
-  filter: blur(3px);
+  opacity: 0; pointer-events: none; filter: blur(3px);
 }
 body.is-idle #status {
-  opacity: 0;
-  filter: blur(2px);
+  opacity: 0; filter: blur(2px);
 }
 
+
 /* ════════════════════════════════════════════════════════════════════════════
-   ZEN MODE — cinématique
-   Masque tout sauf #lyrics-panel et .album-wrapper.
-   Le hero se recentre (transform: none).
-   Les éléments qui disparaissent ont le même blur de profondeur.
+   ZEN MODE
 ════════════════════════════════════════════════════════════════════════════ */
 body.zen-mode #ui        { opacity: 0 !important; pointer-events: none !important; filter: blur(3px); }
 body.zen-mode #status    { opacity: 0 !important; filter: blur(2px); }
 body.zen-mode #hist-panel,
-body.zen-mode #settings-panel,
-body.zen-mode #discord-preview-panel {
+body.zen-mode #settings-panel {
   opacity: 0 !important; pointer-events: none !important;
   transform: translateX(102%) !important;
 }
-
 body.zen-mode #hero      { transform: none !important; }
-
 body.zen-mode #track-title,
 body.zen-mode #artist-row,
 body.zen-mode #progress-container,
 body.zen-mode #eq-viz,
 body.zen-mode #viz-canvas,
 body.zen-mode #mq-wrap {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0; pointer-events: none;
   transition: opacity var(--t2) cubic-bezier(0.4, 0, 0.2, 1), filter var(--t2) cubic-bezier(0.4, 0, 0.2, 1);
   filter: blur(2px);
 }
-
-/* la pochette s'agrandit légèrement pour l'effet cinéma */
 body.zen-mode .album-wrapper {
   transform: scale(1.06);
   transition: transform var(--t3) var(--spring);
@@ -1401,23 +1184,26 @@ body.zen-mode .album-wrapper {
 
 /* ═══════════════════════════════════════════════════════════════════════════
    FLUID GRADIENT BG
+   FIX: z-index raised to 2 (was 1, hidden behind bg-filter z-2).
+   bg-filter → z-index 3, bg-vignette → z-index 4.
+   filter improved: blur(80px) saturate(2.5) brightness(1.4) for more visibility.
 ═══════════════════════════════════════════════════════════════════════════ */
 #fluid-gradient-bg {
-  position: absolute; inset: -80px; z-index: 1;
+  position: absolute; inset: -100px; z-index: 2;
   opacity: 0; pointer-events: none;
-  filter: blur(80px) saturate(1.8) brightness(0.55);
-  background-size: 400% 400%;
-  animation: fluidMove 10s ease-in-out infinite alternate;
-  transition: opacity 2s var(--ease), background 2s var(--ease);
-  will-change: opacity, background-position;
+  filter: blur(80px) saturate(2.5) brightness(1.4);
+  animation: fluidMove 14s ease-in-out infinite alternate;
+  transition: opacity 2s var(--ease);
+  will-change: transform, opacity;
 }
-#fluid-gradient-bg.on { opacity: 1; }
+#fluid-gradient-bg.on { opacity: 0.85; }
 
 @keyframes fluidMove {
-  0%   { background-position: 0% 50%;   transform: scale(1.05) translate(0, 0); }
-  33%  { background-position: 60% 20%;  transform: scale(1.1)  translate(-15px, 10px); }
-  66%  { background-position: 100% 80%; transform: scale(1.07) translate(10px, -12px); }
-  100% { background-position: 30% 100%; transform: scale(1.12) translate(-8px, 15px); }
+  0%   { transform: scale(1.0) translate(0%,   0%); }
+  25%  { transform: scale(1.15) translate(6%,  -8%); }
+  50%  { transform: scale(1.1) translate(-8%,   5%); }
+  75%  { transform: scale(1.2) translate(4%,   9%); }
+  100% { transform: scale(1.05) translate(-5%, -4%); }
 }
 
 
@@ -1434,19 +1220,16 @@ body.zen-mode .album-wrapper {
   #lyrics-panel, #hist-panel { width: 100%; padding: 3rem 1.5rem 5rem; z-index: 20; }
   #settings-panel { width: 100%; z-index: 21; }
   #hero.shifted { transform: translateX(0); }
-  .sp-tab { font-size: 0.5625rem; padding: 8px 4px; }
-  #discord-preview-panel { left: 16px; right: 16px; width: auto; }
-  /* sur mobile : context menu toujours visible (pas d'état hover sur tactile) */
+  .sp-tab { font-size: 0.5rem; padding: 8px 2px; }
+  .track-title-wrap { max-width: 90vw; }
   .album-ctx-menu {
-    opacity: 1;
-    pointer-events: all;
+    opacity: 1; pointer-events: all;
     transform: translateX(-50%) translateY(0);
   }
   body.is-idle .album-ctx-menu,
   body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !important; }
 }
 
-/* ── reduce-motion : désactive toutes les animations non essentielles ────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -1455,4 +1238,6 @@ body.zen-mode .album-wrapper {
   }
   .bg-layer { animation: none; }
   #mq { animation: none; }
+  #track-title.scrolling { animation: none; }
+  .art-wrap { animation: none !important; }
 }

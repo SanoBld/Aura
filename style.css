@@ -692,36 +692,26 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 #lyrics-panel {
   position: fixed; right: 0; top: 0; bottom: 0; width: 38%; z-index: 6;
   display: flex; flex-direction: column; justify-content: center;
-  padding: 4rem 3.25rem 4rem 2.5rem;
+  padding: 3rem 2.75rem 3rem 2rem;
   transform: translateX(102%); opacity: 0;
   transition: transform var(--t3) var(--ease), opacity var(--t3) var(--ease);
   pointer-events: none;
 }
 #lyrics-panel.on { transform: translateX(0); opacity: 1; pointer-events: all; }
 
+/* Épuration Lyrics : header masqué pour un rendu minimaliste */
 .lp-header-row {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1.375rem;
+  display: none;
 }
-.lp-label {
-  font-size: 0.625rem; letter-spacing: .22em; text-transform: uppercase;
-  color: var(--ui-dim); font-weight: 500;
-  text-shadow: var(--text-shadow-legible);
-}
-.lp-badge {
-  font-size: 0.5625rem; letter-spacing: .14em; text-transform: uppercase;
-  padding: 3px 8px; border-radius: 100px; font-weight: 600; transition: all var(--t1);
-}
-.lp-badge.synced { background: rgba(224,36,94,.15); border: 1px solid rgba(224,36,94,.3); color: var(--accent); }
-.lp-badge.plain  { background: var(--ui-faint); border: 1px solid var(--ui-ghost); color: var(--ui-dim); }
 
 /* scrollable wrapper — overflow uniquement, pas de mask ici */
 .lp-body {
   font-family: 'Instrument Serif', serif; font-style: italic;
-  font-size: clamp(14px, 1.3vw, 18px);
+  font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
   line-height: 2.0; color: var(--ui-mid);
   overflow-y: auto;
-  max-height: 72vh;
+  max-height: 76vh;
+  text-align: center;
   /* scrollbar ultra-fine, immersive */
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,.10) transparent;
@@ -737,22 +727,22 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 /* mode LRC synchronisé — pas de scrollbar */
 .lp-body.lrc-mode { overflow: hidden; }
 
-/* Masque interne — zone opaque 15%→85% pour ne pas écraser la ligne active */
+/* Masque interne — zone opaque 6%→94% pour ne pas écraser la ligne active */
 .lrc-fade-mask {
   display: block;
   width: 100%;
   mask-image: linear-gradient(
     to bottom,
     transparent  0%,
-    #000        15%,
-    #000        85%,
+    #000         6%,
+    #000        94%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent  0%,
-    #000        15%,
-    #000        85%,
+    #000         6%,
+    #000        94%,
     transparent 100%
   );
 }
@@ -764,26 +754,27 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 
 /* LRC container — translateY GPU, pas de jank scrollbar */
 #lrc-container {
-  padding: 36vh 0 52vh;
+  padding: 28vh 1rem 40vh;
   will-change: transform;
   transition: transform 0.55s var(--snap);
 }
 
 /* ligne de paroles individuelle */
 .lrc-line {
-  padding: 7px 0;
+  padding: 0.5rem 0;
   font-style: italic;
+  text-align: center;
   color: rgba(255,255,255,.28);
   filter: blur(0.8px);
   opacity: .3;
   transform: scale(.96);
-  transform-origin: left center;
+  transform-origin: center center;
   transition:
     opacity .4s var(--ease),
     filter .4s var(--ease),
     color .4s var(--ease),
     transform .35s var(--spring);
-  cursor: pointer; line-height: 1.7; white-space: pre-wrap;
+  cursor: pointer; line-height: 1.8; white-space: pre-wrap;
   text-shadow: var(--text-shadow-legible);
 }
 .lrc-line.active {
@@ -808,7 +799,7 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 #hist-panel {
   position: fixed; right: 0; top: 0; bottom: 0; width: 38%; z-index: 6;
   display: flex; flex-direction: column; justify-content: center;
-  padding: 4rem 3.25rem 4rem 2.5rem;
+  padding: 3rem 2.75rem 3rem 2rem;
   transform: translateX(102%); opacity: 0;
   transition: transform var(--t3) var(--ease), opacity var(--t3) var(--ease);
   pointer-events: none;
@@ -818,7 +809,7 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 .hp-label {
   font-size: 0.625rem; letter-spacing: .22em; text-transform: uppercase;
   color: var(--ui-dim); font-weight: 500;
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
   text-shadow: var(--text-shadow-legible);
 }
 .hp-list {

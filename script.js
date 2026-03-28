@@ -540,11 +540,11 @@ function resetIdle() {
     return;
   }
 
-  // Timer 3 s — s'applique TOUJOURS, y compris quand lyricsOpen est true
+  // Timer 5 s — s'applique TOUJOURS, y compris quand lyricsOpen est true
   idleTimer = setTimeout(() => {
     document.body.classList.add('is-idle');
     document.body.style.cursor = 'none';
-  }, 3000);
+  }, 5000);
 }
 
 document.addEventListener('mousemove', resetIdle);
@@ -1787,7 +1787,6 @@ function closeAllPanels() {
   if (histOpen)    { histOpen = false;      $.histPanel.classList.remove('on');   $.btnHist.classList.remove('active'); }
   if (settingsOpen){ settingsOpen = false;  $.settingsPanel.classList.remove('on'); $.btnSettings.classList.remove('active'); }
   $.hero.classList.remove('shifted');
-  $topActions.classList.remove('icons-hidden');
 }
 
 $.btnLyrics.addEventListener('click', () => {
@@ -1798,7 +1797,6 @@ $.btnLyrics.addEventListener('click', () => {
     $.lyricsPanel.classList.add('on');
     $.btnLyrics.classList.add('active');
     $.hero.classList.add('shifted');
-    $topActions.classList.add('icons-hidden');
     if (currentTrack) {
       const artist = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
       loadLyrics(artist, currentTrack.name || '');
@@ -1818,7 +1816,6 @@ $.btnHist.addEventListener('click', () => {
     $.histPanel.classList.add('on');
     $.btnHist.classList.add('active');
     $.hero.classList.add('shifted');
-    $topActions.classList.add('icons-hidden');
   }
   resetIdle();
 });
@@ -2271,27 +2268,8 @@ $.setDiscordPreviewCard.addEventListener('change', () => {
     .ahm-btn.liked svg { fill: #e0245e; }
     .ahm-btn.copied  { color: #4cff9a; }
 
-    /* ---- MASK-IMAGE PAROLES (fondu haut/bas) ---- */
-    #lp-body {
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(0,0,0,0.6) 8%,
-        black 18%,
-        black 82%,
-        rgba(0,0,0,0.6) 92%,
-        transparent 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(0,0,0,0.6) 8%,
-        black 18%,
-        black 82%,
-        rgba(0,0,0,0.6) 92%,
-        transparent 100%
-      );
-    }
+    /* ---- MASK-IMAGE PAROLES (géré par .lrc-fade-mask dans style.css) ---- */
+    /* Supprimé ici pour éviter le double masquage Safari */
   `;
   document.head.appendChild(style);
 })();

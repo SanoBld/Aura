@@ -357,11 +357,22 @@
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Forme de la pochette</div>
-        <div class="sp-option-group">
+        <div class="sp-section-label">Lecteur</div>
+        <div class="sp-row" style="margin-bottom:0.5rem">
+          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Forme de la pochette</span>
+        </div>
+        <div class="sp-option-group" style="margin-bottom:0.875rem">
           <button class="sp-option active" data-art-shape="22px">Arrondi</button>
           <button class="sp-option" data-art-shape="50%">Cercle</button>
           <button class="sp-option" data-art-shape="6px">Carré</button>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label">Aura lumineuse (Glow)</span>
+          <label class="toggle"><input type="checkbox" id="set-glow" checked aria-label="Afficher l'effet lumineux autour de la pochette"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label">Pochette d'album</span>
+          <label class="toggle"><input type="checkbox" id="set-art" checked aria-label="Afficher la pochette de l'album"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
@@ -370,14 +381,6 @@
         <div class="sp-row">
           <span class="sp-row-label">Arrière-plan (image album)</span>
           <label class="toggle"><input type="checkbox" id="set-bg" checked aria-label="Afficher l'image de l'album en arrière-plan"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label">Pochette d'album</span>
-          <label class="toggle"><input type="checkbox" id="set-art" checked aria-label="Afficher la pochette de l'album"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label">Aura lumineuse (Glow)</span>
-          <label class="toggle"><input type="checkbox" id="set-glow" checked aria-label="Afficher l'effet lumineux autour de la pochette"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
           <span class="sp-row-label">Photo de profil artiste</span>
@@ -447,6 +450,28 @@
           <span class="sp-row-label">🎨 Couleur adaptative</span>
           <label class="toggle"><input type="checkbox" id="set-color-thief" aria-label="Activer la couleur adaptative selon la pochette"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-section-label">Apparence du Fond</div>
+
+        <div class="sp-row" style="margin-bottom:0.5rem">
+          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Mode</span>
+        </div>
+        <div class="sp-option-group" style="margin-bottom:0.875rem">
+          <button class="sp-option active" data-bg="album">Album</button>
+          <button class="sp-option" data-bg="color">Couleur</button>
+          <button class="sp-option" data-bg="dark">Sombre</button>
+        </div>
+
+        <div class="sp-row" style="margin-bottom:0.5rem">
+          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Animation</span>
+        </div>
+        <div class="sp-option-group" style="margin-bottom:0.875rem">
+          <button class="sp-option active" data-anim="none">Classique</button>
+          <button class="sp-option" data-anim="blobs">Apple Fluid</button>
+        </div>
+
         <div class="sp-row">
           <span class="sp-row-label">🌊 Fond Fluid Gradient</span>
           <label class="toggle"><input type="checkbox" id="set-fluid-gradient" aria-label="Activer le fond dégradé fluide animé"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
@@ -455,41 +480,24 @@
           <span class="sp-row-label">✦ Grain de texture (Noise)</span>
           <label class="toggle"><input type="checkbox" id="set-grain" aria-label="Activer le grain de texture"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-      </div>
 
-      <div class="sp-section">
-        <div class="sp-section-label">Animation d'arrière-plan</div>
-        <div class="sp-option-group">
-          <button class="sp-option active" data-anim="none">Classique</button>
-          <button class="sp-option" data-anim="blobs">Apple Fluid</button>
+        <div style="margin-top:0.875rem">
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Flou</div>
+          <input type="range" class="sp-slider" id="set-blur" min="0" max="120" value="70" aria-label="Intensité du flou d'arrière-plan"/>
+          <div class="sp-slider-label"><span>Net</span><span>Très flou</span></div>
         </div>
-      </div>
 
-      <div class="sp-section">
-        <div class="sp-section-label">Mode de fond</div>
-        <div class="sp-option-group">
-          <button class="sp-option active" data-bg="album">Album</button>
-          <button class="sp-option" data-bg="color">Couleur</button>
-          <button class="sp-option" data-bg="dark">Sombre</button>
+        <div style="margin-top:0.875rem">
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Luminosité</div>
+          <input type="range" class="sp-slider" id="set-brightness" min="10" max="90" value="55" aria-label="Luminosité de l'arrière-plan"/>
+          <div class="sp-slider-label"><span>Sombre</span><span>Clair</span></div>
         </div>
-      </div>
 
-      <div class="sp-section">
-        <div class="sp-section-label">Flou de l'arrière-plan</div>
-        <input type="range" class="sp-slider" id="set-blur" min="0" max="120" value="70" aria-label="Intensité du flou d'arrière-plan"/>
-        <div class="sp-slider-label"><span>Net</span><span>Très flou</span></div>
-      </div>
-
-      <div class="sp-section">
-        <div class="sp-section-label">Luminosité</div>
-        <input type="range" class="sp-slider" id="set-brightness" min="10" max="90" value="55" aria-label="Luminosité de l'arrière-plan"/>
-        <div class="sp-slider-label"><span>Sombre</span><span>Clair</span></div>
-      </div>
-
-      <div class="sp-section">
-        <div class="sp-section-label">Saturation des couleurs</div>
-        <input type="range" class="sp-slider" id="set-saturate" min="0" max="30" value="14" aria-label="Saturation des couleurs de l'arrière-plan"/>
-        <div class="sp-slider-label"><span>Gris</span><span>Vives</span></div>
+        <div style="margin-top:0.875rem">
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Saturation</div>
+          <input type="range" class="sp-slider" id="set-saturate" min="0" max="30" value="14" aria-label="Saturation des couleurs de l'arrière-plan"/>
+          <div class="sp-slider-label"><span>Gris</span><span>Vives</span></div>
+        </div>
       </div>
 
       <div class="sp-section">
@@ -513,11 +521,6 @@
           <span class="sp-row-label">🌈 Spectre Canvas (AURA Sync)</span>
           <label class="toggle"><input type="checkbox" id="set-canvas-viz" aria-label="Activer le visualiseur spectre canvas AURA Sync"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-        <!--
-          NEW: FPS Limiter for the canvas visualizer.
-          Allows user to cap the animation loop at 30 or 60 FPS.
-          Controlled in JS via requestAnimationFrame delta-time gating.
-        -->
         <div class="sp-row sp-fps-row" id="sp-fps-row">
           <span class="sp-row-label">🎯 Limite FPS visualiseur</span>
           <div class="sp-option-group sp-fps-group" role="group" aria-label="Choisir la limite de FPS du visualiseur">

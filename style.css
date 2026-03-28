@@ -1058,6 +1058,9 @@ body.lf-display .lrc-line { font-family: 'Bebas Neue', sans-serif !important; fo
 .sp-option:active { transform: scale(.95); }
 .sp-option.active { background: rgba(255,255,255,.9); color: #000; border-color: transparent; font-weight: 500; }
 
+/* Glow pulse row — greyed out when main glow is off */
+#sp-glow-pulse-row { transition: opacity var(--t2) var(--ease); }
+
 .sp-fps-row { align-items: center; display: none; }
 .sp-fps-row.fps-visible { display: flex; }
 .sp-fps-group { margin-top: 0; gap: 6px; }
@@ -1285,6 +1288,20 @@ body.zen-mode .album-wrapper {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .l-loading-text { font-size: 0.625rem; letter-spacing: .22em; text-transform: uppercase; color: var(--ui-dim); font-family: 'Instrument Sans', sans-serif; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TITLE COLOR BG — animated dominant-color orbs (z 2)
+   Mode "Titre" : 4 orbs couleurs dominantes de la pochette qui bougent
+═══════════════════════════════════════════════════════════════════════════ */
+#title-color-bg {
+  position: absolute; inset: -120px; z-index: 2;
+  opacity: 0; pointer-events: none;
+  filter: blur(90px) saturate(2.2) brightness(1.2);
+  transition: opacity 2.5s var(--ease);
+  will-change: transform, opacity, background;
+}
+#title-color-bg.on { opacity: 0.82; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════

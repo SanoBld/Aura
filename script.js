@@ -45,10 +45,14 @@ const S = {
   albumAnim: true,
   // NEW v7
   lyricsBackdropBlur: 40,   // 0-100 → maps to 0-60px blur
-  lyricsShadowOpacity: 70,  // 0-100 → text shadow opacity %
-  lyricsAutoColor: true,    // auto detect text color from album art
+  lyricsShadowOpacity: 55,  // 0-100 → text shadow opacity %
+  lyricsAutoColor: false,   // auto detect text color from album art
   lyricsBlurMode: 'standard', // 'standard' | 'apple'
   animatedGlow: false,      // pulsed glow on album art
+  lyricsOffset: 0,          // user-adjustable LRC sync offset in ms (-2000 to +2000)
+  titleColorBg: false,      // animated dominant-color orbs from album art
+  lyricsShadowDy: 1,        // shadow Y offset in px
+  lyricsShadowBlur: 3,      // shadow blur in px
 };
 
 /* ---- DOM REFS ---- */
@@ -146,13 +150,25 @@ const $ = {
   ctxBtnLastfm:    document.getElementById('ctx-btn-lastfm'),
   ctxBtnShare:     document.getElementById('ctx-btn-share'),
   // NEW v7 — Lyrics legibility controls
-  setLyricsBlur:   document.getElementById('set-lyrics-blur'),
-  setLyricsShadow: document.getElementById('set-lyrics-shadow'),
+  setLyricsBlur:      document.getElementById('set-lyrics-blur'),
+  setLyricsShadow:    document.getElementById('set-lyrics-shadow'),
   setLyricsAutoColor: document.getElementById('set-lyrics-auto-color'),
-  setAnimatedGlow: document.getElementById('set-animated-glow'),
-  valLyricsBlur:   document.getElementById('val-lyrics-blur'),
-  valLyricsShadow: document.getElementById('val-lyrics-shadow'),
-  lyricsModeDesc:  document.getElementById('lyrics-mode-desc'),
+  setAnimatedGlow:    document.getElementById('set-art-glow-pulse'),
+  valLyricsBlur:      document.getElementById('val-lyrics-blur'),
+  valLyricsShadow:    document.getElementById('val-lyrics-shadow'),
+  lyricsModeDesc:     document.getElementById('lyrics-mode-desc'),
+  // Lyrics offset
+  setLyricsOffset:    document.getElementById('set-lyrics-offset'),
+  valLyricsOffset:    document.getElementById('val-lyrics-offset'),
+  // Shadow controls
+  setShadowOffset:    document.getElementById('set-shadow-offset'),
+  setShadowBlur:      document.getElementById('set-shadow-blur'),
+  valShadowOffset:    document.getElementById('val-shadow-offset'),
+  valShadowBlur:      document.getElementById('val-shadow-blur'),
+  // Title color bg
+  titleColorBg:       document.getElementById('title-color-bg'),
+  // Glow pulse row
+  glowPulseRow:       document.getElementById('sp-glow-pulse-row'),
 };
 
 /* ---- CACHE / PERSISTENCE ---- */
@@ -366,9 +382,17 @@ function applySettings() {
   $.bgA.style.display = showBgImg ? '' : 'none';
   $.bgB.style.display = showBgImg ? '' : 'none';
 
-  if      (S.bgMode === 'dark')  $.bgFilter.style.background = 'rgba(0,0,0,.88)';
-  else if (S.bgMode === 'color') $.bgFilter.style.background = 'rgba(10,5,20,.7)';
-  else                            $.bgFilter.style.background = 'rgba(0,0,0,.35)';
+  if      (S.bgMode === 'dark')       $.bgFilter.style.background = 'rgba(0,0,0,.88)';
+  else if (S.bgMode === 'color')      $.bgFilter.style.background = 'rgba(10,5,20,.7)';
+  else if (S.bgMode === 'titlecolor') $.bgFilter.style.background = 'rgba(0,0,0,.18)';
+  else                                 $.bgFilter.style.background = 'rgba(0,0,0,.35)';
+
+  /* Title-color animated bg */
+  const showTitleColorBg = S.bgMode === 'titlecolor';
+  if ($.titleColorBg) $.titleColorBg.classList.toggle('on', showTitleColorBg);
+  if (!showTitleColorBg && $.titleColorBg) $.titleColorBg.classList.remove('on');
+  if (showTitleColorBg && currentTrack) triggerColorThief();
+  else if (!showTitleColorBg) stopTitleColorBg();
 
   /* Art radius & button groups */
   document.documentElement.style.setProperty('--art-radius', S.artShape);
@@ -427,11 +451,18 @@ function applySettings() {
 
   /* Animated glow */
   applyAnimatedGlow();
+  /* Glow-pulse row: disable/grey when main glow is off */
+  if ($.glowPulseRow) {
+    const glowOff = !S.showGlow;
+    $.glowPulseRow.style.opacity = glowOff ? '0.35' : '1';
+    $.glowPulseRow.style.pointerEvents = glowOff ? 'none' : '';
+    const glowPulseInput = document.getElementById('set-art-glow-pulse');
+    if (glowPulseInput) glowPulseInput.disabled = glowOff;
+  }
 
   applyLyricsSettings();
 }
 
-/* ---- LYRICS SETTINGS ---- */
 function applyLyricsSettings() {
   const size = S.lyricsSize || 100;
   document.documentElement.style.setProperty('--lyrics-size', (size / 100).toFixed(2));
@@ -451,39 +482,60 @@ function applyLyricsSettings() {
   document.body.classList.toggle('lyrics-anim-off', !S.lyricsAnim);
   if ($.setLyricsAnim) $.setLyricsAnim.checked = S.lyricsAnim;
 
-  /* NEW: Backdrop blur */
-  const blurPx = Math.round((S.lyricsBackdropBlur / 100) * 60); // 0-100% → 0-60px
+  /* Backdrop blur */
+  const blurPx = Math.round((S.lyricsBackdropBlur / 100) * 60);
   document.documentElement.style.setProperty('--lyrics-backdrop-blur', blurPx + 'px');
-  // background opacity: more blur = slightly more opaque
   const bgOpacity = S.lyricsBackdropBlur > 5 ? (0.05 + (S.lyricsBackdropBlur / 100) * 0.35).toFixed(2) : '0';
   document.documentElement.style.setProperty('--lyrics-bg-opacity', bgOpacity);
 
   if ($.setLyricsBlur) { $.setLyricsBlur.value = S.lyricsBackdropBlur; updateSliderFill($.setLyricsBlur); }
   if ($.valLyricsBlur) $.valLyricsBlur.textContent = pctLabel(S.lyricsBackdropBlur, 0, 100);
 
-  /* NEW: Text shadow opacity */
-  const shadowAlpha = (S.lyricsShadowOpacity / 100).toFixed(2);
-  document.documentElement.style.setProperty('--lyrics-shadow-opacity', shadowAlpha);
+  /* Text shadow opacity */
+  const shadowAlpha = ((S.lyricsShadowOpacity || 55) / 100).toFixed(2);
+  document.documentElement.style.setProperty('--shadow-opacity', shadowAlpha);
 
-  if ($.setLyricsShadow) { $.setLyricsShadow.value = S.lyricsShadowOpacity; updateSliderFill($.setLyricsShadow); }
-  if ($.valLyricsShadow) $.valLyricsShadow.textContent = pctLabel(S.lyricsShadowOpacity, 0, 100);
+  if ($.setLyricsShadow) { $.setLyricsShadow.value = S.lyricsShadowOpacity || 55; updateSliderFill($.setLyricsShadow); }
+  if ($.valLyricsShadow) $.valLyricsShadow.textContent = pctLabel(S.lyricsShadowOpacity || 55, 0, 100);
 
-  /* NEW: Auto color toggle */
-  if ($.setLyricsAutoColor) $.setLyricsAutoColor.checked = S.lyricsAutoColor;
+  /* Shadow offset slider */
+  const shadowDy = S.lyricsShadowDy != null ? S.lyricsShadowDy : 1;
+  document.documentElement.style.setProperty('--shadow-dy', shadowDy + 'px');
+  if ($.setShadowOffset) { $.setShadowOffset.value = shadowDy; updateSliderFill($.setShadowOffset); }
+  if ($.valShadowOffset) $.valShadowOffset.textContent = shadowDy + 'px';
+
+  /* Shadow blur slider */
+  const shadowBlurVal = S.lyricsShadowBlur != null ? S.lyricsShadowBlur : 3;
+  document.documentElement.style.setProperty('--shadow-blur', shadowBlurVal + 'px');
+  if ($.setShadowBlur) { $.setShadowBlur.value = shadowBlurVal; updateSliderFill($.setShadowBlur); }
+  if ($.valShadowBlur) $.valShadowBlur.textContent = shadowBlurVal + 'px';
+
+  /* Lyrics offset */
+  const off = S.lyricsOffset || 0;
+  if ($.setLyricsOffset) { $.setLyricsOffset.value = off; updateSliderFill($.setLyricsOffset); }
+  if ($.valLyricsOffset) $.valLyricsOffset.textContent = (off >= 0 ? '+' : '') + off + 'ms';
+
+  /* Auto color toggle */
+  if ($.setLyricsAutoColor) $.setLyricsAutoColor.checked = !!S.lyricsAutoColor;
   applyLyricsColors();
 
-  /* NEW: Blur mode buttons */
+  /* Blur mode buttons — data-lyrics-blur-mode */
   const bm = S.lyricsBlurMode || 'standard';
   document.querySelectorAll('[data-lyrics-blur-mode]').forEach(b =>
     b.classList.toggle('active', b.dataset.lyricsBlurMode === bm)
   );
+  /* Apply blur mode class to lyrics panel */
+  const lp = $.lyricsPanel;
+  if (lp) {
+    lp.classList.remove('lyrics-blur-standard', 'lyrics-blur-apple');
+    lp.classList.add('lyrics-blur-' + bm);
+  }
   applyLyricsAmBg();
 
-  // Update mode desc
   if ($.lyricsModeDesc) {
     $.lyricsModeDesc.textContent = bm === 'apple'
       ? 'Dégradés de couleurs vibrantes extraits de la pochette.'
-      : 'Flou standard avec teinte noire légère.';
+      : 'Flou classique avec teinte noire légère.';
   }
 }
 
@@ -561,12 +613,27 @@ if ($.setLyricsShadow) $.setLyricsShadow.addEventListener('input', () => {
   S.lyricsShadowOpacity = parseInt($.setLyricsShadow.value);
   applyLyricsSettings(); saveSettings();
 });
+/* NEW: Shadow offset */
+if ($.setShadowOffset) $.setShadowOffset.addEventListener('input', () => {
+  S.lyricsShadowDy = parseInt($.setShadowOffset.value);
+  applyLyricsSettings(); saveSettings();
+});
+/* NEW: Shadow blur */
+if ($.setShadowBlur) $.setShadowBlur.addEventListener('input', () => {
+  S.lyricsShadowBlur = parseInt($.setShadowBlur.value);
+  applyLyricsSettings(); saveSettings();
+});
 /* NEW: Lyrics auto color */
 if ($.setLyricsAutoColor) $.setLyricsAutoColor.addEventListener('change', () => {
   S.lyricsAutoColor = $.setLyricsAutoColor.checked;
   applyLyricsSettings(); saveSettings();
 });
-/* NEW: Lyrics blur mode buttons */
+/* NEW: Lyrics offset slider */
+if ($.setLyricsOffset) $.setLyricsOffset.addEventListener('input', () => {
+  S.lyricsOffset = parseInt($.setLyricsOffset.value);
+  applyLyricsSettings(); saveSettings();
+});
+/* NEW: Lyrics blur mode buttons — data-lyrics-blur-mode */
 document.querySelectorAll('[data-lyrics-blur-mode]').forEach(b => b.addEventListener('click', () => {
   S.lyricsBlurMode = b.dataset.lyricsBlurMode;
   applyLyricsSettings(); saveSettings();
@@ -819,11 +886,24 @@ function applyAvatarUrl(url) {
 }
 async function updateArtistAvatar(artist) {
   if (!S.showAvatar) return;
-  $.avatarCircle.classList.remove('on'); $.artistAvatar.classList.remove('loaded'); $.artistAvatar.src = '';
-  if ($.avatarFallback) { $.avatarFallback.style.background = fallbackGradient(artist); $.avatarFallback.textContent = fallbackLetter(artist); $.avatarFallback.style.opacity = '1'; }
-  $.avatarCircle.classList.add('on');
-  const stale = avatarSWRCache[artist] || getAvatarFromStorage(artist);
-  if (stale) applyAvatarUrl(stale);
+  // Check cache FIRST — avoids flicker if image is already available
+  const cached = avatarSWRCache[artist] || getAvatarFromStorage(artist);
+  if (cached) {
+    // We already have a URL: just apply it smoothly without resetting
+    $.avatarCircle.classList.add('on');
+    applyAvatarUrl(cached);
+  } else {
+    // No cache: reset to fallback while we fetch
+    $.avatarCircle.classList.remove('on');
+    $.artistAvatar.classList.remove('loaded');
+    $.artistAvatar.src = '';
+    if ($.avatarFallback) {
+      $.avatarFallback.style.background = fallbackGradient(artist);
+      $.avatarFallback.textContent = fallbackLetter(artist);
+      $.avatarFallback.style.opacity = '1';
+    }
+    $.avatarCircle.classList.add('on');
+  }
   try {
     const fresh = await fetchArtistAvatarHD(artist);
     if (fresh) {
@@ -1012,7 +1092,13 @@ function checkTitleOverflow() {
     }
   });
 }
-window.addEventListener('resize', () => { if (currentTrack) checkTitleOverflow(); });
+window.addEventListener('resize', (() => {
+  let resizeTimer;
+  return () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { if (currentTrack) checkTitleOverflow(); }, 150);
+  };
+})());
 
 /* ---- HANDLE TRACK ---- */
 function handleTrack(track, fromLanyard = false) {
@@ -1131,9 +1217,66 @@ function triggerColorThief() {
   // Also update lyrics colors and Apple Music background
   applyLyricsColors();
   applyLyricsAmBg();
+
+  // Title color background
+  if (S.bgMode === 'titlecolor' && colors) startTitleColorBg(colors);
+  else stopTitleColorBg();
 }
 
-/* ---- ART SWAP ---- */
+/* ---- TITLE COLOR BG — animated dominant-color orbs ---- */
+let titleColorRAF = null, titleColorPhase = 0;
+function startTitleColorBg(colors) {
+  if ($.titleColorBg) $.titleColorBg.classList.add('on');
+  if (!colors || colors.length < 2) colors = FLUID_FALLBACK;
+  const [c0, c1, c2, c3] = [colors[0], colors[1], colors[2] || colors[0], colors[3] || colors[1]];
+
+  // Build 4 orbiting radial gradients that animate via CSS keyframe injection
+  const styleId = 'aura-tcbg-style';
+  let el = document.getElementById(styleId);
+  if (!el) { el = document.createElement('style'); el.id = styleId; document.head.appendChild(el); }
+
+  const toRgb = c => `${c.r},${c.g},${c.b}`;
+  el.textContent = `
+    #title-color-bg {
+      background:
+        radial-gradient(ellipse 65% 55% at var(--tcbg-x0,15%) var(--tcbg-y0,25%), rgba(${toRgb(c0)},0.72) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at var(--tcbg-x1,82%) var(--tcbg-y1,72%), rgba(${toRgb(c1)},0.60) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 55% at var(--tcbg-x2,75%) var(--tcbg-y2,18%), rgba(${toRgb(c2)},0.50) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at var(--tcbg-x3,22%) var(--tcbg-y3,80%), rgba(${toRgb(c3)},0.45) 0%, transparent 60%);
+      animation: titleColorBgMove0 18s ease-in-out infinite alternate,
+                 titleColorBgMove1 23s ease-in-out infinite alternate-reverse,
+                 titleColorBgMove2 27s ease-in-out infinite alternate,
+                 titleColorBgMove3 31s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes titleColorBgMove0 {
+      0%   { --tcbg-x0:15%; --tcbg-y0:25%; }
+      33%  { --tcbg-x0:28%; --tcbg-y0:18%; }
+      66%  { --tcbg-x0:10%; --tcbg-y0:40%; }
+      100% { --tcbg-x0:22%; --tcbg-y0:12%; }
+    }
+    @keyframes titleColorBgMove1 {
+      0%   { --tcbg-x1:82%; --tcbg-y1:72%; }
+      33%  { --tcbg-x1:70%; --tcbg-y1:80%; }
+      66%  { --tcbg-x1:88%; --tcbg-y1:62%; }
+      100% { --tcbg-x1:76%; --tcbg-y1:85%; }
+    }
+    @keyframes titleColorBgMove2 {
+      0%   { --tcbg-x2:75%; --tcbg-y2:18%; }
+      50%  { --tcbg-x2:60%; --tcbg-y2:30%; }
+      100% { --tcbg-x2:80%; --tcbg-y2:12%; }
+    }
+    @keyframes titleColorBgMove3 {
+      0%   { --tcbg-x3:22%; --tcbg-y3:80%; }
+      50%  { --tcbg-x3:35%; --tcbg-y3:70%; }
+      100% { --tcbg-x3:18%; --tcbg-y3:88%; }
+    }
+  `;
+}
+function stopTitleColorBg() {
+  if ($.titleColorBg) $.titleColorBg.classList.remove('on');
+  const el = document.getElementById('aura-tcbg-style');
+  if (el) el.textContent = '';
+}
 function fallbackGradient(str) {
   const hue = [...(str||'A')].reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
   return `linear-gradient(135deg, hsl(${hue},60%,25%), hsl(${(hue+40)%360},70%,18%))`;
@@ -1279,12 +1422,12 @@ function renderLRCLines(lines) {
   });
 }
 
-/* FIXED: tickLRC now advances by LYRICS_ADVANCE_MS (500ms) to compensate display lag */
+/* FIXED: tickLRC now uses S.lyricsOffset (user-adjustable) + LYRICS_ADVANCE_MS base */
 function tickLRC() {
   if (!lyricsOpen || !lrcSynced || !lrcLines.length) { lrcRAF = null; return; }
   if (isPaused) { lrcRAF = requestAnimationFrame(tickLRC); return; }
-  // Add LYRICS_ADVANCE_MS so lines highlight 0.5s earlier than their timestamp
-  const ms = getElapsedMs() + LYRICS_ADVANCE_MS;
+  // LYRICS_ADVANCE_MS = base compensation + user offset
+  const ms = getElapsedMs() + LYRICS_ADVANCE_MS + (S.lyricsOffset || 0);
   let ni = -1;
   for (let i = lrcLines.length-1; i >= 0; i--) { if (ms >= lrcLines[i].timeMs) { ni = i; break; } }
   if (ni !== lrcActiveIndex) { lrcActiveIndex = ni; updateLRCDisplay(); }

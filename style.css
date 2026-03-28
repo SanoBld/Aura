@@ -1,4 +1,4 @@
-/* AURA — style.css v9
+/* AURA — style.css v10
    ─────────────────────────────────────────────────────────────────────────────
    [CHANGES vs v8]
    · Bouton éclair (btn-lanyard-status / .lanyard-badge) : supprimé du CSS.
@@ -48,6 +48,18 @@
   --shadow-dy:      1px;
   --shadow-blur:    3px;
   --shadow-opacity: 0.55;
+
+  /* [v8] Lyrics colors */
+  --lyrics-active-color:   #e0245e;
+  --lyrics-inactive-color: rgba(255,255,255,0.28);
+  --lyrics-near-color:     rgba(255,255,255,0.55);
+  --lyrics-custom-bg:      transparent;
+
+  /* [v8] Decorative dots */
+  --dots-color:      #e0245e;
+  --dots-brightness: 0.70;
+  --dots-size:       10px;
+  --dots-duration:   1.2s;
 
   --ui-solid:   rgba(255, 255, 255, 1.00);
   --ui-bright:  rgba(255, 255, 255, 0.85);
@@ -542,9 +554,7 @@ body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !imp
   display: inline-block;
 }
 
-/* [NEW] Adaptive text color — dark backgrounds (default) vs light backgrounds */
-body.lyrics-light-text #track-title  { color: #111; }
-body.lyrics-light-text #track-artist { color: rgba(0,0,0,0.65); }
+/* Adaptive text color handled by body.lyrics-light-text block in LRC section */
 
 @keyframes titleMarquee {
   0%, 10%   { transform: translateX(0); }
@@ -723,6 +733,12 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   border-radius: 20px 0 0 20px;
 }
 
+/* [v8] Lyrics panel background modes */
+#lyrics-panel.lbg-none   { background: transparent !important; border-left: none !important; }
+#lyrics-panel.lbg-dark   { background: var(--lyrics-custom-bg) !important; }
+#lyrics-panel.lbg-custom { background: var(--lyrics-custom-bg) !important; }
+#lyrics-panel.lbg-auto   { background: var(--lyrics-custom-bg) !important; }
+
 /* [NEW] Apple Music blur mode — animated vibrant gradient layer */
 #lyrics-panel.lyrics-blur-apple {
   backdrop-filter: blur(calc(var(--lyrics-backdrop-blur) * 1.4)) saturate(2);
@@ -800,7 +816,7 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   padding: 0.5rem 0;
   font-style: italic;
   text-align: center;
-  color: rgba(255,255,255,.28);
+  color: var(--lyrics-inactive-color);
   filter: blur(0.8px);
   opacity: .3;
   transform: scale(.96);
@@ -810,11 +826,67 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
   text-shadow: var(--text-shadow-legible);
 }
 .lrc-line.active {
-  color: var(--accent);
+  color: var(--lyrics-active-color);
   filter: blur(0); opacity: 1; transform: scale(1.04);
-  text-shadow: 0 0 20px rgba(224,36,94,.3), var(--text-shadow-legible);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--lyrics-active-color) 40%, transparent), var(--text-shadow-legible);
 }
-.lrc-line.near { opacity: .55; filter: blur(0.3px); color: rgba(255,255,255,.55); }
+.lrc-line.near { opacity: .55; filter: blur(0.3px); color: var(--lyrics-near-color); }
+
+/* === LYRICS ANIMATION STYLES === */
+/* fade (default) */
+body.lrc-anim-fade .lrc-line {
+  transition: opacity .4s var(--ease), filter .4s var(--ease), color .4s var(--ease), transform .35s var(--spring);
+}
+
+/* slide */
+body.lrc-anim-slide .lrc-line {
+  transition: opacity .35s var(--ease), filter .35s var(--ease), color .35s var(--ease), transform .35s var(--spring);
+}
+body.lrc-anim-slide .lrc-line.active {
+  transform: scale(1.04) translateX(4px);
+}
+body.lrc-anim-slide .lrc-line:not(.active) {
+  transform: scale(.96) translateX(-2px);
+}
+
+/* scale */
+body.lrc-anim-scale .lrc-line {
+  transition: opacity .3s var(--ease), filter .3s var(--ease), color .3s var(--ease), transform .3s var(--spring);
+}
+body.lrc-anim-scale .lrc-line:not(.active) { transform: scale(.82); opacity: .2; }
+body.lrc-anim-scale .lrc-line.active       { transform: scale(1.1); }
+body.lrc-anim-scale .lrc-line.near         { transform: scale(.92); }
+
+/* blur */
+body.lrc-anim-blur .lrc-line {
+  transition: opacity .4s var(--ease), filter .5s var(--ease), color .4s var(--ease), transform .35s var(--spring);
+}
+body.lrc-anim-blur .lrc-line:not(.active) { filter: blur(3px); }
+body.lrc-anim-blur .lrc-line.active       { filter: blur(0) drop-shadow(0 0 8px var(--lyrics-active-color)); }
+body.lrc-anim-blur .lrc-line.near         { filter: blur(1px); }
+
+/* bounce */
+body.lrc-anim-bounce .lrc-line {
+  transition: opacity .3s var(--ease), filter .3s var(--ease), color .3s var(--ease), transform .45s var(--spring);
+}
+body.lrc-anim-bounce .lrc-line.active {
+  transform: scale(1.07) translateY(-3px);
+  animation: lrcBounce .5s var(--spring) both;
+}
+@keyframes lrcBounce {
+  0%   { transform: scale(.96) translateY(0); }
+  40%  { transform: scale(1.1) translateY(-6px); }
+  70%  { transform: scale(1.03) translateY(-1px); }
+  100% { transform: scale(1.07) translateY(-3px); }
+}
+
+/* none */
+body.lrc-anim-none .lrc-line {
+  transition: color .2s var(--ease) !important;
+  filter: none !important;
+  transform: none !important;
+}
+body.lrc-anim-none .lrc-line.active { opacity: 1; transform: none !important; }
 
 body.lyrics-anim-off .lrc-line {
   transition: none !important;
@@ -825,9 +897,11 @@ body.lyrics-anim-off .lrc-line {
 body.lyrics-light-text .lrc-line       { color: rgba(0,0,0,0.22); }
 body.lyrics-light-text .lrc-line.near  { color: rgba(0,0,0,0.50); }
 body.lyrics-light-text .lrc-line.active {
-  color: rgba(0,0,0,0.88);
+  color: var(--lyrics-active-color);
   text-shadow: 0 0 18px rgba(0,0,0,.2), var(--text-shadow-legible);
 }
+body.lyrics-light-text #track-title  { color: #111; }
+body.lyrics-light-text #track-artist { color: rgba(0,0,0,0.65); }
 
 /* Lyrics font variants */
 body.lf-sans    .lp-body,
@@ -1305,6 +1379,18 @@ body.zen-mode .album-wrapper {
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   LYRICS APPLE MUSIC BG (z 5 — behind lyrics panel)
+═══════════════════════════════════════════════════════════════════════════ */
+#lyrics-am-bg {
+  position: fixed; right: 0; top: 0; bottom: 0; width: 38%; z-index: 5;
+  pointer-events: none; opacity: 0;
+  filter: blur(60px) saturate(2.5);
+  transition: opacity 1.5s var(--ease);
+}
+body.lyrics-apple-mode #lyrics-am-bg { opacity: 0.75; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
    FLUID GRADIENT BG (z 2)
 ═══════════════════════════════════════════════════════════════════════════ */
 #fluid-gradient-bg {
@@ -1335,6 +1421,162 @@ body.zen-mode .album-wrapper {
 /* ═══════════════════════════════════════════════════════════════════════════
    MOBILE
 ═══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   TITLE ANIMATION STYLES (v8)
+   Applied via body.title-anim-* class
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Default fade-up (existing .fade-up-text behaviour) */
+body.title-anim-fade-up .title-entering {
+  animation: titleAnimFadeUp 0.55s var(--spring) both;
+}
+@keyframes titleAnimFadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* slide-left */
+body.title-anim-slide-left .title-entering {
+  animation: titleAnimSlideLeft 0.5s var(--snap) both;
+}
+@keyframes titleAnimSlideLeft {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* scale-in */
+body.title-anim-scale-in .title-entering {
+  animation: titleAnimScaleIn 0.5s var(--spring) both;
+}
+@keyframes titleAnimScaleIn {
+  from { opacity: 0; transform: scale(0.78); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* blur-in */
+body.title-anim-blur-in .title-entering {
+  animation: titleAnimBlurIn 0.65s var(--ease) both;
+}
+@keyframes titleAnimBlurIn {
+  from { opacity: 0; filter: blur(14px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+/* split — letters split from center */
+body.title-anim-split .title-entering {
+  animation: titleAnimSplit 0.6s var(--spring) both;
+}
+@keyframes titleAnimSplit {
+  from { opacity: 0; letter-spacing: 0.35em; transform: scaleX(1.06); }
+  to   { opacity: 1; letter-spacing: 0.03em; transform: scaleX(1); }
+}
+
+/* none */
+body.title-anim-none .title-entering {
+  animation: none !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DECORATIVE DOTS — mode titlecolor (v8)
+   Real fluid animations, no pop-in. Dots orbit/pulse/wave/sparkle around art.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Dot container — injected by JS into .art-wrap */
+.title-dots-container {
+  position: absolute;
+  inset: -48px;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.8s var(--ease);
+}
+body.title-dots-on #s-player[class*="on"] .title-dots-container { opacity: 1; }
+
+.title-dot {
+  position: absolute;
+  width: var(--dots-size);
+  height: var(--dots-size);
+  border-radius: 50%;
+  background: var(--dots-color);
+  filter: brightness(var(--dots-brightness)) blur(0.5px);
+  box-shadow: 0 0 calc(var(--dots-size) * 1.5) var(--dots-color);
+  top: 50%; left: 50%;
+  transform-origin: 0 0;
+}
+
+/* ── ORBIT ── */
+body.dots-orbit .title-dot:nth-child(1) { animation: dotOrbit1 var(--dots-duration) linear infinite; }
+body.dots-orbit .title-dot:nth-child(2) { animation: dotOrbit2 var(--dots-duration) linear infinite; animation-delay: calc(var(--dots-duration) * -0.33); }
+body.dots-orbit .title-dot:nth-child(3) { animation: dotOrbit3 var(--dots-duration) linear infinite; animation-delay: calc(var(--dots-duration) * -0.66); }
+body.dots-orbit .title-dot:nth-child(4) { animation: dotOrbit4 calc(var(--dots-duration) * 1.4) linear infinite; animation-delay: calc(var(--dots-duration) * -0.2); }
+body.dots-orbit .title-dot:nth-child(5) { animation: dotOrbit5 calc(var(--dots-duration) * 0.8) linear infinite; animation-delay: calc(var(--dots-duration) * -0.5); }
+
+@keyframes dotOrbit1 {
+  0%   { transform: translate(-50%,-50%) rotate(0deg)   translateX(52px) scale(1); opacity: 0.9; }
+  50%  { transform: translate(-50%,-50%) rotate(180deg) translateX(52px) scale(0.7); opacity: 0.5; }
+  100% { transform: translate(-50%,-50%) rotate(360deg) translateX(52px) scale(1); opacity: 0.9; }
+}
+@keyframes dotOrbit2 {
+  0%   { transform: translate(-50%,-50%) rotate(0deg)   translateX(72px) scale(0.6); opacity: 0.4; }
+  50%  { transform: translate(-50%,-50%) rotate(180deg) translateX(72px) scale(1);   opacity: 0.85; }
+  100% { transform: translate(-50%,-50%) rotate(360deg) translateX(72px) scale(0.6); opacity: 0.4; }
+}
+@keyframes dotOrbit3 {
+  0%   { transform: translate(-50%,-50%) rotate(120deg) translateX(58px) scale(0.8); opacity: 0.7; }
+  100% { transform: translate(-50%,-50%) rotate(480deg) translateX(58px) scale(0.8); opacity: 0.7; }
+}
+@keyframes dotOrbit4 {
+  0%   { transform: translate(-50%,-50%) rotate(240deg) translateX(42px) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%,-50%) rotate(600deg) translateX(42px) scale(1.1); opacity: 1; }
+}
+@keyframes dotOrbit5 {
+  0%   { transform: translate(-50%,-50%) rotate(60deg)  translateX(85px) scale(0.5); opacity: 0.3; }
+  100% { transform: translate(-50%,-50%) rotate(420deg) translateX(85px) scale(0.5); opacity: 0.3; }
+}
+
+/* ── PULSE ── */
+body.dots-pulse .title-dot { animation: dotPulse var(--dots-duration) ease-in-out infinite; }
+body.dots-pulse .title-dot:nth-child(1) { top: 20%; left: 50%; transform: translate(-50%,-50%); animation-delay: 0s; }
+body.dots-pulse .title-dot:nth-child(2) { top: 50%; left: 18%; transform: translate(-50%,-50%); animation-delay: calc(var(--dots-duration) * 0.2); }
+body.dots-pulse .title-dot:nth-child(3) { top: 50%; left: 82%; transform: translate(-50%,-50%); animation-delay: calc(var(--dots-duration) * 0.4); }
+body.dots-pulse .title-dot:nth-child(4) { top: 78%; left: 35%; transform: translate(-50%,-50%); animation-delay: calc(var(--dots-duration) * 0.6); }
+body.dots-pulse .title-dot:nth-child(5) { top: 78%; left: 65%; transform: translate(-50%,-50%); animation-delay: calc(var(--dots-duration) * 0.8); }
+@keyframes dotPulse {
+  0%, 100% { transform: translate(-50%,-50%) scale(0.6); opacity: 0.3; }
+  50%       { transform: translate(-50%,-50%) scale(1.4); opacity: 1; }
+}
+
+/* ── WAVE ── */
+body.dots-wave .title-dot {
+  top: 50%; animation: dotWave var(--dots-duration) ease-in-out infinite;
+}
+body.dots-wave .title-dot:nth-child(1) { left: 10%; animation-delay: 0s; }
+body.dots-wave .title-dot:nth-child(2) { left: 28%; animation-delay: calc(var(--dots-duration) * 0.15); }
+body.dots-wave .title-dot:nth-child(3) { left: 46%; animation-delay: calc(var(--dots-duration) * 0.30); }
+body.dots-wave .title-dot:nth-child(4) { left: 64%; animation-delay: calc(var(--dots-duration) * 0.45); }
+body.dots-wave .title-dot:nth-child(5) { left: 82%; animation-delay: calc(var(--dots-duration) * 0.60); }
+@keyframes dotWave {
+  0%, 100% { transform: translate(-50%,-50%) translateY(0px) scale(0.7); opacity: 0.35; }
+  50%       { transform: translate(-50%,-50%) translateY(-18px) scale(1.1); opacity: 1; }
+}
+
+/* ── SPARKLE ── */
+body.dots-sparkle .title-dot { animation: dotSparkle var(--dots-duration) ease-in-out infinite; }
+body.dots-sparkle .title-dot:nth-child(1) { top: 15%; left: 25%; transform: translate(-50%,-50%); animation-delay: 0s; }
+body.dots-sparkle .title-dot:nth-child(2) { top: 15%; left: 75%; transform: translate(-50%,-50%); animation-delay: calc(var(--dots-duration) * 0.25); }
+body.dots-sparkle .title-dot:nth-child(3) { top: 50%; left: 10%; transform: translate(-50%,-50%); animation-delay: calc(var(--dots-duration) * 0.5); }
+body.dots-sparkle .title-dot:nth-child(4) { top: 50%; left: 90%; transform: translate(-50%,-50%); animation-delay: calc(var(--dots-duration) * 0.1); }
+body.dots-sparkle .title-dot:nth-child(5) { top: 85%; left: 50%; transform: translate(-50%,-50%); animation-delay: calc(var(--dots-duration) * 0.7); }
+@keyframes dotSparkle {
+  0%, 100% { transform: translate(-50%,-50%) scale(0) rotate(0deg);   opacity: 0; }
+  10%       { transform: translate(-50%,-50%) scale(1.5) rotate(45deg);  opacity: 1; }
+  40%       { transform: translate(-50%,-50%) scale(0.8) rotate(90deg);  opacity: 0.7; }
+  60%       { transform: translate(-50%,-50%) scale(1.2) rotate(135deg); opacity: 0.9; }
+  80%       { transform: translate(-50%,-50%) scale(0.4) rotate(180deg); opacity: 0.3; }
+}
+
+
 @media (max-width: 768px) {
   #lyrics-panel, #hist-panel { width: 100%; padding: 3rem 1.5rem 5rem; z-index: 20; }
   #settings-panel { width: 100%; z-index: 21; }
@@ -1363,4 +1605,6 @@ body.zen-mode .album-wrapper {
   .art-wrap { animation: none !important; }
   body.art-glow-pulse .art-glow { animation: none !important; }
   #lyrics-panel.lyrics-blur-apple::before { animation: none; }
+  .title-dot { animation: none !important; }
+  .title-entering { animation: none !important; }
 }

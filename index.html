@@ -126,16 +126,14 @@
 
   <!-- LYRICS PANEL -->
   <div id="lyrics-panel">
-    <div class="lp-header-row">
-      <div class="lp-label">/ Paroles</div>
-      <div class="lp-badge" id="lp-badge"></div>
-    </div>
     <div class="lp-body" id="lp-body">
       <div class="lrc-fade-mask">
         <div id="lrc-container"></div>
       </div>
     </div>
   </div>
+  <!-- LYRICS AM BG (Apple Music animated gradient layer) -->
+  <div id="lyrics-am-bg"></div>
 
   <!-- HISTORY PANEL -->
   <div id="hist-panel">
@@ -447,15 +445,106 @@
         </div>
       </div>
 
+      <!-- Couleurs des paroles -->
       <div class="sp-section">
-        <div class="sp-section-label">Animations</div>
+        <div class="sp-section-label">&#127912; Couleur des paroles</div>
         <div class="sp-row">
-          <span class="sp-row-label">Transitions de ligne (fondu / scale)</span>
-          <label class="toggle"><input type="checkbox" id="set-lyrics-anim" checked aria-label="Lyrics line transitions"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Couleur auto (album art)</span>
+          <label class="toggle"><input type="checkbox" id="set-lyrics-color-auto" aria-label="Auto lyrics color from album"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div id="sp-lyrics-color-row">
+          <div class="sp-row" style="margin-top:0.5rem">
+            <span class="sp-row-label" style="font-size:0.75rem">Ligne active</span>
+            <input type="color" id="set-lyrics-active-color" value="#e0245e" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
+          </div>
+          <div class="sp-row">
+            <span class="sp-row-label" style="font-size:0.75rem">Lignes inactives</span>
+            <input type="color" id="set-lyrics-inactive-color" value="#ffffff" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Couleur du fond des paroles -->
+      <div class="sp-section">
+        <div class="sp-section-label">&#127753; Fond du panneau</div>
+        <div class="sp-option-group" style="margin-bottom:0.875rem;flex-wrap:wrap">
+          <button class="sp-option active" data-lyrics-bg="none">Aucun</button>
+          <button class="sp-option" data-lyrics-bg="dark">Sombre</button>
+          <button class="sp-option" data-lyrics-bg="custom">Personnalis&eacute;</button>
+          <button class="sp-option" data-lyrics-bg="auto">&#127752; Auto</button>
+        </div>
+        <div id="sp-lyrics-bg-color-row" class="sp-row" style="display:none">
+          <span class="sp-row-label" style="font-size:0.75rem">Couleur du fond</span>
+          <input type="color" id="set-lyrics-bg-color" value="#0a0a0f" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
+        </div>
+        <div style="margin-top:0.625rem">
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Opacit&eacute; <span class="sp-slider-val" id="val-lyrics-bg-opacity">40%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-bg-opacity" min="0" max="100" value="40" aria-label="Lyrics bg opacity"/>
+          <div class="sp-slider-label"><span>Transparent</span><span>Opaque</span></div>
+        </div>
+      </div>
+
+      <!-- Animations des paroles -->
+      <div class="sp-section">
+        <div class="sp-section-label">&#10024; Animation des paroles</div>
+        <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.875rem">
+          <button class="sp-option active" data-lyrics-anim="fade">Fondu</button>
+          <button class="sp-option" data-lyrics-anim="slide">Glisse</button>
+          <button class="sp-option" data-lyrics-anim="scale">Zoom</button>
+          <button class="sp-option" data-lyrics-anim="blur">Flou</button>
+          <button class="sp-option" data-lyrics-anim="bounce">Rebond</button>
+          <button class="sp-option" data-lyrics-anim="none">Aucune</button>
         </div>
         <div class="sp-row">
           <span class="sp-row-label">D&eacute;filement automatique</span>
           <label class="toggle"><input type="checkbox" id="set-autoscroll" checked aria-label="Auto-scroll synced lyrics"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+
+      <!-- Animation du titre -->
+      <div class="sp-section">
+        <div class="sp-section-label">&#127925; Animation du titre</div>
+        <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.875rem">
+          <button class="sp-option active" data-title-anim="fade-up">Monte</button>
+          <button class="sp-option" data-title-anim="slide-left">Glisse</button>
+          <button class="sp-option" data-title-anim="scale-in">Zoom</button>
+          <button class="sp-option" data-title-anim="blur-in">Flou</button>
+          <button class="sp-option" data-title-anim="split">Split</button>
+          <button class="sp-option" data-title-anim="none">Aucune</button>
+        </div>
+      </div>
+
+      <!-- Points d&eacute;coratifs (mode Titre) -->
+      <div class="sp-section">
+        <div class="sp-section-label">&#11096; Points d&eacute;coratifs (mode Titre)</div>
+        <div class="sp-row">
+          <span class="sp-row-label">Activer les points</span>
+          <label class="toggle"><input type="checkbox" id="set-title-dots" checked aria-label="Title decorative dots"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label" style="font-size:0.75rem">Couleur</span>
+          <input type="color" id="set-dots-color" value="#e0245e" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
+        </div>
+        <div style="margin-top:0.625rem">
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Luminosit&eacute; <span class="sp-slider-val" id="val-dots-brightness">70%</span></div>
+          <input type="range" class="sp-slider" id="set-dots-brightness" min="10" max="100" value="70" aria-label="Dots brightness"/>
+          <div class="sp-slider-label"><span>Discret</span><span>Brillant</span></div>
+        </div>
+        <div style="margin-top:0.625rem">
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Taille <span class="sp-slider-val" id="val-dots-size">50%</span></div>
+          <input type="range" class="sp-slider" id="set-dots-size" min="10" max="100" value="50" aria-label="Dots size"/>
+          <div class="sp-slider-label"><span>Petits</span><span>Grands</span></div>
+        </div>
+        <div style="margin-top:0.625rem">
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Vitesse <span class="sp-slider-val" id="val-dots-speed">50%</span></div>
+          <input type="range" class="sp-slider" id="set-dots-speed" min="10" max="100" value="50" aria-label="Dots speed"/>
+          <div class="sp-slider-label"><span>Lent</span><span>Rapide</span></div>
+        </div>
+        <div class="sp-option-group" style="margin-top:0.75rem;flex-wrap:wrap">
+          <button class="sp-option active" data-dots-anim="orbit">Orbite</button>
+          <button class="sp-option" data-dots-anim="pulse">Pulse</button>
+          <button class="sp-option" data-dots-anim="wave">Vague</button>
+          <button class="sp-option" data-dots-anim="sparkle">Sparkle</button>
         </div>
       </div>
 

@@ -1,19 +1,16 @@
-/* AURA — script.js v8
+/* AURA — script.js v9
    ─────────────────────────────────────────────────────────────────────────────
-   CHANGES vs v6:
-   · [REMOVED] btn-lanyard-status (éclair) button and all associated functions
-   · [NEW] Lyrics auto-color: detects album art brightness → white/black text
-   · [NEW] Lyrics backdrop blur slider (0-100%) with CSS var --lyrics-backdrop-blur
-   · [NEW] Lyrics text shadow opacity slider (0-100%)
-   · [NEW] Lyrics blur mode: 'standard' | 'apple' (Apple Music vibrant gradients)
-   · [NEW] Animated glow (pulsed) for album art
-   · [NEW] applyLyricsColors() — auto text color from album art luminance
-   · [NEW] applyLyricsAmBg() — Apple Music animated gradient behind lyrics
-   · [FIX] tickLRC(): lyrics now advance +500ms early (sync fix)
-   · [FIX] resetIdle(): 2s delay in zen/focus mode (was 0 — instant)
-   · [FIX] toggleZenMode(): no longer instantly adds is-idle; uses resetIdle()
-   · [FIX] Zen mode closes lyrics panel too; focus = art only
-   · [NEW] setLyricsBlurMode buttons wired
+   CHANGES vs v8:
+   · [NEW] Progress bar : calcul direct depuis timestamps.start/end Discord
+     quand disponibles — exact au ms, indépendant du timer local.
+   · [NEW] Gestion pause multi-plateforme : détection robuste via timestamps.end
+     pour Spotify natif + toute app Discord type 2 (Apple Music, Deezer, Tidal…).
+   · [NEW] Overlay pause : icône ⏸ + assombrissement pochette via #pause-overlay.
+   · [NEW] Reset instantané de la barre sans clignoter au changement de morceau.
+   · [NEW] Stats personnelles : option "Mes stats" (userplaycount artiste + titre)
+     via Last.fm avec username — injectée dynamiquement dans les settings.
+   · [FIX] lanyardHandlePresence : _timestampEnd propagé jusqu'à updateTrackProgress.
+   · [FIX] Description Lanyard précise "toute plateforme musicale" (pas juste Spotify).
    ─────────────────────────────────────────────────────────────────────────────
 */
 
@@ -40,7 +37,7 @@ const S = {
   vinylMode: false, colorThief: false, fluidGradient: false,
   eqViz: false, canvasViz: false,
   heroScale: 100, heroLayout: 'standard', heroAlign: 'center',
-  lanyardId: '', sourcePriority: 'lanyard', vizFPS: 60, showExtendedStats: false,
+  lanyardId: '', sourcePriority: 'lanyard', vizFPS: 60, showExtendedStats: false, showOwnStats: false,
   lyricsSize: 100, lyricsFontChoice: 'serif', lyricsAnim: true,
   albumAnim: true,
   // NEW v7
@@ -153,6 +150,7 @@ const $ = {
   lanyardWsBadge:  document.getElementById('lanyard-ws-badge'),
   extendedStats:   document.getElementById('extended-stats'),
   setExtendedStats:document.getElementById('set-extended-stats'),
+  setOwnStats:     document.getElementById('set-own-stats'),
   lanyardWsBadge:  document.getElementById('lanyard-ws-badge'),
   setLyricsSize:   document.getElementById('set-lyrics-size'),
   setLyricsSizeVal:document.getElementById('set-lyrics-size-val'),
@@ -511,6 +509,7 @@ function applySettings() {
   /* Priority buttons + extended stats */
   syncPriorityButtons();
   if ($.setExtendedStats) $.setExtendedStats.checked = !!S.showExtendedStats;
+  if ($.setOwnStats)      $.setOwnStats.checked      = !!S.showOwnStats;
 
   /* Hero scale */
   const scale = (S.heroScale || 100) / 100;
@@ -984,6 +983,15 @@ if ($.setExtendedStats) {
   });
 }
 
+/* Own stats toggle */
+if ($.setOwnStats) {
+  $.setOwnStats.addEventListener('change', () => {
+    S.showOwnStats = $.setOwnStats.checked;
+    applyExtendedStats();
+    saveSettings();
+  });
+}
+
 /* Album context menu */
 if ($.ctxBtnLastfm) $.ctxBtnLastfm.addEventListener('click', (e) => { e.stopPropagation(); openLastFmPage(); });
 if ($.ctxBtnShare)  $.ctxBtnShare.addEventListener('click',  (e) => { e.stopPropagation(); generateShareImage(); });
@@ -1008,6 +1016,8 @@ $.inKey.addEventListener('keydown',  e => { if (e.key === 'Enter') attemptConnec
   loadSettings();
   gcLRCCache();
   injectAriaLabels();
+  injectPauseOverlay();
+  injectOwnStatsToggle();
   const { u, k } = loadCache();
   if (u && k) {
     $.cachedName.textContent = u;
@@ -1110,6 +1120,104 @@ function toggleZenMode() {
 }
 const btnZen = document.getElementById('btn-zen');
 if (btnZen) btnZen.addEventListener('click', () => { toggleZenMode(); resetIdle(); });
+
+/* ============================================================
+   PAUSE OVERLAY — icône pause + assombrissement de la pochette
+   Injecté dynamiquement dans #art-wrap au démarrage.
+   Contrôlé par .art-paused sur #art-wrap et #pause-overlay.visible
+   ============================================================ */
+function injectPauseOverlay() {
+  if (document.getElementById('pause-overlay')) return;
+
+  /* ── Overlay DOM ── */
+  const overlay = document.createElement('div');
+  overlay.id = 'pause-overlay';
+  overlay.setAttribute('aria-hidden', 'true');
+  overlay.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="currentColor" width="36" height="36" aria-hidden="true">
+      <rect x="5"  y="3" width="4" height="18" rx="1.5"/>
+      <rect x="15" y="3" width="4" height="18" rx="1.5"/>
+    </svg>
+  `;
+
+  /* ── Styles injectés — pas besoin de modifier style.css ── */
+  const style = document.createElement('style');
+  style.id = 'aura-pause-overlay-style';
+  style.textContent = `
+    /* Pause overlay sur la pochette */
+    #art-wrap {
+      position: relative;
+    }
+    #pause-overlay {
+      position:        absolute;
+      inset:           0;
+      z-index:         8;
+      display:         flex;
+      align-items:     center;
+      justify-content: center;
+      border-radius:   inherit;
+      background:      rgba(0, 0, 0, 0);
+      color:           rgba(255, 255, 255, 0);
+      opacity:         0;
+      pointer-events:  none;
+      transition:      opacity 0.35s ease, background 0.35s ease, color 0.35s ease;
+    }
+    #pause-overlay.visible {
+      opacity:    1;
+      background: rgba(0, 0, 0, 0.38);
+      color:      rgba(255, 255, 255, 0.92);
+    }
+    #pause-overlay svg {
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+    }
+
+    /* Assombrissement de la pochette en pause */
+    #art-wrap.art-paused #art-a,
+    #art-wrap.art-paused #art-b {
+      filter:     brightness(0.72) saturate(0.8);
+      transition: filter 0.35s ease;
+    }
+    #art-wrap:not(.art-paused) #art-a,
+    #art-wrap:not(.art-paused) #art-b {
+      filter:     brightness(1) saturate(1);
+      transition: filter 0.35s ease;
+    }
+  `;
+
+  document.head.appendChild(style);
+  if ($.artWrap) $.artWrap.appendChild(overlay);
+}
+
+/* ============================================================
+   OWN STATS TOGGLE — injecte le contrôle dans les settings
+   si l'élément n'existe pas encore dans le HTML.
+   ============================================================ */
+function injectOwnStatsToggle() {
+  if (document.getElementById('set-own-stats')) return;
+  const parent = $.setExtendedStats?.closest('.sp-row');
+  if (!parent) return;
+
+  const row = document.createElement('div');
+  row.className = 'sp-row';
+  row.innerHTML = `
+    <label class="sp-label" for="set-own-stats">Mes stats personnelles</label>
+    <input type="checkbox" id="set-own-stats" class="sp-toggle" />
+  `;
+  parent.insertAdjacentElement('afterend', row);
+
+  /* Wirer le toggle nouvellement injecté */
+  const el = document.getElementById('set-own-stats');
+  if (el) {
+    el.checked = !!S.showOwnStats;
+    el.addEventListener('change', () => {
+      S.showOwnStats = el.checked;
+      applyExtendedStats();
+      saveSettings();
+    });
+    /* Mettre à jour la ref globale $ */
+    $.setOwnStats = el;
+  }
+}
 
 /* ============================================================
    ARIA LABELS
@@ -1366,26 +1474,64 @@ function getDiscordImageUrl(activity) {
 }
 
 /* ============================================================
-   STATISTIQUES ÉTENDUES — playcount artiste + album via Last.fm
+   STATISTIQUES ÉTENDUES
+   Récupère les playcounts via Last.fm avec le username pour
+   obtenir à la fois les stats globales et les stats personnelles.
    ============================================================ */
-async function fetchExtendedStats(artist, albumTitle) {
+async function fetchExtendedStats(artist, albumTitle, trackTitle) {
   if (!S.showExtendedStats || !$.extendedStats) return;
   if (!apiKey || !artist) { $.extendedStats.textContent = ''; return; }
 
   try {
-    const [artRes, albRes] = await Promise.all([
-      fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getInfo&artist=${encodeURIComponent(artist)}&api_key=${apiKey}&format=json`).then(r => r.json()),
+    /* On injecte toujours le username — l'API retourne alors
+       stats.userplaycount + stats.playcount dans la même réponse. */
+    const userParam = username ? `&username=${encodeURIComponent(username)}` : '';
+
+    const [artRes, albRes, trkRes] = await Promise.all([
+
+      fetch(
+        `https://ws.audioscrobbler.com/2.0/` +
+        `?method=artist.getInfo&artist=${encodeURIComponent(artist)}` +
+        `&api_key=${apiKey}&format=json${userParam}`
+      ).then(r => r.json()),
+
       albumTitle
-        ? fetch(`https://ws.audioscrobbler.com/2.0/?method=album.getInfo&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(albumTitle)}&api_key=${apiKey}&format=json`).then(r => r.json())
+        ? fetch(
+            `https://ws.audioscrobbler.com/2.0/` +
+            `?method=album.getInfo&artist=${encodeURIComponent(artist)}` +
+            `&album=${encodeURIComponent(albumTitle)}` +
+            `&api_key=${apiKey}&format=json${userParam}`
+          ).then(r => r.json())
+        : Promise.resolve(null),
+
+      /* Détail du titre — nécessaire pour userplaycount du morceau */
+      (S.showOwnStats && trackTitle)
+        ? fetch(
+            `https://ws.audioscrobbler.com/2.0/` +
+            `?method=track.getInfo&artist=${encodeURIComponent(artist)}` +
+            `&track=${encodeURIComponent(trackTitle)}` +
+            `&api_key=${apiKey}&format=json${userParam}`
+          ).then(r => r.json())
         : Promise.resolve(null),
     ]);
 
     const parts = [];
-    const artPlays = parseInt(artRes?.artist?.stats?.playcount || '0');
-    if (artPlays > 0) parts.push(`${artPlays.toLocaleString('fr-FR')} écoutes · artiste`);
 
-    const albPlays = parseInt(albRes?.album?.playcount || '0');
-    if (albPlays > 0) parts.push(`${albPlays.toLocaleString('fr-FR')} · album`);
+    /* ── Stats globales ── */
+    const artGlobalPlays = parseInt(artRes?.artist?.stats?.playcount || '0');
+    if (artGlobalPlays > 0) parts.push(`${artGlobalPlays.toLocaleString('fr-FR')} écoutes · artiste`);
+
+    const albGlobalPlays = parseInt(albRes?.album?.playcount || '0');
+    if (albGlobalPlays > 0) parts.push(`${albGlobalPlays.toLocaleString('fr-FR')} · album`);
+
+    /* ── Mes stats personnelles (si activé) ── */
+    if (S.showOwnStats && username) {
+      const myArtPlays = parseInt(artRes?.artist?.stats?.userplaycount || '0');
+      if (myArtPlays > 0) parts.push(`${myArtPlays.toLocaleString('fr-FR')} écoutes · moi`);
+
+      const myTrkPlays = parseInt(trkRes?.track?.userplaycount || '0');
+      if (myTrkPlays > 0) parts.push(`${myTrkPlays.toLocaleString('fr-FR')} × ce titre`);
+    }
 
     $.extendedStats.textContent = parts.length ? parts.join('   ·   ') : '';
   } catch {
@@ -1400,7 +1546,8 @@ function applyExtendedStats() {
     else if (currentTrack) {
       const artist = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
       const album  = currentTrack.album?.['#text'] || '';
-      fetchExtendedStats(artist, album);
+      const title  = currentTrack.name || '';
+      fetchExtendedStats(artist, album, title);
     }
   }
 }
@@ -1416,7 +1563,7 @@ function syncPriorityButtons() {
   if (descEl) {
     descEl.textContent = S.sourcePriority === 'lastfm'
       ? 'Le statut Discord est ignoré. AURA se base uniquement sur tes scrobbles Last.fm.'
-      : 'Si tu es connecté via Discord, ta musique Spotify s\'affiche en temps réel. Sinon, AURA utilise Last.fm automatiquement.';
+      : 'Si tu écoutes via Discord (Spotify, Apple Music, Deezer, Tidal…), AURA se synchronise en temps réel via Lanyard. Sinon, il bascule automatiquement sur Last.fm.';
   }
 }
 
@@ -1424,48 +1571,114 @@ function lanyardHandlePresence(data) {
   let spotifyData = null, trackPaused = false;
 
   if (data.spotify?.song) {
-    /* Données Spotify natives via Lanyard */
+
+    /* ── Spotify natif via Lanyard ── */
     spotifyData = data.spotify;
-    trackPaused = !data.spotify.timestamps?.start;
-    console.log('[Lanyard] Spotify natif détecté :', spotifyData.song, '—', spotifyData.artist);
+
+    /* Pause Spotify : les timestamps disparaissent entièrement.
+       Si end existe et est dans le futur → en lecture.
+       Si start existe mais pas end → en pause (track figée).
+       Si aucun timestamps → en pause. */
+    const ts = data.spotify.timestamps;
+    if (!ts || !ts.start) {
+      trackPaused = true;
+    } else if (!ts.end) {
+      /* start sans end = souvent pause Spotify */
+      trackPaused = true;
+    } else if (ts.end <= Date.now()) {
+      /* La fin est déjà passée : morceau fini ou pause tardive */
+      trackPaused = true;
+    } else {
+      trackPaused = false;
+    }
+
+    console.log('[Lanyard] Spotify natif :', spotifyData.song, '—', spotifyData.artist);
     console.log('[Lanyard] Pochette :', spotifyData.album_art_url || '(absente)');
-    console.log('[Lanyard] En pause :', trackPaused);
+    console.log('[Lanyard] Pause :', trackPaused, '/ ts:', ts?.start, '→', ts?.end);
+
   } else {
-    /* Fallback : activité musicale Discord (type 2) */
+
+    /* ── Activité musicale Discord type 2 (toute plateforme) ──
+       Supporté : Spotify, Apple Music, Deezer, Tidal, YouTube Music,
+       Soundcloud, Plex, etc. — tout player avec Rich Presence type 2.
+    */
     const musicActivity = (data.activities || []).find(a => a.type === 2);
+
     if (musicActivity) {
-      console.log('[Lanyard] Activité musicale Discord :', musicActivity.name);
+      console.log('[Lanyard] Activité musicale tierce :', musicActivity.name, '(type 2)');
+
+      const ts = musicActivity.timestamps || null;
+
+      /* Même logique de détection de pause pour les apps tierces.
+         Beaucoup de players type 2 envoient start+end quand ils jouent,
+         et suppriment les timestamps (ou n'envoient que start) en pause. */
+      if (!ts || !ts.start) {
+        trackPaused = true;
+      } else if (!ts.end) {
+        /* start sans end : certaines apps (ex: Apple Music) le font toujours,
+           d'autres uniquement en pause → on suppose lecture par défaut ici
+           car on ne peut pas distinguer sans end. */
+        trackPaused = false;
+      } else if (ts.end <= Date.now()) {
+        trackPaused = true;
+      } else {
+        trackPaused = false;
+      }
+
       spotifyData = {
         song:          musicActivity.details || musicActivity.name || '',
         artist:        musicActivity.state   || '',
         album:         musicActivity.assets?.large_text || '',
         album_art_url: getDiscordImageUrl(musicActivity),
-        timestamps: musicActivity.timestamps || null,
+        timestamps:    ts,
       };
-      trackPaused = !musicActivity.timestamps?.start;
+
+      console.log('[Lanyard] Plateforme :', musicActivity.name, '/ Pause :', trackPaused);
+
     } else {
       console.log('[Lanyard] Aucune musique. Activités :', (data.activities || []).map(a => `type:${a.type} — ${a.name}`));
     }
   }
 
   if (spotifyData) {
-    lanyardActive = true; lanyardSpotifyData = spotifyData;
+    lanyardActive      = true;
+    lanyardSpotifyData = spotifyData;
+
+    /* Timestamps pour la barre de progression */
     lanyardTimestampStart = spotifyData.timestamps?.start || 0;
     lanyardTimestampEnd   = spotifyData.timestamps?.end   || 0;
-    const durationMs = (lanyardTimestampEnd && lanyardTimestampStart) ? lanyardTimestampEnd - lanyardTimestampStart : 0;
+
+    const durationMs = (lanyardTimestampEnd > lanyardTimestampStart)
+      ? lanyardTimestampEnd - lanyardTimestampStart
+      : 0;
+
     setLanyardStatus('connected', `${trackPaused ? '⏸' : '🎵'} ${spotifyData.song}`);
+
     const syntheticTrack = {
-      name:        spotifyData.song,
-      artist:      { name: spotifyData.artist, '#text': spotifyData.artist },
-      album:       { '#text': spotifyData.album || '' },
-      albumArtUrl: spotifyData.album_art_url || '',
-      image:       spotifyData.album_art_url ? [{ '#text': spotifyData.album_art_url, size: 'extralarge' }] : [],
-      duration:    durationMs > 0 ? Math.floor(durationMs / 1000) * 1000 : 0,
-      _fromLanyard: true, _timestampStart: lanyardTimestampStart, _isPaused: trackPaused,
+      name:            spotifyData.song,
+      artist:          { name: spotifyData.artist, '#text': spotifyData.artist },
+      album:           { '#text': spotifyData.album || '' },
+      albumArtUrl:     spotifyData.album_art_url || '',
+      image:           spotifyData.album_art_url
+                         ? [{ '#text': spotifyData.album_art_url, size: 'extralarge' }]
+                         : [],
+      duration:        durationMs > 0 ? Math.floor(durationMs / 1000) * 1000 : 0,
+      _fromLanyard:    true,
+      _timestampStart: lanyardTimestampStart,
+      _timestampEnd:   lanyardTimestampEnd,
+      _isPaused:       trackPaused,
     };
-    if (S.sourcePriority !== 'lastfm') { handleTrack(syntheticTrack, true); setPausedState(trackPaused); }
+
+    if (S.sourcePriority !== 'lastfm') {
+      handleTrack(syntheticTrack, true);
+      setPausedState(trackPaused);
+    }
+
   } else {
-    lanyardActive = false; lanyardSpotifyData = null;
+    lanyardActive      = false;
+    lanyardSpotifyData = null;
+    lanyardTimestampStart = 0;
+    lanyardTimestampEnd   = 0;
     setLanyardStatus('no-music', 'Aucune musique détectée');
     if (S.sourcePriority !== 'lastfm') handleTrack(null);
   }
@@ -1529,14 +1742,16 @@ function toggleTestMode() {
   const artUrl = `https://picsum.photos/seed/${t.seed}${Date.now() % 100}/600/600`;
 
   const fakeTrack = {
-    name:        t.title,
-    artist:      { name: t.artist, '#text': t.artist },
-    album:       { '#text': t.album },
-    albumArtUrl: artUrl,
-    image:       [{ '#text': artUrl, size: 'extralarge' }],
-    duration:    210000, /* 3 min 30 */
-    _fromLanyard: false,
-    _isTest:     true,
+    name:           t.title,
+    artist:         { name: t.artist, '#text': t.artist },
+    album:          { '#text': t.album },
+    albumArtUrl:    artUrl,
+    image:          [{ '#text': artUrl, size: 'extralarge' }],
+    duration:       210000, /* 3 min 30 */
+    _fromLanyard:   false,
+    _timestampStart: 0,
+    _timestampEnd:   0,
+    _isTest:        true,
   };
 
   setLanyardStatus('test', '🧪 Mode Test actif');
@@ -1574,16 +1789,40 @@ function toggleTestMode() {
 function setPausedState(paused) {
   if (isPaused === paused) return;
   isPaused = paused;
+
+  const overlay = document.getElementById('pause-overlay');
+
   if (paused) {
-    trackPausedAt = Date.now(); cancelAnimationFrame(progressRAF);
+    /* ── Passage en pause ── */
+    trackPausedAt = Date.now();
+    cancelAnimationFrame(progressRAF);
+
     if (lrcSynced) { cancelAnimationFrame(lrcRAF); lrcRAF = null; }
     if (!S.canvasViz) stopCanvasViz();
+
+    /* Afficher l'overlay pause + assombrir la pochette */
+    if (overlay)   overlay.classList.add('visible');
+    if ($.artWrap) $.artWrap.classList.add('art-paused');
+
   } else {
-    if (trackPausedAt > 0) { trackStartTime += Date.now() - trackPausedAt; trackPausedAt = 0; }
+    /* ── Reprise de lecture ── */
+    if (trackPausedAt > 0) {
+      /* Décaler trackStartTime de la durée de pause pour que
+         la progression reprenne exactement où elle s'était arrêtée */
+      trackStartTime += Date.now() - trackPausedAt;
+      trackPausedAt = 0;
+    }
+
     progressRAF = requestAnimationFrame(updateTrackProgress);
+
     if (lrcSynced && lyricsOpen) { cancelAnimationFrame(lrcRAF); tickLRC(); }
     if (S.canvasViz) startCanvasViz();
+
+    /* Masquer l'overlay pause */
+    if (overlay)   overlay.classList.remove('visible');
+    if ($.artWrap) $.artWrap.classList.remove('art-paused');
   }
+
   document.body.classList.toggle('is-paused',  paused);
   document.body.classList.toggle('is-playing', !paused && currentTrack !== null);
 }
@@ -1594,9 +1833,31 @@ function getElapsedMs() {
   if (currentTrack?._fromLanyard && currentTrack._timestampStart > 0) return Date.now() - currentTrack._timestampStart;
   return Date.now() - trackStartTime;
 }
+
 function updateTrackProgress() {
-  if (!trackDuration || !trackStartTime || isPaused) return;
-  const pct = Math.min((getElapsedMs() / 1000 / trackDuration) * 100, 100);
+  if (!trackStartTime || isPaused) return;
+
+  let pct;
+
+  /* Priorité absolue : si on a start ET end Discord, le pourcentage
+     est calculé directement depuis les timestamps — toujours exact,
+     indépendant de la durée stockée ou des dérives de timer. */
+  if (
+    currentTrack?._fromLanyard &&
+    currentTrack._timestampStart > 0 &&
+    currentTrack._timestampEnd   > 0 &&
+    currentTrack._timestampEnd   > currentTrack._timestampStart
+  ) {
+    const elapsed = Date.now() - currentTrack._timestampStart;
+    const total   = currentTrack._timestampEnd - currentTrack._timestampStart;
+    pct = Math.min((elapsed / total) * 100, 100);
+
+  } else {
+    /* Fallback : durée estimée (Last.fm ou test mode) */
+    if (!trackDuration) return;
+    pct = Math.min((getElapsedMs() / 1000 / trackDuration) * 100, 100);
+  }
+
   $.progressBar.style.width = pct + '%';
   if (pct < 100) progressRAF = requestAnimationFrame(updateTrackProgress);
 }
@@ -1636,6 +1897,11 @@ function handleTrack(track, fromLanyard = false) {
     cancelAnimationFrame(progressRAF);
     $.artWrap.classList.remove('playing');
     document.body.classList.remove('is-playing', 'is-paused', 'source-lanyard');
+
+    /* Masquer l'overlay pause si on n'écoute plus rien */
+    const overlay = document.getElementById('pause-overlay');
+    if (overlay) overlay.classList.remove('visible');
+    if ($.artWrap) $.artWrap.classList.remove('art-paused');
     if (S.colorThief) document.documentElement.style.setProperty('--accent', S.accentColor);
     if (S.fluidGradient && $.fluidGradientBg) $.fluidGradientBg.classList.remove('on');
     stopLRC();
@@ -1655,6 +1921,14 @@ function handleTrack(track, fromLanyard = false) {
 
   currentTrackId = id; currentTrack = track;
   isPaused = track._isPaused || false; trackPausedAt = 0;
+
+  /* Réinitialisation instantanée de la barre — sans animation pour
+     éviter tout artefact visuel lors du changement de morceau. */
+  $.progressBar.style.transition = 'none';
+  $.progressBar.style.width      = '0%';
+  void $.progressBar.offsetWidth; // force reflow avant de ré-activer les transitions
+  $.progressBar.style.transition  = '';
+
   $.artWrap.classList.add('playing');
   document.body.classList.add('is-playing');
   document.body.classList.remove('is-paused');
@@ -1663,6 +1937,9 @@ function handleTrack(track, fromLanyard = false) {
   if (track._fromLanyard && track._timestampStart > 0) {
     trackStartTime = track._timestampStart;
     trackDuration  = track.duration > 0 ? track.duration / 1000 : 180;
+    /* Mettre à jour les timestamps globaux pour updateTrackProgress */
+    lanyardTimestampStart = track._timestampStart;
+    lanyardTimestampEnd   = track._timestampEnd || 0;
   } else {
     trackStartTime = Date.now();
     trackDuration  = track.duration && parseInt(track.duration) > 0 ? parseInt(track.duration) / 1000 : 180;
@@ -1699,7 +1976,7 @@ function handleTrack(track, fromLanyard = false) {
 
   /* Extended stats — fetch en arrière-plan */
   const album = track.album?.['#text'] || '';
-  fetchExtendedStats(artist, album);
+  fetchExtendedStats(artist, album, title);
 }
 
 /* ---- COLOR THIEF ---- */

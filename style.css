@@ -1639,20 +1639,182 @@ body.dots-sparkle .title-dot:nth-child(5) { top: 85%; left: 50%; transform: tran
 }
 
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE NAV — barre de navigation fixe en bas (masquée sur desktop)
+═══════════════════════════════════════════════════════════════════════════ */
+#mobile-nav {
+  display: none; /* caché sur desktop */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE (≤ 768px)
+═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  #lyrics-panel, #hist-panel { width: 100%; padding: 3rem 1.5rem 5rem; z-index: 20; }
-  #settings-panel { width: 100%; z-index: 21; }
-  #hero.shifted { transform: translateX(0); }
-  .sp-tab { font-size: 0.5rem; padding: 8px 2px; }
-  .track-title-wrap { max-width: 90vw; }
+
+  /* ── UI desktop: masqué sur mobile ─────────────────────────────── */
+  #ui { display: none !important; }
+
+  /* ── Barre de navigation mobile ────────────────────────────────── */
+  #mobile-nav {
+    display: flex;
+    position: fixed; left: 0; right: 0; bottom: 0;
+    z-index: 50;
+    background: rgba(8,8,10,0.88);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    gap: 0;
+  }
+  body.is-idle #mobile-nav,
+  body.zen-mode #mobile-nav { opacity: 0; pointer-events: none; transition: opacity .5s; }
+  body.zen-mode:not(.is-idle) #mobile-nav,
+  body:not(.zen-mode) #mobile-nav { opacity: 1; pointer-events: all; }
+
+  .mnav-btn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+    min-height: 52px; padding: 6px 4px;
+    background: transparent; border: none; color: var(--ui-dim);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.5625rem; font-weight: 500; letter-spacing: .05em;
+    text-transform: uppercase; cursor: pointer;
+    transition: color var(--t1) var(--ease), transform .15s var(--spring);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mnav-btn svg { width: 22px; height: 22px; }
+  .mnav-btn:active { transform: scale(.88); }
+  .mnav-btn.active { color: var(--accent); }
+  .mnav-btn-zen.active { color: var(--accent); }
+
+  /* ── Panels: slide from bottom, full screen ─────────────────────── */
+  #lyrics-panel, #hist-panel {
+    right: 0; left: 0; bottom: 0; top: auto;
+    width: 100%;
+    height: 82vh;
+    padding: 1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
+    transform: translateY(105%) !important;
+    opacity: 0;
+    z-index: 30;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: rgba(8,8,10,0.92) !important;
+    backdrop-filter: blur(40px) !important;
+    -webkit-backdrop-filter: blur(40px) !important;
+  }
+  #lyrics-panel.on, #hist-panel.on {
+    transform: translateY(0) !important;
+    opacity: 1;
+  }
+  /* No backdrop-filter override on mobile: we handle it above */
+  #lyrics-panel.lyrics-blur-standard,
+  #lyrics-panel.lyrics-blur-apple { background: transparent !important; }
+
+  #settings-panel {
+    right: 0; left: 0; bottom: 0; top: auto;
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    border-left: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    transform: translateY(105%);
+    opacity: 0;
+    z-index: 40;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  #settings-panel.on {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* ── Hero: no sideways shift on mobile ──────────────────────────── */
+  #hero.shifted { transform: translateX(0) !important; }
+
+  /* ── Lyrics position modes: all become bottom-up on mobile ─────── */
+  body.lyrics-pos-center #lyrics-panel,
+  body.lyrics-pos-bottom #lyrics-panel {
+    right: 0; left: 0; bottom: 0; top: auto;
+    width: 100%; height: 82vh;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(105%) !important;
+  }
+  body.lyrics-pos-center #lyrics-panel.on,
+  body.lyrics-pos-bottom #lyrics-panel.on {
+    transform: translateY(0) !important;
+  }
+  body.lyrics-pos-center #hero.shifted,
+  body.lyrics-pos-bottom #hero.shifted { transform: none !important; }
+
+  /* ── Album art ──────────────────────────────────────────────────── */
+  .art-wrap { width: clamp(180px, 60vw, 280px) !important; height: clamp(180px, 60vw, 280px) !important; }
+  .art-img   { width: 100% !important; height: 100% !important; }
+  .fallback-art { width: 100% !important; height: 100% !important; }
+  .art-glow  { width: 100% !important; height: 100% !important; }
+
+  /* ── Track text ─────────────────────────────────────────────────── */
+  #track-title { font-size: clamp(2rem, 8vw, 3.5rem) !important; }
+  #track-artist { font-size: clamp(1rem, 3.5vw, 1.4rem) !important; }
+  .track-title-wrap { max-width: 88vw; }
+
+  /* ── Hero bottom padding to clear nav bar ───────────────────────── */
+  #hero { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+
+  /* ── Settings panel header & tabs ──────────────────────────────── */
+  .sp-header { padding: 1.25rem 1.25rem 0; }
+  .sp-title  { font-size: 1.375rem; margin-bottom: 0.875rem; }
+  .sp-tab    { font-size: 0.5rem; padding: 8px 4px; }
+  .sp-tab-pane { padding: 1.25rem 1.25rem calc(5rem + env(safe-area-inset-bottom, 0px)); }
+
+  /* ── Settings: hide keyboard shortcuts ─────────────────────────── */
+  .sp-shortcuts-section { display: none; }
+
+  /* ── All touch targets: minimum 44px ───────────────────────────── */
+  .sp-option  { min-height: 44px; padding: 10px 16px; font-size: 0.8125rem; }
+  .toggle     { width: 44px; height: 24px; }
+  .toggle-track { border-radius: 12px; }
+  .toggle-thumb { top: 3px; left: 3px; width: 16px; height: 16px; }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+  .l-btn      { padding: 1.0625rem; min-height: 52px; }
+  .sp-logout  { min-height: 52px; }
+  .lanyard-connect-btn { min-height: 52px; padding: 0 1.25rem; font-size: 0.875rem; }
+
+  /* ── Album ctx menu: always visible on mobile ───────────────────── */
   .album-ctx-menu {
     opacity: 1; pointer-events: all;
     transform: translateX(-50%) translateY(0);
   }
   body.is-idle .album-ctx-menu,
   body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !important; }
-  /* Mobile focus mode: album slightly smaller */
+
+  /* ── LP body: more height ────────────────────────────────────────── */
+  .lp-body { max-height: 65vh; }
+  #lrc-container { padding: 22vh 0.75rem 28vh; }
+
+  /* ── History panel ──────────────────────────────────────────────── */
+  .hp-list { max-height: 62vh; }
+
+  /* ── No text marquee on mobile (perf) ──────────────────────────── */
+  #mq-wrap { display: none; }
+
+  /* ── Sliders: bigger thumb for touch ───────────────────────────── */
+  .sp-slider::-webkit-slider-thumb { width: 20px; height: 20px; }
+
+  /* ── Login card ─────────────────────────────────────────────────── */
+  .l-card { padding: 2.5rem 1.75rem; }
+
+  /* ── Focus mode: smaller album scale ───────────────────────────── */
   body.zen-mode .album-wrapper { transform: scale(1.05); }
+
+  /* ── Progress bar: show by default on mobile ────────────────────── */
+  #progress-container { display: block; width: clamp(200px, 72vw, 360px); }
+}
+
+/* ── very small screens ──────────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .art-wrap { width: 54vw !important; height: 54vw !important; }
+  #track-title { font-size: 7.5vw !important; }
+  .mnav-btn span { display: none; }
+  .mnav-btn { min-height: 48px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

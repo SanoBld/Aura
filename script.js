@@ -695,9 +695,9 @@ function applyLyricsSettings() {
   const posDesc = document.getElementById('lyrics-pos-desc');
   if (posDesc) {
     const descs = {
-      right:  'Panneau latéral droit, le héros se décale automatiquement.',
-      center: 'Panneau flottant centré avec fond flouté, sans décalage du héros.',
-      bottom: 'Bande horizontale en bas de l\'écran, pleine largeur.',
+      right:  'Paroles sur le côté droit de l\'écran.',
+      center: 'Paroles au centre de l\'écran, par-dessus le fond.',
+      bottom: 'Paroles en bas de l\'écran, pleine largeur.',
     };
     posDesc.textContent = descs[pos] || descs.right;
   }
@@ -707,16 +707,16 @@ function applyLyricsSettings() {
 
   if ($.lyricsModeDesc) {
     $.lyricsModeDesc.textContent = bm === 'apple'
-      ? 'Dégradés de couleurs vibrantes extraits de la pochette.'
-      : 'Flou classique avec teinte noire légère.';
+      ? 'Dégradé de couleurs animé depuis la pochette.'
+      : 'Panneau transparent simple.';
   }
 }
 
 function updateLayoutDesc() {
   if (!$.layoutDesc) return;
   $.layoutDesc.textContent = S.heroLayout === 'minimal'
-    ? 'Juste une barre de progression et le nom du titre.'
-    : 'Affichage complet avec pochette et infos de la piste.';
+    ? 'Juste une barre de progression et le titre du morceau.'
+    : 'Affichage complet avec pochette et informations du morceau.';
 }
 
 /* ---- SETTINGS EVENT LISTENERS ---- */
@@ -1935,6 +1935,7 @@ function closeAllPanels() {
   if (histOpen)     { histOpen=false;     $.histPanel.classList.remove('on');   $.btnHist.classList.remove('active'); }
   if (settingsOpen) { settingsOpen=false; $.settingsPanel.classList.remove('on'); $.btnSettings.classList.remove('active'); }
   $.hero.classList.remove('shifted');
+  if (window._mnavSyncHook) window._mnavSyncHook();
 }
 
 $.btnLyrics.addEventListener('click', () => {
@@ -2004,3 +2005,29 @@ document.addEventListener('keydown', e => {
     case 'ESCAPE': e.preventDefault(); closeAllPanels(); if (zenMode) toggleZenMode(); resetIdle(); break;
   }
 });
+/* ============================================================
+   MOBILE NAV — boutons de la barre de navigation mobile
+   Ils délèguent simplement aux boutons desktop existants
+   ============================================================ */
+(function() {
+  const mnavLyrics   = document.getElementById('mnav-lyrics');
+  const mnavHist     = document.getElementById('mnav-hist');
+  const mnavSettings = document.getElementById('mnav-settings');
+  const mnavFocus    = document.getElementById('mnav-focus');
+
+  function syncMnav() {
+    if (mnavLyrics)   mnavLyrics.classList.toggle('active',   lyricsOpen);
+    if (mnavHist)     mnavHist.classList.toggle('active',     histOpen);
+    if (mnavSettings) mnavSettings.classList.toggle('active', settingsOpen);
+    if (mnavFocus)    mnavFocus.classList.toggle('active',    zenMode);
+  }
+
+  if (mnavLyrics)   mnavLyrics.addEventListener('click',   () => { $.btnLyrics.click();   syncMnav(); });
+  if (mnavHist)     mnavHist.addEventListener('click',     () => { $.btnHist.click();     syncMnav(); });
+  if (mnavSettings) mnavSettings.addEventListener('click', () => { $.btnSettings.click(); syncMnav(); });
+  if (mnavFocus)    mnavFocus.addEventListener('click',    () => { toggleZenMode();       syncMnav(); });
+
+  /* Sync mobile nav active states whenever panels open/close */
+  const origClose = closeAllPanels;
+  window._mnavSyncHook = syncMnav;
+})();

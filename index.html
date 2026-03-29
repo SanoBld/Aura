@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>AURA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -31,8 +34,8 @@
       <input type="text" id="in-user" placeholder="votre_pseudo" autocomplete="off" spellcheck="false"/>
     </div>
     <div class="field">
-      <label>Clé API Last.fm</label>
-      <input type="password" id="in-key" placeholder="32 caractères" autocomplete="off" spellcheck="false"/>
+      <label>Cl&eacute; API Last.fm</label>
+      <input type="password" id="in-key" placeholder="32 caract&egrave;res" autocomplete="off" spellcheck="false"/>
     </div>
     <button class="l-btn" id="btn-connect">Entrer &rarr;</button>
     <div class="l-cached" id="cached-entry">
@@ -78,8 +81,8 @@
           <div class="art-glow" id="art-glow"></div>
           <div class="fallback-art" id="fallback-a"></div>
           <div class="fallback-art" id="fallback-b"></div>
-          <img class="art-img" id="art-a" src="" alt="Album art" crossorigin="anonymous"/>
-          <img class="art-img" id="art-b" src="" alt="Previous album art" crossorigin="anonymous"/>
+          <img class="art-img" id="art-a" src="" alt="Pochette" crossorigin="anonymous"/>
+          <img class="art-img" id="art-b" src="" alt="Pochette pr&eacute;c&eacute;dente" crossorigin="anonymous"/>
           <div class="vinyl-grooves"></div>
           <div class="vinyl-center"></div>
           <div class="tonearm-wrap">
@@ -87,14 +90,12 @@
             <div class="tonearm-arm"><div class="tonearm-head"></div></div>
           </div>
         </div>
-
-        <!-- Album context menu: Share only (Last.fm) -->
-        <div class="album-ctx-menu" id="album-ctx-menu" role="toolbar" aria-label="Track actions">
-          <button class="ctx-btn" id="ctx-btn-lastfm" aria-label="Ouvrir sur Last.fm">
+        <div class="album-ctx-menu" id="album-ctx-menu" role="toolbar" aria-label="Actions">
+          <button class="ctx-btn" id="ctx-btn-lastfm" aria-label="Voir sur Last.fm">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
             <span class="ctx-btn-label">Last.fm</span>
           </button>
-          <button class="ctx-btn" id="ctx-btn-share" aria-label="Partager comme Story (9:16)">
+          <button class="ctx-btn" id="ctx-btn-share" aria-label="Partager">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
             <span class="ctx-btn-label">Partager</span>
           </button>
@@ -104,17 +105,14 @@
       <div class="track-title-wrap">
         <div id="track-title" class="fade-up-text">&mdash;</div>
       </div>
-
       <div id="artist-row" class="fade-up-text">
         <div class="avatar-circle" id="avatar-circle">
-          <img id="artist-avatar" src="" alt="Artist avatar" crossorigin="anonymous"/>
+          <img id="artist-avatar" src="" alt="Photo artiste" crossorigin="anonymous"/>
           <div class="avatar-fallback" id="avatar-fallback"></div>
         </div>
         <div id="track-artist">&mdash;</div>
       </div>
-      <div id="progress-container">
-        <div id="progress-bar"></div>
-      </div>
+      <div id="progress-container"><div id="progress-bar"></div></div>
       <div id="eq-viz" aria-hidden="true">
         <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
         <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
@@ -132,47 +130,44 @@
       </div>
     </div>
   </div>
-  <!-- LYRICS AM BG (Apple Music animated gradient layer) -->
   <div id="lyrics-am-bg"></div>
 
   <!-- HISTORY PANEL -->
   <div id="hist-panel">
-    <div class="hp-label">/ Historique r&eacute;cent</div>
+    <div class="hp-label">/ &Eacute;cout&eacute;s r&eacute;cemment</div>
     <div class="hp-list" id="hp-list"></div>
   </div>
 
   <!-- SETTINGS PANEL -->
   <div id="settings-panel">
     <div class="sp-header">
-      <div class="sp-title">Param&egrave;tres</div>
-      <div class="sp-tabs" role="tablist" aria-label="Settings tabs">
-        <button class="sp-tab active" data-tab="sync"   role="tab" aria-selected="true"  aria-controls="tab-sync">Sync</button>
-        <button class="sp-tab"        data-tab="layout" role="tab" aria-selected="false" aria-controls="tab-layout">Layout</button>
-        <button class="sp-tab"        data-tab="visual" role="tab" aria-selected="false" aria-controls="tab-visual">Visual</button>
-        <button class="sp-tab"        data-tab="lyrics" role="tab" aria-selected="false" aria-controls="tab-lyrics">Lyrics</button>
+      <div class="sp-title">R&eacute;glages</div>
+      <div class="sp-tabs" role="tablist">
+        <button class="sp-tab active" data-tab="sync"   role="tab" aria-selected="true"  aria-controls="tab-sync">Connexion</button>
+        <button class="sp-tab"        data-tab="layout" role="tab" aria-selected="false" aria-controls="tab-layout">Affichage</button>
+        <button class="sp-tab"        data-tab="visual" role="tab" aria-selected="false" aria-controls="tab-visual">Apparence</button>
+        <button class="sp-tab"        data-tab="lyrics" role="tab" aria-selected="false" aria-controls="tab-lyrics">Paroles</button>
       </div>
     </div>
 
-    <!-- TAB 1: SYNC -->
+    <!-- TAB 1: CONNEXION -->
     <div class="sp-tab-pane active" id="tab-sync" role="tabpanel">
-
       <div class="sp-section">
-        <div class="sp-section-label">Compte Last.fm</div>
+        <div class="sp-section-label">Mon compte Last.fm</div>
         <div class="sp-row">
-          <span class="sp-row-label" style="font-size:0.75rem;color:rgba(255,255,255,.4)">Utilisateur actif</span>
+          <span class="sp-row-label" style="font-size:0.75rem;color:rgba(255,255,255,.4)">Connect&eacute; en tant que</span>
           <span class="sp-row-label" style="font-size:0.75rem;font-family:'JetBrains Mono',monospace" id="display-username">&mdash;</span>
         </div>
         <div class="user-search-wrap">
-          <input type="text" id="user-search" class="user-search-input" placeholder="Voir un autre utilisateur&hellip;" aria-label="Search another Last.fm user">
+          <input type="text" id="user-search" class="user-search-input" placeholder="Voir un autre utilisateur&hellip;" aria-label="Autre utilisateur Last.fm">
         </div>
-        <div style="font-size:0.6875rem;color:rgba(255,255,255,.2);margin-top:6px">Appuyez sur Entr&eacute;e pour changer</div>
+        <div style="font-size:0.6875rem;color:rgba(255,255,255,.2);margin-top:6px">Appuie sur Entr&eacute;e pour changer</div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Priorit&eacute; de source</div>
-        <div class="sp-priority-info">Lanyard est toujours prioritaire. Last.fm prend le relais automatiquement si aucun stream n&rsquo;est d&eacute;tect&eacute;.</div>
+        <div class="sp-section-label">Comment &ccedil;a fonctionne</div>
         <div class="sp-priority-desc" id="priority-desc">
-          AURA Sync (Lanyard) est prioritaire. Last.fm prend le relais si aucun stream n&rsquo;est d&eacute;tect&eacute;.
+          Si tu es connect&eacute; via Discord, ta musique Spotify s&rsquo;affiche en temps r&eacute;el. Sinon, AURA utilise Last.fm automatiquement.
         </div>
       </div>
 
@@ -181,57 +176,57 @@
       <div class="sp-section">
         <div class="sp-section-label">
           <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:#1DB954" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-          AURA Sync &mdash; Discord ID
+          Suivi en direct via Discord
         </div>
-        <div class="aura-sync-desc">Synchronisez Spotify en temps r&eacute;el via le WebSocket Lanyard.</div>
+        <div class="aura-sync-desc">Affiche ta musique Spotify en temps r&eacute;el gr&acirc;ce &agrave; ton statut Discord.</div>
         <div class="lanyard-connect-wrap">
-          <input type="text" id="set-lanyard-id" class="user-search-input" placeholder="Votre Discord User ID&hellip;" autocomplete="off" spellcheck="false" aria-label="Discord user ID for AURA Sync"/>
-          <button class="lanyard-connect-btn" id="btn-lanyard-connect" aria-label="Connect AURA Sync">Connecter</button>
+          <input type="text" id="set-lanyard-id" class="user-search-input" placeholder="Ton identifiant Discord&hellip;" autocomplete="off" spellcheck="false" aria-label="Identifiant Discord"/>
+          <button class="lanyard-connect-btn" id="btn-lanyard-connect">Connecter</button>
         </div>
         <div class="lanyard-status-row" id="lanyard-status-row" aria-live="polite">
           <div class="lanyard-dot" id="lanyard-dot"></div>
-          <span id="lanyard-status-text">D&eacute;sactiv&eacute; &mdash; entrez un ID pour activer</span>
-          <span class="lanyard-ws-badge" id="lanyard-ws-badge" style="display:none">WS</span>
+          <span id="lanyard-status-text">D&eacute;sactiv&eacute; &mdash; entre un identifiant pour activer</span>
+          <span class="lanyard-ws-badge" id="lanyard-ws-badge" style="display:none">En direct</span>
         </div>
         <div class="lanyard-help">
-          <strong>Comment trouver votre ID ?</strong><br/>
-          Discord &rarr; Param&egrave;tres &rarr; Avanc&eacute; &rarr; Mode d&eacute;veloppeur ON<br/>
-          Puis clic droit sur votre profil &rarr; <em>Copier l&rsquo;identifiant</em>
+          <strong>O&ugrave; trouver ton identifiant&nbsp;?</strong><br/>
+          Discord &rarr; Param&egrave;tres &rarr; Avanc&eacute; &rarr; Active le mode d&eacute;veloppeur<br/>
+          Clic droit sur ton profil &rarr; <em>Copier l&rsquo;identifiant</em>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Panneau par d&eacute;faut</div>
+        <div class="sp-section-label">Ouvrir au d&eacute;marrage</div>
         <div class="sp-option-group">
           <button class="sp-option active" data-panel="lyrics">Paroles</button>
           <button class="sp-option" data-panel="history">Historique</button>
-          <button class="sp-option" data-panel="none">Aucun</button>
+          <button class="sp-option" data-panel="none">Rien</button>
         </div>
       </div>
 
-      <button class="sp-logout" id="btn-logout" aria-label="Log out">Se d&eacute;connecter</button>
+      <button class="sp-logout" id="btn-logout">Se d&eacute;connecter</button>
     </div>
 
-    <!-- TAB 2: LAYOUT -->
+    <!-- TAB 2: AFFICHAGE -->
     <div class="sp-tab-pane" id="tab-layout" role="tabpanel">
 
       <div class="sp-section">
-        <div class="sp-section-label">Taille du cadre Hero <span class="sp-slider-val" id="val-hero-scale">100%</span></div>
-        <input type="range" class="sp-slider" id="set-hero-scale" min="60" max="140" value="100" aria-label="Hero frame size"/>
-        <div class="sp-slider-label"><span>Compact</span><span>Large</span></div>
+        <div class="sp-section-label">Taille de l&rsquo;&eacute;cran principal <span class="sp-slider-val" id="val-hero-scale">100%</span></div>
+        <input type="range" class="sp-slider" id="set-hero-scale" min="60" max="140" value="100" aria-label="Taille"/>
+        <div class="sp-slider-label"><span>Compact</span><span>Grand</span></div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Mode d&rsquo;affichage</div>
+        <div class="sp-section-label">Vue</div>
         <div class="sp-option-group">
-          <button class="sp-option active" data-layout="standard">Standard</button>
+          <button class="sp-option active" data-layout="standard">Compl&egrave;te</button>
           <button class="sp-option" data-layout="minimal">Minimaliste</button>
         </div>
-        <div class="sp-layout-desc" id="layout-desc">Affichage complet avec pochette et infos de la piste.</div>
+        <div class="sp-layout-desc" id="layout-desc">Affichage complet avec pochette et informations du morceau.</div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Alignement</div>
+        <div class="sp-section-label">Position du contenu</div>
         <div class="sp-option-group">
           <button class="sp-option" data-align="left">&larr; Gauche</button>
           <button class="sp-option active" data-align="center">&middot; Centre</button>
@@ -240,253 +235,242 @@
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Lecteur</div>
+        <div class="sp-section-label">Pochette d&rsquo;album</div>
         <div class="sp-row" style="margin-bottom:0.5rem">
-          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Forme de la pochette</span>
+          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Forme</span>
         </div>
         <div class="sp-option-group" style="margin-bottom:0.875rem">
-          <button class="sp-option active" data-art-shape="22px">Arrondi</button>
+          <button class="sp-option active" data-art-shape="22px">Arrondie</button>
           <button class="sp-option" data-art-shape="50%">Cercle</button>
-          <button class="sp-option" data-art-shape="6px">Carr&eacute;</button>
+          <button class="sp-option" data-art-shape="6px">Carr&eacute;e</button>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">Aura lumineuse (Glow)</span>
-          <label class="toggle"><input type="checkbox" id="set-glow" checked aria-label="Album art glow"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Lueur autour de la pochette</span>
+          <label class="toggle"><input type="checkbox" id="set-glow" checked aria-label="Lueur"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-        <!-- [NEW] Pulsed glow premium — disabled when main glow is off -->
         <div class="sp-row" id="sp-glow-pulse-row">
-          <span class="sp-row-label">&#10024; Glow animé (Premium)</span>
-          <label class="toggle"><input type="checkbox" id="set-art-glow-pulse" aria-label="Animated pulsed glow"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#10024; Lueur pulsa&eacute;e</span>
+          <label class="toggle"><input type="checkbox" id="set-art-glow-pulse" aria-label="Lueur pulsée"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">Pochette d&rsquo;album</span>
-          <label class="toggle"><input type="checkbox" id="set-art" checked aria-label="Show album art"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Afficher la pochette</span>
+          <label class="toggle"><input type="checkbox" id="set-art" checked aria-label="Pochette"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">Animation pochette</span>
-          <label class="toggle"><input type="checkbox" id="set-album-anim" checked aria-label="Album art float animation"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Pochette flottante</span>
+          <label class="toggle"><input type="checkbox" id="set-album-anim" checked aria-label="Animation pochette"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">&Eacute;l&eacute;ments visibles</div>
+        <div class="sp-section-label">Ce qu&rsquo;on affiche</div>
         <div class="sp-row">
-          <span class="sp-row-label">Arri&egrave;re-plan (image album)</span>
-          <label class="toggle"><input type="checkbox" id="set-bg" checked aria-label="Album background image"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Image de fond (pochette flout&eacute;e)</span>
+          <label class="toggle"><input type="checkbox" id="set-bg" checked aria-label="Image de fond"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">Photo de profil artiste</span>
-          <label class="toggle"><input type="checkbox" id="set-avatar" checked aria-label="Artist avatar"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Photo de l&rsquo;artiste</span>
+          <label class="toggle"><input type="checkbox" id="set-avatar" checked aria-label="Photo artiste"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">Texte d&eacute;filant (marquee)</span>
-          <label class="toggle"><input type="checkbox" id="set-marquee" checked aria-label="Scrolling marquee text"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Texte g&eacute;ant en fond</span>
+          <label class="toggle"><input type="checkbox" id="set-marquee" checked aria-label="Texte défilant"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
           <span class="sp-row-label">Barre de progression</span>
-          <label class="toggle"><input type="checkbox" id="set-show-progress" checked aria-label="Progress bar"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <label class="toggle"><input type="checkbox" id="set-show-progress" checked aria-label="Barre de progression"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
-      <div class="sp-section">
-        <div class="sp-section-label">Raccourcis Clavier</div>
+      <div class="sp-section sp-shortcuts-section">
+        <div class="sp-section-label">Raccourcis clavier <span style="font-size:0.55rem;opacity:.4;font-weight:400">(bureau uniquement)</span></div>
         <div class="sp-shortcuts">
           <div class="sp-shortcut"><span class="sp-key">L</span><span class="sp-key-label">Paroles</span></div>
           <div class="sp-shortcut"><span class="sp-key">H</span><span class="sp-key-label">Historique</span></div>
-          <div class="sp-shortcut"><span class="sp-key">S</span><span class="sp-key-label">Param&egrave;tres</span></div>
+          <div class="sp-shortcut"><span class="sp-key">S</span><span class="sp-key-label">R&eacute;glages</span></div>
           <div class="sp-shortcut"><span class="sp-key">F</span><span class="sp-key-label">Plein &eacute;cran</span></div>
-          <div class="sp-shortcut"><span class="sp-key">M</span><span class="sp-key-label">Masquer UI</span></div>
-          <!-- [CHANGED] "Mode Zen" → "Focus Album" -->
-          <div class="sp-shortcut"><span class="sp-key">Z</span><span class="sp-key-label">Focus Album</span></div>
-          <div class="sp-shortcut"><span class="sp-key">Esc</span><span class="sp-key-label">Fermer tout</span></div>
+          <div class="sp-shortcut"><span class="sp-key">M</span><span class="sp-key-label">Masquer</span></div>
+          <div class="sp-shortcut"><span class="sp-key">Z</span><span class="sp-key-label">Focus</span></div>
+          <div class="sp-shortcut"><span class="sp-key">Esc</span><span class="sp-key-label">Fermer</span></div>
         </div>
       </div>
 
     </div>
 
-    <!-- TAB 3: VISUAL -->
+    <!-- TAB 3: APPARENCE -->
     <div class="sp-tab-pane" id="tab-visual" role="tabpanel">
 
       <div class="sp-section">
-        <div class="sp-section-label">Couleur accentu&eacute;e</div>
-        <div class="sp-swatches" id="color-swatches" role="group" aria-label="Accent color">
+        <div class="sp-section-label">Couleur principale</div>
+        <div class="sp-swatches" id="color-swatches" role="group" aria-label="Couleur principale">
           <button class="sp-swatch active" data-color="#e0245e" style="background:#e0245e" aria-label="Rose"></button>
           <button class="sp-swatch" data-color="#7c3aed" style="background:#7c3aed" aria-label="Violet"></button>
-          <button class="sp-swatch" data-color="#0891b2" style="background:#0891b2" aria-label="Cyan"></button>
+          <button class="sp-swatch" data-color="#0891b2" style="background:#0891b2" aria-label="Bleu"></button>
           <button class="sp-swatch" data-color="#059669" style="background:#059669" aria-label="Vert"></button>
-          <button class="sp-swatch" data-color="#d97706" style="background:#d97706" aria-label="Ambre"></button>
-          <button class="sp-swatch" data-color="#ec4899" style="background:#ec4899" aria-label="Pink"></button>
+          <button class="sp-swatch" data-color="#d97706" style="background:#d97706" aria-label="Orange"></button>
+          <button class="sp-swatch" data-color="#ec4899" style="background:#ec4899" aria-label="Rose clair"></button>
           <button class="sp-swatch" data-color="#ffffff" style="background:#fff" aria-label="Blanc"></button>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Effets Visuels</div>
+        <div class="sp-section-label">Effets</div>
         <div class="sp-row">
-          <span class="sp-row-label">&#127925; Mode Vinyle</span>
-          <label class="toggle"><input type="checkbox" id="set-vinyl-mode" aria-label="Vinyl mode"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127925; Mode vinyle</span>
+          <label class="toggle"><input type="checkbox" id="set-vinyl-mode" aria-label="Mode vinyle"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">&#127912; Couleur adaptative</span>
-          <label class="toggle"><input type="checkbox" id="set-color-thief" aria-label="Adaptive color from artwork"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127912; Couleurs auto (selon la pochette)</span>
+          <label class="toggle"><input type="checkbox" id="set-color-thief" aria-label="Couleurs auto"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Style de Police</div>
-        <div class="sp-option-group" style="margin-bottom:0.75rem">
+        <div class="sp-section-label">Police d&rsquo;&eacute;criture</div>
+        <div class="sp-option-group" style="margin-bottom:0.75rem;flex-wrap:wrap">
           <button class="sp-option active" data-f="default">Aura</button>
           <button class="sp-option" data-f="inter">Inter</button>
-          <button class="sp-option" data-f="modern">Modern</button>
+          <button class="sp-option" data-f="modern">Moderne</button>
           <button class="sp-option" data-f="serif">Serif</button>
           <button class="sp-option" data-f="mono">Mono</button>
         </div>
         <div class="sp-row" style="margin-top:0.5rem">
-          <span class="sp-row-label">&#127925; Style Apple Music</span>
-          <label class="toggle"><input type="checkbox" id="set-apple-mode" aria-label="Apple Music style"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127925; Style &eacute;pur&eacute;</span>
+          <label class="toggle"><input type="checkbox" id="set-apple-mode" aria-label="Style épuré"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Apparence du Fond</div>
-
+        <div class="sp-section-label">Fond</div>
         <div class="sp-row" style="margin-bottom:0.5rem">
           <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Mode</span>
         </div>
-        <div class="sp-option-group" style="margin-bottom:0.875rem">
+        <div class="sp-option-group" style="margin-bottom:0.875rem;flex-wrap:wrap">
           <button class="sp-option active" data-bg="album">Album</button>
           <button class="sp-option" data-bg="color">Couleur</button>
           <button class="sp-option" data-bg="dark">Sombre</button>
           <button class="sp-option" data-bg="titlecolor">&#127752; Titre</button>
         </div>
-
         <div class="sp-row" style="margin-bottom:0.5rem">
-          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Animation de fond</span>
+          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Mouvement du fond</span>
         </div>
         <div class="sp-option-group" style="margin-bottom:0.875rem;flex-wrap:wrap">
-          <button class="sp-option active" data-anim="none">Classique</button>
-          <button class="sp-option" data-anim="blobs">Fluid</button>
+          <button class="sp-option active" data-anim="none">Calme</button>
+          <button class="sp-option" data-anim="blobs">Bulles</button>
           <button class="sp-option" data-anim="legere">L&eacute;g&egrave;re</button>
           <button class="sp-option" data-anim="energique">&Eacute;nerg&iacute;que</button>
           <button class="sp-option" data-anim="flottante">Flottante</button>
         </div>
-
         <div class="sp-row">
-          <span class="sp-row-label">&#127754; Fond Fluid Gradient</span>
-          <label class="toggle"><input type="checkbox" id="set-fluid-gradient" aria-label="Fluid gradient background"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127754; D&eacute;grad&eacute; de couleurs</span>
+          <label class="toggle"><input type="checkbox" id="set-fluid-gradient" aria-label="Dégradé animé"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">&#10022; Grain de texture</span>
-          <label class="toggle"><input type="checkbox" id="set-grain" aria-label="Film grain texture"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#10022; Grain de film</span>
+          <label class="toggle"><input type="checkbox" id="set-grain" aria-label="Grain de film"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Flou <span class="sp-slider-val" id="val-blur">70%</span></div>
-          <input type="range" class="sp-slider" id="set-blur" min="0" max="120" value="70" aria-label="Background blur amount"/>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Flou du fond <span class="sp-slider-val" id="val-blur">70%</span></div>
+          <input type="range" class="sp-slider" id="set-blur" min="0" max="120" value="70" aria-label="Flou du fond"/>
           <div class="sp-slider-label"><span>Net</span><span>Tr&egrave;s flou</span></div>
         </div>
-
         <div style="margin-top:0.875rem">
           <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Luminosit&eacute; <span class="sp-slider-val" id="val-brightness">55%</span></div>
-          <input type="range" class="sp-slider" id="set-brightness" min="10" max="90" value="55" aria-label="Background brightness"/>
+          <input type="range" class="sp-slider" id="set-brightness" min="10" max="90" value="55" aria-label="Luminosité"/>
           <div class="sp-slider-label"><span>Sombre</span><span>Clair</span></div>
         </div>
-
         <div style="margin-top:0.875rem">
           <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Saturation <span class="sp-slider-val" id="val-saturate">47%</span></div>
-          <input type="range" class="sp-slider" id="set-saturate" min="0" max="30" value="14" aria-label="Background saturation"/>
+          <input type="range" class="sp-slider" id="set-saturate" min="0" max="30" value="14" aria-label="Saturation"/>
           <div class="sp-slider-label"><span>Gris</span><span>Vives</span></div>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Visualiseur Audio</div>
+        <div class="sp-section-label">Effets audio</div>
         <div class="sp-row">
-          <span class="sp-row-label">&#128202; &Eacute;galiseur CSS</span>
-          <label class="toggle"><input type="checkbox" id="set-eq-viz" aria-label="CSS equalizer visualizer"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#128202; Barres sonores</span>
+          <label class="toggle"><input type="checkbox" id="set-eq-viz" aria-label="Barres sonores"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">&#127752; Spectre Canvas</span>
-          <label class="toggle"><input type="checkbox" id="set-canvas-viz" aria-label="Canvas spectrum visualizer"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">&#127752; Spectre de sons</span>
+          <label class="toggle"><input type="checkbox" id="set-canvas-viz" aria-label="Spectre de sons"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row sp-fps-row" id="sp-fps-row">
-          <span class="sp-row-label">&#127919; Limite FPS</span>
-          <div class="sp-option-group sp-fps-group" role="group" aria-label="Visualizer FPS cap">
-            <button class="sp-option active" data-fps="60" aria-pressed="true">60 FPS</button>
-            <button class="sp-option" data-fps="30" aria-pressed="false">30 FPS</button>
+          <span class="sp-row-label">&#127919; Fluidit&eacute;</span>
+          <div class="sp-option-group sp-fps-group" role="group">
+            <button class="sp-option active" data-fps="60" aria-pressed="true">Haute</button>
+            <button class="sp-option" data-fps="30" aria-pressed="false">&Eacute;co</button>
           </div>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Vitesse du texte d&eacute;filant <span class="sp-slider-val" id="val-mq-speed">44%</span></div>
-        <input type="range" class="sp-slider" id="set-mq-speed" min="10" max="60" value="32" aria-label="Marquee speed"/>
+        <div class="sp-section-label">Vitesse du texte en fond <span class="sp-slider-val" id="val-mq-speed">44%</span></div>
+        <input type="range" class="sp-slider" id="set-mq-speed" min="10" max="60" value="32" aria-label="Vitesse texte fond"/>
         <div class="sp-slider-label"><span>Lent</span><span>Rapide</span></div>
       </div>
 
     </div>
 
-    <!-- TAB 4: LYRICS -->
+    <!-- TAB 4: PAROLES -->
     <div class="sp-tab-pane" id="tab-lyrics" role="tabpanel">
 
       <div class="sp-section">
-        <div class="sp-section-label">Taille de la police <span class="sp-slider-val" id="set-lyrics-size-val">100%</span></div>
-        <input type="range" class="sp-slider" id="set-lyrics-size" min="70" max="160" value="100" aria-label="Lyrics font size"/>
+        <div class="sp-section-label">Taille du texte <span class="sp-slider-val" id="set-lyrics-size-val">100%</span></div>
+        <input type="range" class="sp-slider" id="set-lyrics-size" min="70" max="160" value="100" aria-label="Taille du texte"/>
         <div class="sp-slider-label"><span>Petit</span><span>Grand</span></div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label">Police des paroles</div>
-        <div class="sp-option-group">
-          <button class="sp-option active" data-lyrics-font="serif">Serif</button>
-          <button class="sp-option" data-lyrics-font="sans">Sans-Serif</button>
-          <button class="sp-option" data-lyrics-font="mono">Monospace</button>
-          <button class="sp-option" data-lyrics-font="display">Display</button>
+        <div class="sp-section-label">Style d&rsquo;&eacute;criture</div>
+        <div class="sp-option-group" style="flex-wrap:wrap">
+          <button class="sp-option active" data-lyrics-font="serif">Classique</button>
+          <button class="sp-option" data-lyrics-font="sans">Simple</button>
+          <button class="sp-option" data-lyrics-font="mono">Machine</button>
+          <button class="sp-option" data-lyrics-font="display">Impact</button>
         </div>
       </div>
 
-      <!-- Couleurs des paroles -->
       <div class="sp-section">
-        <div class="sp-section-label">&#127912; Couleur des paroles</div>
+        <div class="sp-section-label">&#127912; Couleur du texte</div>
         <div class="sp-row">
-          <span class="sp-row-label">Couleur auto (album art)</span>
-          <label class="toggle"><input type="checkbox" id="set-lyrics-color-auto" aria-label="Auto lyrics color from album"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Couleur auto (depuis la pochette)</span>
+          <label class="toggle"><input type="checkbox" id="set-lyrics-color-auto" aria-label="Couleur auto"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div id="sp-lyrics-color-row">
           <div class="sp-row" style="margin-top:0.5rem">
-            <span class="sp-row-label" style="font-size:0.75rem">Ligne active</span>
+            <span class="sp-row-label" style="font-size:0.75rem">Ligne en cours</span>
             <input type="color" id="set-lyrics-active-color" value="#e0245e" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
           </div>
           <div class="sp-row">
-            <span class="sp-row-label" style="font-size:0.75rem">Lignes inactives</span>
+            <span class="sp-row-label" style="font-size:0.75rem">Autres lignes</span>
             <input type="color" id="set-lyrics-inactive-color" value="#ffffff" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
           </div>
         </div>
       </div>
 
-      <!-- Couleur du fond des paroles -->
       <div class="sp-section">
-        <div class="sp-section-label">&#127753; Fond du panneau</div>
+        <div class="sp-section-label">&#127753; Fond des paroles</div>
         <div class="sp-option-group" style="margin-bottom:0.875rem;flex-wrap:wrap">
           <button class="sp-option active" data-lyrics-bg="none">Aucun</button>
           <button class="sp-option" data-lyrics-bg="dark">Sombre</button>
-          <button class="sp-option" data-lyrics-bg="custom">Personnalis&eacute;</button>
-          <button class="sp-option" data-lyrics-bg="auto">&#127752; Auto</button>
+          <button class="sp-option" data-lyrics-bg="custom">Ma couleur</button>
+          <button class="sp-option" data-lyrics-bg="auto">&#127752; Pochette</button>
         </div>
         <div id="sp-lyrics-bg-color-row" class="sp-row" style="display:none">
           <span class="sp-row-label" style="font-size:0.75rem">Couleur du fond</span>
           <input type="color" id="set-lyrics-bg-color" value="#0a0a0f" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
         </div>
         <div style="margin-top:0.625rem">
-          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Opacit&eacute; <span class="sp-slider-val" id="val-lyrics-bg-opacity">40%</span></div>
-          <input type="range" class="sp-slider" id="set-lyrics-bg-opacity" min="0" max="100" value="40" aria-label="Lyrics bg opacity"/>
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Intensit&eacute; <span class="sp-slider-val" id="val-lyrics-bg-opacity">40%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-bg-opacity" min="0" max="100" value="40" aria-label="Intensité fond paroles"/>
           <div class="sp-slider-label"><span>Transparent</span><span>Opaque</span></div>
         </div>
       </div>
 
-      <!-- Animations des paroles -->
       <div class="sp-section">
-        <div class="sp-section-label">&#10024; Animation des paroles</div>
+        <div class="sp-section-label">&#10024; Animation du texte</div>
         <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.875rem">
           <button class="sp-option active" data-lyrics-anim="fade">Fondu</button>
           <button class="sp-option" data-lyrics-anim="slide">Glisse</button>
@@ -496,30 +480,28 @@
           <button class="sp-option" data-lyrics-anim="none">Aucune</button>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label">D&eacute;filement automatique</span>
-          <label class="toggle"><input type="checkbox" id="set-autoscroll" checked aria-label="Auto-scroll synced lyrics"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Suivre la ligne en cours</span>
+          <label class="toggle"><input type="checkbox" id="set-autoscroll" checked aria-label="Suivre automatiquement"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
-      <!-- Animation du titre -->
       <div class="sp-section">
-        <div class="sp-section-label">&#127925; Animation du titre</div>
+        <div class="sp-section-label">&#127925; Effet d&rsquo;entr&eacute;e du titre</div>
         <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.875rem">
           <button class="sp-option active" data-title-anim="fade-up">Monte</button>
           <button class="sp-option" data-title-anim="slide-left">Glisse</button>
           <button class="sp-option" data-title-anim="scale-in">Zoom</button>
           <button class="sp-option" data-title-anim="blur-in">Flou</button>
-          <button class="sp-option" data-title-anim="split">Split</button>
-          <button class="sp-option" data-title-anim="none">Aucune</button>
+          <button class="sp-option" data-title-anim="split">&Eacute;clatement</button>
+          <button class="sp-option" data-title-anim="none">Aucun</button>
         </div>
       </div>
 
-      <!-- Points d&eacute;coratifs (mode Titre) -->
       <div class="sp-section">
-        <div class="sp-section-label">&#11096; Points d&eacute;coratifs (mode Titre)</div>
+        <div class="sp-section-label">&#11096; Points lumineux (fond couleurs)</div>
         <div class="sp-row">
-          <span class="sp-row-label">Activer les points</span>
-          <label class="toggle"><input type="checkbox" id="set-title-dots" checked aria-label="Title decorative dots"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Afficher les points</span>
+          <label class="toggle"><input type="checkbox" id="set-title-dots" checked aria-label="Points lumineux"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
           <span class="sp-row-label" style="font-size:0.75rem">Couleur</span>
@@ -527,130 +509,107 @@
         </div>
         <div style="margin-top:0.625rem">
           <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Luminosit&eacute; <span class="sp-slider-val" id="val-dots-brightness">70%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-brightness" min="10" max="100" value="70" aria-label="Dots brightness"/>
+          <input type="range" class="sp-slider" id="set-dots-brightness" min="10" max="100" value="70"/>
           <div class="sp-slider-label"><span>Discret</span><span>Brillant</span></div>
         </div>
         <div style="margin-top:0.625rem">
           <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Taille <span class="sp-slider-val" id="val-dots-size">50%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-size" min="10" max="100" value="50" aria-label="Dots size"/>
+          <input type="range" class="sp-slider" id="set-dots-size" min="10" max="100" value="50"/>
           <div class="sp-slider-label"><span>Petits</span><span>Grands</span></div>
         </div>
         <div style="margin-top:0.625rem">
           <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Vitesse <span class="sp-slider-val" id="val-dots-speed">50%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-speed" min="10" max="100" value="50" aria-label="Dots speed"/>
+          <input type="range" class="sp-slider" id="set-dots-speed" min="10" max="100" value="50"/>
           <div class="sp-slider-label"><span>Lent</span><span>Rapide</span></div>
         </div>
         <div class="sp-option-group" style="margin-top:0.75rem;flex-wrap:wrap">
           <button class="sp-option active" data-dots-anim="orbit">Orbite</button>
-          <button class="sp-option" data-dots-anim="pulse">Pulse</button>
+          <button class="sp-option" data-dots-anim="pulse">Pulsation</button>
           <button class="sp-option" data-dots-anim="wave">Vague</button>
-          <button class="sp-option" data-dots-anim="sparkle">Sparkle</button>
+          <button class="sp-option" data-dots-anim="sparkle">&Eacute;clat</button>
         </div>
       </div>
 
-      <!-- D&eacute;calage de synchronisation -->
       <div class="sp-section">
-        <div class="sp-section-label">&#9200; D&eacute;calage de sync <span class="sp-slider-val" id="val-lyrics-offset">0ms</span></div>
-        <input type="range" class="sp-slider" id="set-lyrics-offset" min="-2000" max="2000" step="50" value="0" aria-label="Lyrics sync offset"/>
+        <div class="sp-section-label">&#9200; Timing des paroles <span class="sp-slider-val" id="val-lyrics-offset">0ms</span></div>
+        <input type="range" class="sp-slider" id="set-lyrics-offset" min="-2000" max="2000" step="50" value="0" aria-label="Timing paroles"/>
         <div class="sp-slider-label"><span>-2s</span><span>+2s</span></div>
-        <div class="sp-layout-desc">Ajustez si les paroles arrivent trop t&ocirc;t ou trop tard selon votre connexion.</div>
+        <div class="sp-layout-desc">Ajuste si les paroles s&rsquo;affichent trop t&ocirc;t ou trop tard.</div>
       </div>
 
-      <!-- Lisibilit&eacute; section -->
       <div class="sp-section">
-        <div class="sp-section-label">&#127912; Lisibilit&eacute; des Paroles</div>
-
+        <div class="sp-section-label">&#127912; Lisibilit&eacute;</div>
         <div class="sp-row">
-          <span class="sp-row-label">Texte adaptatif (fond clair/sombre)</span>
-          <label class="toggle"><input type="checkbox" id="set-lyrics-auto-color" aria-label="Adaptive lyrics text color"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Couleurs adapt&eacute;es au fond</span>
+          <label class="toggle"><input type="checkbox" id="set-lyrics-auto-color" aria-label="Couleurs adaptées"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">
-            Flou d&rsquo;arri&egrave;re-plan <span class="sp-slider-val" id="val-lyrics-blur">0%</span>
-          </div>
-          <input type="range" class="sp-slider" id="set-lyrics-blur" min="0" max="100" value="0" aria-label="Lyrics backdrop blur"/>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Flou derri&egrave;re les paroles <span class="sp-slider-val" id="val-lyrics-blur">0%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-blur" min="0" max="100" value="0" aria-label="Flou paroles"/>
           <div class="sp-slider-label"><span>Aucun</span><span>Max</span></div>
         </div>
-
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">
-            D&eacute;calage ombre <span class="sp-slider-val" id="val-shadow-offset">1px</span>
-          </div>
-          <input type="range" class="sp-slider" id="set-shadow-offset" min="0" max="8" value="1" aria-label="Shadow offset"/>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">D&eacute;calage de l&rsquo;ombre <span class="sp-slider-val" id="val-shadow-offset">1px</span></div>
+          <input type="range" class="sp-slider" id="set-shadow-offset" min="0" max="8" value="1" aria-label="Décalage ombre"/>
           <div class="sp-slider-label"><span>0px</span><span>8px</span></div>
         </div>
-
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">
-            Flou de l&rsquo;ombre <span class="sp-slider-val" id="val-shadow-blur">3px</span>
-          </div>
-          <input type="range" class="sp-slider" id="set-shadow-blur" min="0" max="24" value="3" aria-label="Shadow blur"/>
-          <div class="sp-slider-label"><span>Net</span><span>Doux</span></div>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Douceur de l&rsquo;ombre <span class="sp-slider-val" id="val-shadow-blur">3px</span></div>
+          <input type="range" class="sp-slider" id="set-shadow-blur" min="0" max="24" value="3" aria-label="Douceur ombre"/>
+          <div class="sp-slider-label"><span>Nette</span><span>Douce</span></div>
         </div>
-
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">
-            Opacit&eacute; ombre <span class="sp-slider-val" id="val-lyrics-shadow">55%</span>
-          </div>
-          <input type="range" class="sp-slider" id="set-lyrics-shadow" min="0" max="100" value="55" aria-label="Shadow opacity"/>
-          <div class="sp-slider-label"><span>Invisible</span><span>Opaque</span></div>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Intensit&eacute; de l&rsquo;ombre <span class="sp-slider-val" id="val-lyrics-shadow">55%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-shadow" min="0" max="100" value="55" aria-label="Intensité ombre"/>
+          <div class="sp-slider-label"><span>Invisible</span><span>Forte</span></div>
         </div>
       </div>
 
-      <!-- Position des paroles -->
       <div class="sp-section">
-        <div class="sp-section-label">📍 Position des paroles</div>
+        <div class="sp-section-label">&#128204; Emplacement des paroles</div>
         <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.5rem">
-          <button class="sp-option active" data-lyrics-pos="right" title="Panneau latéral droit">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:5px"><rect x="8" y="1" width="5" height="12" rx="1" opacity="0.9"/><rect x="1" y="1" width="6" height="12" rx="1" opacity="0.25"/></svg>Droite
+          <button class="sp-option active" data-lyrics-pos="right">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="8" y="1" width="5" height="12" rx="1" opacity="0.9"/><rect x="1" y="1" width="6" height="12" rx="1" opacity="0.25"/></svg>C&ocirc;t&eacute;
           </button>
-          <button class="sp-option" data-lyrics-pos="center" title="Flottant centré">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:5px"><rect x="2" y="3" width="10" height="8" rx="2" opacity="0.9"/></svg>Centré
+          <button class="sp-option" data-lyrics-pos="center">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="2" y="3" width="10" height="8" rx="2" opacity="0.9"/></svg>Centre
           </button>
-          <button class="sp-option" data-lyrics-pos="bottom" title="Bande en bas">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:5px"><rect x="1" y="8" width="12" height="5" rx="1" opacity="0.9"/><rect x="1" y="1" width="12" height="6" rx="1" opacity="0.2"/></svg>Bas
+          <button class="sp-option" data-lyrics-pos="bottom">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="1" y="8" width="12" height="5" rx="1" opacity="0.9"/><rect x="1" y="1" width="12" height="6" rx="1" opacity="0.2"/></svg>Bas
           </button>
         </div>
-        <div class="sp-layout-desc" id="lyrics-pos-desc">Panneau latéral droit, le héros se décale automatiquement.</div>
+        <div class="sp-layout-desc" id="lyrics-pos-desc">Paroles sur le c&ocirc;t&eacute; droit de l&rsquo;&eacute;cran.</div>
       </div>
 
-      <!-- Mode de Flou -->
       <div class="sp-section">
-        <div class="sp-section-label">&#127756; Mode de Flou</div>
-        <div class="sp-option-group" style="margin-bottom:0.625rem">
-          <button class="sp-option active" data-lyrics-blur-mode="standard">Standard</button>
-          <button class="sp-option" data-lyrics-blur-mode="apple">&#127822; Apple Music</button>
+        <div class="sp-section-label">&#127756; Style du panneau</div>
+        <div class="sp-option-group" style="margin-bottom:0.625rem;flex-wrap:wrap">
+          <button class="sp-option active" data-lyrics-blur-mode="standard">Discret</button>
+          <button class="sp-option" data-lyrics-blur-mode="apple">&#127822; Color&eacute;</button>
         </div>
-        <div class="sp-layout-desc" id="lyrics-mode-desc">Flou classique avec panneau semi-transparent derrière les paroles.</div>
+        <div class="sp-layout-desc" id="lyrics-mode-desc">Panneau transparent simple.</div>
       </div>
 
     </div>
+  </div><!-- /settings-panel -->
 
-  </div>
-
-  <!-- UI OVERLAY -->
+  <!-- UI OVERLAY (desktop) -->
   <div id="ui">
     <div class="top-bar">
       <div class="top-actions">
-        <button class="btn-pill" id="btn-lyrics" aria-label="Toggle lyrics panel">Lyrics</button>
-        <button class="btn-pill" id="btn-hist" aria-label="Toggle history panel">Historique</button>
-        <!-- [REMOVED] btn-lanyard-status (bouton éclair) -->
-        <button class="btn-icon" id="btn-settings" aria-label="Open settings">
+        <button class="btn-pill" id="btn-lyrics" aria-label="Paroles">Paroles</button>
+        <button class="btn-pill" id="btn-hist" aria-label="Historique">Historique</button>
+        <button class="btn-icon" id="btn-settings" aria-label="R&eacute;glages">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
         </button>
-        <button class="btn-icon" id="btn-fs" aria-label="Toggle fullscreen">
+        <button class="btn-icon" id="btn-fs" aria-label="Plein &eacute;cran">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h6v2H5v4H3V3zm12 0h6v6h-2V5h-4V3zM3 15h2v4h4v2H3v-6zm16 4h-4v2h6v-6h-2v4z"/></svg>
         </button>
-        <!-- [CHANGED] aria-label: "Toggle Focus Album mode" -->
-        <button class="btn-icon btn-zen" id="btn-zen" aria-label="Toggle Focus Album mode" aria-pressed="false">
-          <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor" aria-hidden="true">
-            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-          </svg>
+        <button class="btn-icon btn-zen" id="btn-zen" aria-label="Mode focus" aria-pressed="false">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
         </button>
       </div>
     </div>
-
     <div class="bottom-bar">
       <div id="status">
         <div id="st-dot" class="loading"></div>
@@ -658,7 +617,28 @@
       </div>
     </div>
   </div>
-</div>
+
+  <!-- NAVIGATION MOBILE -->
+  <nav id="mobile-nav" aria-label="Navigation">
+    <button class="mnav-btn" id="mnav-lyrics" aria-label="Paroles">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3c-4.97 0-9 3.19-9 7 0 2.38 1.47 4.5 3.75 5.75L6 19l3.75-1.5C10.45 17.83 11.21 18 12 18c4.97 0 9-3.19 9-7s-4.03-7-9-7zm-1 10H7v-2h4v2zm6 0h-4v-2h4v2zm0-4H7V7h10v2z"/></svg>
+      <span>Paroles</span>
+    </button>
+    <button class="mnav-btn" id="mnav-hist" aria-label="Historique">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+      <span>Historique</span>
+    </button>
+    <button class="mnav-btn" id="mnav-settings" aria-label="R&eacute;glages">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+      <span>R&eacute;glages</span>
+    </button>
+    <button class="mnav-btn mnav-btn-zen" id="mnav-focus" aria-label="Mode focus">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      <span>Focus</span>
+    </button>
+  </nav>
+
+</div><!-- /s-player -->
 
 <script src="script.js"></script>
 </body>

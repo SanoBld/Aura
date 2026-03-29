@@ -40,7 +40,7 @@ const S = {
   vinylMode: false, colorThief: false, fluidGradient: false,
   eqViz: false, canvasViz: false,
   heroScale: 100, heroLayout: 'standard', heroAlign: 'center',
-  lanyardId: '', sourcePriority: 'lanyard', vizFPS: 60,
+  lanyardId: '', sourcePriority: 'lanyard', vizFPS: 60, showExtendedStats: false,
   lyricsSize: 100, lyricsFontChoice: 'serif', lyricsAnim: true,
   albumAnim: true,
   // NEW v7
@@ -150,6 +150,9 @@ const $ = {
   btnLanyardConnect: document.getElementById('btn-lanyard-connect'),
   lanyardDot:      document.getElementById('lanyard-dot'),
   lanyardStatusText: document.getElementById('lanyard-status-text'),
+  lanyardWsBadge:  document.getElementById('lanyard-ws-badge'),
+  extendedStats:   document.getElementById('extended-stats'),
+  setExtendedStats:document.getElementById('set-extended-stats'),
   lanyardWsBadge:  document.getElementById('lanyard-ws-badge'),
   setLyricsSize:   document.getElementById('set-lyrics-size'),
   setLyricsSizeVal:document.getElementById('set-lyrics-size-val'),
@@ -504,6 +507,10 @@ function applySettings() {
 
   /* Lanyard */
   if ($.setLanyardId) $.setLanyardId.value = S.lanyardId || '';
+
+  /* Priority buttons + extended stats */
+  syncPriorityButtons();
+  if ($.setExtendedStats) $.setExtendedStats.checked = !!S.showExtendedStats;
 
   /* Hero scale */
   const scale = (S.heroScale || 100) / 100;
@@ -968,6 +975,15 @@ if ($.btnLanyardConnect) {
   });
 }
 
+/* Extended stats toggle */
+if ($.setExtendedStats) {
+  $.setExtendedStats.addEventListener('change', () => {
+    S.showExtendedStats = $.setExtendedStats.checked;
+    applyExtendedStats();
+    saveSettings();
+  });
+}
+
 /* Album context menu */
 if ($.ctxBtnLastfm) $.ctxBtnLastfm.addEventListener('click', (e) => { e.stopPropagation(); openLastFmPage(); });
 if ($.ctxBtnShare)  $.ctxBtnShare.addEventListener('click',  (e) => { e.stopPropagation(); generateShareImage(); });
@@ -1045,6 +1061,10 @@ $.btnLogout.addEventListener('click', () => {
   lanyardDisconnect();
   clearCache(); clearInterval(pollTimer); location.reload();
 });
+
+/* Mode Test */
+const btnTestMode = document.getElementById('btn-test-mode');
+if (btnTestMode) btnTestMode.addEventListener('click', toggleTestMode);
 
 /* ============================================================
    IDLE / UI FADE
@@ -1218,34 +1238,89 @@ let lanyardTimestampStart = 0, lanyardTimestampEnd = 0, lanyardCurrentDiscordId 
 
 function lanyardConnect(discordId) {
   if (!discordId) return;
+
+  /* ── Validation : un ID Discord est un entier de 17-19 chiffres ── */
+  if (!/^\d{17,19}$/.test(discordId)) {
+    console.warn('[Lanyard] ID Discord invalide :', discordId);
+    setLanyardStatus('error', 'ID invalide — 17 à 19 chiffres attendus');
+    if ($.btnLanyardConnect) {
+      $.btnLanyardConnect.textContent = 'Connecter';
+      $.btnLanyardConnect.classList.remove('connected');
+    }
+    return;
+  }
+
+  console.log('[Lanyard] Connexion avec l\'ID :', discordId);
   lanyardCurrentDiscordId = discordId;
   lanyardDisconnect();
-  setLanyardStatus('connecting', 'Connexion…');
-  try { lanyardWs = new WebSocket('wss://api.lanyard.rest/socket'); }
-  catch { setLanyardStatus('error', 'WebSocket non supporté'); return; }
+  setLanyardStatus('connecting', 'Connexion en cours…');
 
-  lanyardWs.onopen = () => {};
+  try { lanyardWs = new WebSocket('wss://api.lanyard.rest/socket'); }
+  catch (err) {
+    console.error('[Lanyard] WebSocket non supporté :', err);
+    setLanyardStatus('error', 'WebSocket non supporté par ce navigateur');
+    return;
+  }
+
+  /* Timeout de connexion : si rien au bout de 8s → erreur */
+  const connectTimeout = setTimeout(() => {
+    if (lanyardWs && lanyardWs.readyState !== WebSocket.OPEN) {
+      console.warn('[Lanyard] Timeout — aucune réponse de lanyard.rest');
+      setLanyardStatus('error', 'Délai dépassé — réessaye dans quelques secondes');
+      lanyardWs.close();
+    }
+  }, 8000);
+
+  lanyardWs.onopen = () => {
+    console.log('[Lanyard] WebSocket ouvert');
+    clearTimeout(connectTimeout);
+  };
+
   lanyardWs.onmessage = (ev) => {
     try {
       const msg = JSON.parse(ev.data);
+      console.log('[Lanyard] Message reçu — op:', msg.op, '/ t:', msg.t || '—');
+
       if (msg.op === 1) {
+        /* Hello — démarrer le heartbeat puis s'abonner */
+        console.log('[Lanyard] Hello reçu, heartbeat:', msg.d.heartbeat_interval, 'ms');
         lanyardHbInterval = setInterval(() => {
-          if (lanyardWs?.readyState === WebSocket.OPEN) lanyardWs.send(JSON.stringify({ op: 3 }));
+          if (lanyardWs?.readyState === WebSocket.OPEN) {
+            lanyardWs.send(JSON.stringify({ op: 3 }));
+            console.log('[Lanyard] Heartbeat envoyé');
+          }
         }, msg.d.heartbeat_interval);
         lanyardWs.send(JSON.stringify({ op: 2, d: { subscribe_to_id: discordId } }));
+        console.log('[Lanyard] Abonnement envoyé pour l\'ID :', discordId);
         if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'inline-block';
+
       } else if (msg.op === 0 && (msg.t === 'INIT_STATE' || msg.t === 'PRESENCE_UPDATE')) {
+        console.log('[Lanyard] Présence reçue (', msg.t, ')');
+        console.log('[Lanyard] spotify :', msg.d?.spotify || null);
+        console.log('[Lanyard] activities :', msg.d?.activities?.length ?? 0, 'activité(s)');
         lanyardHandlePresence(msg.d);
       }
-    } catch {}
+    } catch (err) {
+      console.error('[Lanyard] Erreur de parsing du message :', err);
+    }
   };
-  lanyardWs.onerror  = () => { setLanyardStatus('error', 'Erreur'); if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none'; };
-  lanyardWs.onclose  = () => {
+
+  lanyardWs.onerror = (err) => {
+    console.error('[Lanyard] Erreur WebSocket :', err);
+    clearTimeout(connectTimeout);
+    setLanyardStatus('error', 'Connexion échouée — vérifie ton réseau');
+    if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
+  };
+
+  lanyardWs.onclose = (ev) => {
+    console.log('[Lanyard] WebSocket fermé — code:', ev.code, '/ raison:', ev.reason || 'inconnue');
+    clearTimeout(connectTimeout);
     lanyardActive = false; lanyardSpotifyData = null;
     if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
     if (lanyardHbInterval) { clearInterval(lanyardHbInterval); lanyardHbInterval = null; }
     if (lanyardCurrentDiscordId) {
-      setLanyardStatus('connecting', 'Reconnexion…');
+      setLanyardStatus('connecting', 'Reconnexion dans 5s…');
+      console.log('[Lanyard] Tentative de reconnexion dans 5s…');
       lanyardReconnectTimer = setTimeout(() => lanyardConnect(lanyardCurrentDiscordId), 5000);
     }
   };
@@ -1258,28 +1333,121 @@ function lanyardDisconnect() {
   if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
   setLanyardStatus('off', 'Désactivé — entrez un ID pour activer');
 }
+/* ============================================================
+   DISCORD IMAGE URL — résout toutes les variantes de large_image
+   ============================================================ */
+/**
+ * getDiscordImageUrl(activity)
+ * Prend une activité Discord brute et retourne l'URL de l'image associée.
+ *   · spotify:{id}      → https://i.scdn.co/image/{id}
+ *   · mp:external/...   → https://media.discordapp.net/external/...
+ *   · {asset_id}        → https://cdn.discordapp.com/app-assets/{appId}/{asset_id}.png
+ * Retourne null si aucune image n'est trouvée, ce qui déclenche le fallback.
+ */
+function getDiscordImageUrl(activity) {
+  const img = activity?.assets?.large_image;
+  if (!img) return null;
+
+  if (img.startsWith('spotify:')) {
+    // Pochette Spotify native
+    return `https://i.scdn.co/image/${img.replace('spotify:', '')}`;
+  }
+
+  if (img.startsWith('mp:external/')) {
+    // Proxy média externe Discord
+    return `https://media.discordapp.net/external/${img.replace('mp:external/', '')}`;
+  }
+
+  // Asset d'application Discord standard
+  const appId = activity.application_id;
+  if (appId) return `https://cdn.discordapp.com/app-assets/${appId}/${img}.png`;
+
+  return null;
+}
+
+/* ============================================================
+   STATISTIQUES ÉTENDUES — playcount artiste + album via Last.fm
+   ============================================================ */
+async function fetchExtendedStats(artist, albumTitle) {
+  if (!S.showExtendedStats || !$.extendedStats) return;
+  if (!apiKey || !artist) { $.extendedStats.textContent = ''; return; }
+
+  try {
+    const [artRes, albRes] = await Promise.all([
+      fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getInfo&artist=${encodeURIComponent(artist)}&api_key=${apiKey}&format=json`).then(r => r.json()),
+      albumTitle
+        ? fetch(`https://ws.audioscrobbler.com/2.0/?method=album.getInfo&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(albumTitle)}&api_key=${apiKey}&format=json`).then(r => r.json())
+        : Promise.resolve(null),
+    ]);
+
+    const parts = [];
+    const artPlays = parseInt(artRes?.artist?.stats?.playcount || '0');
+    if (artPlays > 0) parts.push(`${artPlays.toLocaleString('fr-FR')} écoutes · artiste`);
+
+    const albPlays = parseInt(albRes?.album?.playcount || '0');
+    if (albPlays > 0) parts.push(`${albPlays.toLocaleString('fr-FR')} · album`);
+
+    $.extendedStats.textContent = parts.length ? parts.join('   ·   ') : '';
+  } catch {
+    $.extendedStats.textContent = '';
+  }
+}
+
+function applyExtendedStats() {
+  if ($.extendedStats) {
+    $.extendedStats.classList.toggle('on', S.showExtendedStats);
+    if (!S.showExtendedStats) $.extendedStats.textContent = '';
+    else if (currentTrack) {
+      const artist = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
+      const album  = currentTrack.album?.['#text'] || '';
+      fetchExtendedStats(artist, album);
+    }
+  }
+}
+
+function syncPriorityButtons() {
+  document.querySelectorAll('[data-priority]').forEach(btn => {
+    const active = btn.dataset.priority === S.sourcePriority;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  /* Mettre à jour le texte de description */
+  const descEl = document.getElementById('priority-desc');
+  if (descEl) {
+    descEl.textContent = S.sourcePriority === 'lastfm'
+      ? 'Le statut Discord est ignoré. AURA se base uniquement sur tes scrobbles Last.fm.'
+      : 'Si tu es connecté via Discord, ta musique Spotify s\'affiche en temps réel. Sinon, AURA utilise Last.fm automatiquement.';
+  }
+}
+
 function lanyardHandlePresence(data) {
   let spotifyData = null, trackPaused = false;
+
   if (data.spotify?.song) {
+    /* Données Spotify natives via Lanyard */
     spotifyData = data.spotify;
-    if (!data.spotify.timestamps?.start) trackPaused = true;
+    trackPaused = !data.spotify.timestamps?.start;
+    console.log('[Lanyard] Spotify natif détecté :', spotifyData.song, '—', spotifyData.artist);
+    console.log('[Lanyard] Pochette :', spotifyData.album_art_url || '(absente)');
+    console.log('[Lanyard] En pause :', trackPaused);
   } else {
+    /* Fallback : activité musicale Discord (type 2) */
     const musicActivity = (data.activities || []).find(a => a.type === 2);
     if (musicActivity) {
+      console.log('[Lanyard] Activité musicale Discord :', musicActivity.name);
       spotifyData = {
-        song: musicActivity.details || musicActivity.name || '',
-        artist: musicActivity.state || '',
-        album: musicActivity.assets?.large_text || '',
-        album_art_url: musicActivity.assets?.large_image
-          ? (musicActivity.assets.large_image.startsWith('spotify:')
-              ? `https://i.scdn.co/image/${musicActivity.assets.large_image.replace('spotify:', '')}`
-              : `https://media.discordapp.net/assets/${musicActivity.application_id}/${musicActivity.assets.large_image}`)
-          : null,
+        song:          musicActivity.details || musicActivity.name || '',
+        artist:        musicActivity.state   || '',
+        album:         musicActivity.assets?.large_text || '',
+        album_art_url: getDiscordImageUrl(musicActivity),
         timestamps: musicActivity.timestamps || null,
       };
       trackPaused = !musicActivity.timestamps?.start;
+    } else {
+      console.log('[Lanyard] Aucune musique. Activités :', (data.activities || []).map(a => `type:${a.type} — ${a.name}`));
     }
   }
+
   if (spotifyData) {
     lanyardActive = true; lanyardSpotifyData = spotifyData;
     lanyardTimestampStart = spotifyData.timestamps?.start || 0;
@@ -1287,12 +1455,12 @@ function lanyardHandlePresence(data) {
     const durationMs = (lanyardTimestampEnd && lanyardTimestampStart) ? lanyardTimestampEnd - lanyardTimestampStart : 0;
     setLanyardStatus('connected', `${trackPaused ? '⏸' : '🎵'} ${spotifyData.song}`);
     const syntheticTrack = {
-      name: spotifyData.song,
-      artist: { name: spotifyData.artist, '#text': spotifyData.artist },
-      album: { '#text': spotifyData.album || '' },
+      name:        spotifyData.song,
+      artist:      { name: spotifyData.artist, '#text': spotifyData.artist },
+      album:       { '#text': spotifyData.album || '' },
       albumArtUrl: spotifyData.album_art_url || '',
-      image: spotifyData.album_art_url ? [{ '#text': spotifyData.album_art_url, size: 'extralarge' }] : [],
-      duration: durationMs > 0 ? Math.floor(durationMs / 1000) * 1000 : 0,
+      image:       spotifyData.album_art_url ? [{ '#text': spotifyData.album_art_url, size: 'extralarge' }] : [],
+      duration:    durationMs > 0 ? Math.floor(durationMs / 1000) * 1000 : 0,
       _fromLanyard: true, _timestampStart: lanyardTimestampStart, _isPaused: trackPaused,
     };
     if (S.sourcePriority !== 'lastfm') { handleTrack(syntheticTrack, true); setPausedState(trackPaused); }
@@ -1311,7 +1479,95 @@ function setLanyardStatus(state, text) {
   else if (state === 'connected')  dot.classList.add('connected');
   else if (state === 'no-music')   dot.classList.add('no-music');
   else if (state === 'error')      dot.classList.add('error');
+  else if (state === 'test')       dot.classList.add('test');
   if (txtEl) txtEl.textContent = text;
+}
+
+/* ============================================================
+   MODE TEST — simule une écoute sans Spotify ni Last.fm
+   Pochette : Unsplash random (seed change à chaque activation)
+   Durée simulée : 3 minutes 30
+   ============================================================ */
+let testModeActive = false;
+let testModeInterval = null;
+
+/* Pool de morceaux de démo, changent à chaque activation */
+const TEST_TRACKS = [
+  { title: 'Musique de démonstration', artist: 'Aura Test', album: 'Demo Album', seed: 'music' },
+  { title: 'Neon Reverie',             artist: 'Aura Test', album: 'Neon Sessions', seed: 'neon' },
+  { title: 'Midnight Gradient',        artist: 'Aura Test', album: 'Visual Sounds', seed: 'night' },
+  { title: 'Frequencies',             artist: 'Aura Test', album: 'Spectrum', seed: 'abstract' },
+];
+let testTrackIndex = 0;
+
+function toggleTestMode() {
+  const btn = document.getElementById('btn-test-mode');
+
+  if (testModeActive) {
+    /* ── Désactivation ── */
+    testModeActive = false;
+    clearInterval(testModeInterval); testModeInterval = null;
+    console.log('[Mode Test] Désactivé');
+
+    setLanyardStatus('off', 'Désactivé — entre un identifiant pour activer');
+    if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
+    if (btn) { btn.textContent = '▶ Activer le Mode Test'; btn.classList.remove('test-active'); }
+
+    /* Remettre la source normale */
+    handleTrack(null);
+    document.body.classList.remove('is-playing', 'is-paused');
+    return;
+  }
+
+  /* ── Activation ── */
+  testModeActive = true;
+  testTrackIndex = (testTrackIndex + 1) % TEST_TRACKS.length;
+  const t = TEST_TRACKS[testTrackIndex];
+  console.log('[Mode Test] Activé — morceau :', t.title);
+
+  /* Pochette Unsplash random avec seed fixe pour la session */
+  const artUrl = `https://picsum.photos/seed/${t.seed}${Date.now() % 100}/600/600`;
+
+  const fakeTrack = {
+    name:        t.title,
+    artist:      { name: t.artist, '#text': t.artist },
+    album:       { '#text': t.album },
+    albumArtUrl: artUrl,
+    image:       [{ '#text': artUrl, size: 'extralarge' }],
+    duration:    210000, /* 3 min 30 */
+    _fromLanyard: false,
+    _isTest:     true,
+  };
+
+  setLanyardStatus('test', '🧪 Mode Test actif');
+  if ($.lanyardWsBadge) {
+    $.lanyardWsBadge.textContent = 'TEST';
+    $.lanyardWsBadge.style.display = 'inline-block';
+  }
+  if (btn) { btn.textContent = '⏹ Arrêter le Mode Test'; btn.classList.add('test-active'); }
+
+  /* Afficher le morceau de démo */
+  handleTrack(fakeTrack, false);
+  setPausedState(false);
+
+  /* Simuler la progression : boucle toutes les 3m30 */
+  clearInterval(testModeInterval);
+  testModeInterval = setInterval(() => {
+    if (!testModeActive) { clearInterval(testModeInterval); return; }
+    testTrackIndex = (testTrackIndex + 1) % TEST_TRACKS.length;
+    const next = TEST_TRACKS[testTrackIndex];
+    const nextArt = `https://picsum.photos/seed/${next.seed}${Date.now() % 100}/600/600`;
+    handleTrack({
+      name:        next.title,
+      artist:      { name: next.artist, '#text': next.artist },
+      album:       { '#text': next.album },
+      albumArtUrl: nextArt,
+      image:       [{ '#text': nextArt, size: 'extralarge' }],
+      duration:    210000,
+      _fromLanyard: false, _isTest: true,
+    }, false);
+    console.log('[Mode Test] Morceau suivant :', next.title);
+  }, 210000);
 }
 
 /* ---- PAUSE STATE ---- */
@@ -1386,6 +1642,7 @@ function handleTrack(track, fromLanyard = false) {
     isPaused = false; trackStartTime = 0; trackPausedAt = 0;
     currentTrack = null; currentTrackId = '';
     if (!S.canvasViz) stopCanvasViz();
+    if ($.extendedStats) $.extendedStats.textContent = '';
     return;
   }
 
@@ -1439,6 +1696,10 @@ function handleTrack(track, fromLanyard = false) {
   swapArt(imgUrl, artist, title);
   updateArtistAvatar(artist);
   if (lyricsOpen) loadLyrics(artist, title);
+
+  /* Extended stats — fetch en arrière-plan */
+  const album = track.album?.['#text'] || '';
+  fetchExtendedStats(artist, album);
 }
 
 /* ---- COLOR THIEF ---- */
@@ -1612,13 +1873,29 @@ function swapArt(url, artist, title) {
   const grad = fallbackGradient(artist), letter = fallbackLetter(title);
 
   if (!url) {
-    fbBack.style.background = grad; fbBack.textContent = letter; fbBack.style.opacity = '1';
-    fbFront.style.opacity = '0'; back.style.opacity = '0'; front.style.opacity = '0';
-    artSlot = artSlot==='a' ? 'b' : 'a';
-    updateBg(null, grad); $.artGlow.style.background = grad; $.artGlow.style.backgroundImage = 'none';
-    if (S.fluidGradient) triggerColorThief();
-    // Update lyrics colors even when no art
-    setTimeout(() => { applyLyricsColors(); applyLyricsAmBg(); }, 100);
+    /* Fallback : image par défaut si aucune pochette n'est trouvée */
+    const fallbackUrl = 'assets/default-cover.jpg';
+    back.crossOrigin = 'anonymous';
+    back.onerror = () => {
+      /* Si l'image de fallback elle-même est absente, on utilise le dégradé */
+      fbBack.style.background = grad; fbBack.textContent = letter; fbBack.style.opacity = '1';
+      fbFront.style.opacity = '0'; back.style.opacity = '0'; front.style.opacity = '0';
+      artSlot = artSlot==='a' ? 'b' : 'a';
+      updateBg(null, grad); $.artGlow.style.background = grad; $.artGlow.style.backgroundImage = 'none';
+      if (S.fluidGradient) triggerColorThief();
+      setTimeout(() => { applyLyricsColors(); applyLyricsAmBg(); }, 100);
+    };
+    back.onload = () => {
+      fbBack.style.opacity = '0'; back.style.opacity = '1';
+      front.style.opacity = '0'; fbFront.style.opacity = '0';
+      artSlot = artSlot==='a' ? 'b' : 'a';
+      updateBg(fallbackUrl, null);
+      $.artGlow.style.backgroundImage = `url('${fallbackUrl}')`;
+      $.artGlow.style.background = 'transparent';
+      setTimeout(() => { triggerColorThief(); applyLyricsColors(); applyLyricsAmBg(); }, 200);
+    };
+    back.src = fallbackUrl;
+    if (back.complete && back.naturalWidth) back.onload();
     return;
   }
   back.crossOrigin = 'anonymous';

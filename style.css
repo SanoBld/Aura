@@ -51,8 +51,8 @@
 
   /* [v8] Lyrics colors */
   --lyrics-active-color:   #e0245e;
-  --lyrics-inactive-color: rgba(255,255,255,0.28);
-  --lyrics-near-color:     rgba(255,255,255,0.55);
+  --lyrics-inactive-color: rgba(255,255,255,0.42);
+  --lyrics-near-color:     rgba(255,255,255,0.72);
   --lyrics-custom-bg:      transparent;
 
   /* [v8] Decorative dots */
@@ -117,6 +117,7 @@ svg[aria-hidden="true"] { pointer-events: none; }
   position: absolute; width: 80vw; height: 80vw; border-radius: 50%;
   mix-blend-mode: screen;
   animation: moveOrb 25s infinite alternate ease-in-out;
+  will-change: transform;
 }
 @keyframes moveOrb {
   0%   { transform: translate(-30%, -30%) scale(1); }
@@ -724,13 +725,65 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 }
 #lyrics-panel.on { transform: translateX(0); opacity: 1; pointer-events: all; }
 
-/* [NEW] Standard blur mode — frosted glass behind the lyrics panel */
+/* ─────────────────────────────────────────────────────────────────────────
+   LYRICS POSITION MODES
+   Default = right (panel slides from right, hero shifts left)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* CENTER — floating panel centered over hero */
+body.lyrics-pos-center #lyrics-panel {
+  right: auto; top: 50%; bottom: auto;
+  left: 50%;
+  width: min(62vw, 640px);
+  max-height: 80vh;
+  padding: 2.5rem 3rem;
+  border-radius: 28px;
+  transform: translateX(-50%) translateY(calc(-50% + 24px)) scale(0.94);
+  opacity: 0;
+  background: rgba(0,0,0,0.35) !important;
+  backdrop-filter: blur(48px) saturate(1.8);
+  -webkit-backdrop-filter: blur(48px) saturate(1.8);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.55);
+}
+body.lyrics-pos-center #lyrics-panel.on {
+  transform: translateX(-50%) translateY(-50%) scale(1);
+  opacity: 1;
+}
+/* Center mode: hero never shifts */
+body.lyrics-pos-center #hero.shifted { transform: none !important; }
+
+/* BOTTOM — horizontal strip at the bottom */
+body.lyrics-pos-bottom #lyrics-panel {
+  right: 0; left: 0; bottom: 0; top: auto;
+  width: 100%; height: 38vh;
+  padding: 1.5rem clamp(2rem, 8vw, 8rem) 2rem;
+  justify-content: flex-start;
+  transform: translateY(104%);
+  opacity: 0;
+  background: rgba(0,0,0,0.4) !important;
+  backdrop-filter: blur(40px) saturate(1.6);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  border-radius: 0;
+}
+body.lyrics-pos-bottom #lyrics-panel.on {
+  transform: translateY(0);
+  opacity: 1;
+}
+/* Bottom mode: hero never shifts sideways */
+body.lyrics-pos-bottom #hero.shifted { transform: none !important; }
+/* Fade mask direction flipped for bottom strip */
+body.lyrics-pos-bottom .lrc-fade-mask {
+  mask-image: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
+}
+body.lyrics-pos-bottom .lp-body { max-height: 30vh; }
+body.lyrics-pos-bottom #lrc-container { padding: 12vh 0.5rem 16vh; }
+
+/* Standard blur — saturate intentionally omitted; JS applies inline only when blur > 0 */
 #lyrics-panel.lyrics-blur-standard {
-  backdrop-filter: blur(var(--lyrics-backdrop-blur)) saturate(1.6);
-  -webkit-backdrop-filter: blur(var(--lyrics-backdrop-blur)) saturate(1.6);
-  background: rgba(0,0,0,0.12);
-  border-left: 1px solid rgba(255,255,255,0.06);
-  border-radius: 20px 0 0 20px;
+  background: transparent;
 }
 
 /* [v8] Lyrics panel background modes */
@@ -739,12 +792,9 @@ body.mode-apple #track-artist { font-family: 'Inter', sans-serif !important; fon
 #lyrics-panel.lbg-custom { background: var(--lyrics-custom-bg) !important; }
 #lyrics-panel.lbg-auto   { background: var(--lyrics-custom-bg) !important; }
 
-/* [NEW] Apple Music blur mode — animated vibrant gradient layer */
+/* Apple Music blur — saturate omitted; JS applies inline only when blur > 0 */
 #lyrics-panel.lyrics-blur-apple {
-  backdrop-filter: blur(calc(var(--lyrics-backdrop-blur) * 1.4)) saturate(2);
-  -webkit-backdrop-filter: blur(calc(var(--lyrics-backdrop-blur) * 1.4)) saturate(2);
-  background: rgba(0,0,0,0.08);
-  border-radius: 20px 0 0 20px;
+  background: transparent;
 }
 
 #lyrics-panel.lyrics-blur-apple::before {
@@ -1368,14 +1418,26 @@ body.zen-mode .album-wrapper {
    TITLE COLOR BG — animated dominant-color orbs (z 2)
    Mode "Titre" : 4 orbs couleurs dominantes de la pochette qui bougent
 ═══════════════════════════════════════════════════════════════════════════ */
+
+/* @property registrations — required for interpolating custom properties in @keyframes */
+@property --tcbg-x0 { syntax: '<percentage>'; inherits: false; initial-value: 15%; }
+@property --tcbg-y0 { syntax: '<percentage>'; inherits: false; initial-value: 25%; }
+@property --tcbg-x1 { syntax: '<percentage>'; inherits: false; initial-value: 82%; }
+@property --tcbg-y1 { syntax: '<percentage>'; inherits: false; initial-value: 72%; }
+@property --tcbg-x2 { syntax: '<percentage>'; inherits: false; initial-value: 75%; }
+@property --tcbg-y2 { syntax: '<percentage>'; inherits: false; initial-value: 18%; }
+@property --tcbg-x3 { syntax: '<percentage>'; inherits: false; initial-value: 22%; }
+@property --tcbg-y3 { syntax: '<percentage>'; inherits: false; initial-value: 80%; }
+
 #title-color-bg {
   position: absolute; inset: -120px; z-index: 2;
   opacity: 0; pointer-events: none;
   filter: blur(90px) saturate(2.2) brightness(1.2);
-  transition: opacity 2.5s var(--ease);
-  will-change: transform, opacity, background;
+  transform: scale(1.18);
+  transition: opacity 2.2s var(--ease), transform 2.4s var(--spring);
+  will-change: transform, opacity;
 }
-#title-color-bg.on { opacity: 0.82; }
+#title-color-bg.on { opacity: 0.82; transform: scale(1); }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════

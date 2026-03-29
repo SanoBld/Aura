@@ -48,6 +48,7 @@ const S = {
   lyricsShadowOpacity: 55,  // 0-100 → text shadow opacity %
   lyricsAutoColor: false,   // auto detect text color from album art
   lyricsBlurMode: 'standard', // 'standard' | 'apple'
+  lyricsPosition: 'right',    // 'right' | 'center' | 'bottom'
   animatedGlow: false,      // pulsed glow on album art
   lyricsOffset: 0,          // user-adjustable LRC sync offset in ms (-2000 to +2000)
   titleColorBg: false,      // animated dominant-color orbs from album art
@@ -614,11 +615,32 @@ function applyLyricsSettings() {
   /* Animation legacy compat */
   document.body.classList.toggle('lyrics-anim-off', la === 'none');
 
-  /* Backdrop blur */
+  /* Backdrop blur — applied inline on the element so blur:0 is truly invisible */
   const blurPx = Math.round((S.lyricsBackdropBlur / 100) * 60);
   document.documentElement.style.setProperty('--lyrics-backdrop-blur', blurPx + 'px');
   const bgOpacity = S.lyricsBackdropBlur > 5 ? (0.05 + (S.lyricsBackdropBlur / 100) * 0.35).toFixed(2) : '0';
   document.documentElement.style.setProperty('--lyrics-bg-opacity', bgOpacity);
+
+  /* KEY FIX: backdrop-filter with saturate() creates a visible box even at 0px blur.
+     Override inline: none at 0%, proper value when > 0. Position modes (center/bottom)
+     manage their own backdrop-filter via CSS, so only override for right mode. */
+  const lp = $.lyricsPanel;
+  if (lp && (S.lyricsPosition || 'right') === 'right') {
+    const bm = S.lyricsBlurMode || 'standard';
+    if (blurPx === 0) {
+      lp.style.backdropFilter = 'none';
+      lp.style.webkitBackdropFilter = 'none';
+    } else {
+      const sat = bm === 'apple' ? 2 : 1.6;
+      const actualBlur = bm === 'apple' ? Math.round(blurPx * 1.4) : blurPx;
+      lp.style.backdropFilter = `blur(${actualBlur}px) saturate(${sat})`;
+      lp.style.webkitBackdropFilter = `blur(${actualBlur}px) saturate(${sat})`;
+    }
+  } else if (lp && (S.lyricsPosition || 'right') !== 'right') {
+    /* center/bottom: CSS handles their own backdrop-filter, clear inline override */
+    lp.style.backdropFilter = '';
+    lp.style.webkitBackdropFilter = '';
+  }
 
   if ($.setLyricsBlur) { $.setLyricsBlur.value = S.lyricsBackdropBlur; updateSliderFill($.setLyricsBlur); }
   if ($.valLyricsBlur) $.valLyricsBlur.textContent = pctLabel(S.lyricsBackdropBlur, 0, 100);
@@ -662,6 +684,24 @@ function applyLyricsSettings() {
     lp2.classList.remove('lyrics-blur-standard', 'lyrics-blur-apple');
     lp2.classList.add('lyrics-blur-' + bm);
   }
+
+  /* Position mode — apply body class + sync buttons */
+  const pos = S.lyricsPosition || 'right';
+  document.body.classList.remove('lyrics-pos-right', 'lyrics-pos-center', 'lyrics-pos-bottom');
+  if (pos !== 'right') document.body.classList.add('lyrics-pos-' + pos);
+  document.querySelectorAll('[data-lyrics-pos]').forEach(b =>
+    b.classList.toggle('active', b.dataset.lyricsPos === pos)
+  );
+  const posDesc = document.getElementById('lyrics-pos-desc');
+  if (posDesc) {
+    const descs = {
+      right:  'Panneau latéral droit, le héros se décale automatiquement.',
+      center: 'Panneau flottant centré avec fond flouté, sans décalage du héros.',
+      bottom: 'Bande horizontale en bas de l\'écran, pleine largeur.',
+    };
+    posDesc.textContent = descs[pos] || descs.right;
+  }
+
   applyLyricsAmBg();
   applyLyricsBg();
 
@@ -731,12 +771,6 @@ if ($.setLyricsSize) $.setLyricsSize.addEventListener('input', () => {
   S.lyricsSize = parseInt($.setLyricsSize.value);
   applyLyricsSettings(); saveSettings();
 });
-/* Lyrics animation */
-if ($.setLyricsAnim) $.setLyricsAnim.addEventListener('change', () => {
-  S.lyricsAnim = $.setLyricsAnim.checked;
-  applyLyricsSettings(); saveSettings();
-});
-
 /* NEW: Lyrics backdrop blur */
 if ($.setLyricsBlur) $.setLyricsBlur.addEventListener('input', () => {
   S.lyricsBackdropBlur = parseInt($.setLyricsBlur.value);
@@ -770,6 +804,16 @@ if ($.setLyricsOffset) $.setLyricsOffset.addEventListener('input', () => {
 /* NEW: Lyrics blur mode buttons — data-lyrics-blur-mode */
 document.querySelectorAll('[data-lyrics-blur-mode]').forEach(b => b.addEventListener('click', () => {
   S.lyricsBlurMode = b.dataset.lyricsBlurMode;
+  applyLyricsSettings(); saveSettings();
+}));
+/* NEW: Lyrics position buttons — data-lyrics-pos */
+document.querySelectorAll('[data-lyrics-pos]').forEach(b => b.addEventListener('click', () => {
+  S.lyricsPosition = b.dataset.lyricsPos;
+  /* Re-evaluate hero shift if lyrics panel is currently open */
+  if (lyricsOpen) {
+    if (S.lyricsPosition === 'right') $.hero.classList.add('shifted');
+    else $.hero.classList.remove('shifted');
+  }
   applyLyricsSettings(); saveSettings();
 }));
 
@@ -1506,6 +1550,14 @@ function startTitleColorBg(colors) {
 
   const toRgb = c => `${c.r},${c.g},${c.b}`;
   el.textContent = `
+    @property --tcbg-x0 { syntax: '<percentage>'; inherits: false; initial-value: 15%; }
+    @property --tcbg-y0 { syntax: '<percentage>'; inherits: false; initial-value: 25%; }
+    @property --tcbg-x1 { syntax: '<percentage>'; inherits: false; initial-value: 82%; }
+    @property --tcbg-y1 { syntax: '<percentage>'; inherits: false; initial-value: 72%; }
+    @property --tcbg-x2 { syntax: '<percentage>'; inherits: false; initial-value: 75%; }
+    @property --tcbg-y2 { syntax: '<percentage>'; inherits: false; initial-value: 18%; }
+    @property --tcbg-x3 { syntax: '<percentage>'; inherits: false; initial-value: 22%; }
+    @property --tcbg-y3 { syntax: '<percentage>'; inherits: false; initial-value: 80%; }
     #title-color-bg {
       background:
         radial-gradient(ellipse 65% 55% at var(--tcbg-x0,15%) var(--tcbg-y0,25%), rgba(${toRgb(c0)},0.72) 0%, transparent 65%),
@@ -1889,7 +1941,9 @@ $.btnLyrics.addEventListener('click', () => {
   const opening = !lyricsOpen;
   closeAllPanels();
   if (opening) {
-    lyricsOpen=true; $.lyricsPanel.classList.add('on'); $.btnLyrics.classList.add('active'); $.hero.classList.add('shifted');
+    lyricsOpen=true; $.lyricsPanel.classList.add('on'); $.btnLyrics.classList.add('active');
+    /* Only shift hero in right-panel mode; center/bottom modes don't need it */
+    if ((S.lyricsPosition || 'right') === 'right') $.hero.classList.add('shifted');
     if (currentTrack) loadLyrics(currentTrack.artist?.name||currentTrack.artist?.['#text']||'', currentTrack.name||'');
     else { $.lrcContainer.innerHTML = "<span class='lp-empty'>En attente d'un titre…</span>"; setLPBadge(''); }
   }

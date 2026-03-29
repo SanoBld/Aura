@@ -362,15 +362,7 @@ body.hero-minimal #progress-container {
   margin-top: 0.75rem;
 }
 
-body.source-lanyard #track-content::after {
-  content: '';
-  position: absolute; inset: -3px;
-  border-radius: calc(var(--art-radius) + 6px);
-  background: transparent;
-  box-shadow: 0 0 0 1px rgba(29,185,84,.18), 0 0 40px rgba(29,185,84,.06);
-  pointer-events: none; z-index: -1;
-  opacity: 1; transition: opacity 1s var(--ease);
-}
+/* contour Lanyard supprimé */
 
 
 /* ── WAITING STATE ──────────────────────────────────────────────────────── */
@@ -620,6 +612,42 @@ body.zen-mode .album-ctx-menu { opacity: 0 !important; pointer-events: none !imp
 }
 body.show-progress #progress-container { display: block; }
 
+
+/* ── SUB-STATS (plays sous le titre) ──────────────────────────────────── */
+#sub-stats {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  margin-top: 0.55rem;
+  font-size: clamp(0.6875rem, 1.1vw, 0.8125rem);
+  font-family: 'Instrument Sans', sans-serif; font-weight: 500;
+  color: var(--ui-dim); letter-spacing: .04em;
+  text-transform: uppercase;
+  text-shadow: var(--text-shadow-legible);
+  opacity: 0; transform: translateY(14px);
+  transition: opacity 0.45s var(--ease), transform 0.45s var(--spring);
+  pointer-events: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80vw;
+}
+#sub-stats.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+#sub-stats .sub-stats-val {
+  color: var(--ui-bright); font-weight: 600;
+}
+#sub-stats .sub-stats-sep {
+  color: var(--ui-soft);
+}
+#sub-stats .sub-stats-type-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--ui-ghost); border: 1px solid var(--ui-soft);
+  border-radius: 20px; padding: 2px 8px; cursor: pointer;
+  color: var(--ui-mid); font-size: 0.5625rem; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+  transition: background .18s var(--ease), color .18s, border-color .18s;
+}
+#sub-stats .sub-stats-type-btn:hover {
+  background: var(--ui-soft); color: #fff; border-color: rgba(255,255,255,.2);
+}
+#sub-stats .sub-stats-type-btn svg {
+  width: 9px; height: 9px; fill: currentColor; flex-shrink: 0;
+}
 
 /* ── EQ BARS ────────────────────────────────────────────────────────────── */
 #eq-viz { display: none; align-items: flex-end; justify-content: center; gap: 3px; height: 26px; margin-top: 1rem; }

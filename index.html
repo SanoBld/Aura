@@ -112,6 +112,7 @@
         </div>
         <div id="track-artist">&mdash;</div>
       </div>
+      <div id="sub-stats" aria-live="polite"></div>
       <div id="extended-stats" aria-live="polite"></div>
       <div id="progress-container"><div id="progress-bar"></div></div>
       <div id="eq-viz" aria-hidden="true">
@@ -225,9 +226,21 @@
           <span class="sp-row-label">Statistiques &eacute;tendues</span>
           <label class="toggle"><input type="checkbox" id="set-extended-stats" aria-label="Statistiques étendues"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-        <div class="sync-hint" style="margin-bottom:1rem">Affiche le nombre d&rsquo;&eacute;coutes de l&rsquo;artiste&nbsp;/ l&rsquo;album sous le titre.</div>
+        <div class="sync-hint" style="margin-bottom:0.875rem">Affiche le nombre d&rsquo;&eacute;coutes sous le titre.</div>
 
-        <div class="sync-card-label" style="margin-bottom:0.5rem">Ouvrir au d&eacute;marrage</div>
+        <div id="sp-sub-stats-row">
+          <div class="sync-card-label" style="margin-bottom:0.5rem">Afficher les &eacute;coutes de</div>
+          <div class="sp-option-group" style="margin-bottom:0.75rem">
+            <button class="sp-option active" data-stats-type="artist">Artiste</button>
+            <button class="sp-option" data-stats-type="album">Album</button>
+          </div>
+          <div class="sp-row">
+            <span class="sp-row-label">Mes stats personnelles</span>
+            <label class="toggle"><input type="checkbox" id="set-own-stats" aria-label="Mes stats"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+        </div>
+
+        <div class="sync-card-label" style="margin-bottom:0.5rem;margin-top:1rem">Ouvrir au d&eacute;marrage</div>
         <div class="sp-option-group">
           <button class="sp-option active" data-panel="lyrics">Paroles</button>
           <button class="sp-option" data-panel="history">Historique</button>

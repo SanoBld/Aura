@@ -38,6 +38,7 @@ const S = {
   eqViz: false, canvasViz: false,
   heroScale: 100, heroLayout: 'standard', heroAlign: 'center',
   lanyardId: '', sourcePriority: 'lanyard', vizFPS: 60, showExtendedStats: false, showOwnStats: false,
+  statsType: 'artist', // 'artist' | 'album'
   lyricsSize: 100, lyricsFontChoice: 'serif', lyricsAnim: true,
   albumAnim: true,
   // NEW v7
@@ -149,6 +150,7 @@ const $ = {
   lanyardStatusText: document.getElementById('lanyard-status-text'),
   lanyardWsBadge:  document.getElementById('lanyard-ws-badge'),
   extendedStats:   document.getElementById('extended-stats'),
+  subStats:        document.getElementById('sub-stats'),
   setExtendedStats:document.getElementById('set-extended-stats'),
   setOwnStats:     document.getElementById('set-own-stats'),
   lanyardWsBadge:  document.getElementById('lanyard-ws-badge'),
@@ -508,6 +510,7 @@ function applySettings() {
 
   /* Priority buttons + extended stats */
   syncPriorityButtons();
+  syncStatsTypeButtons();
   if ($.setExtendedStats) $.setExtendedStats.checked = !!S.showExtendedStats;
   if ($.setOwnStats)      $.setOwnStats.checked      = !!S.showOwnStats;
 
@@ -921,6 +924,17 @@ document.querySelectorAll('[data-bg]').forEach(b        => b.addEventListener('c
 document.querySelectorAll('[data-panel]').forEach(b     => b.addEventListener('click', () => { S.defaultPanel   = b.dataset.panel;     applySettings(); saveSettings(); }));
 document.querySelectorAll('[data-art-shape]').forEach(b => b.addEventListener('click', () => { S.artShape       = b.dataset.artShape;  applySettings(); saveSettings(); }));
 document.querySelectorAll('[data-color]').forEach(b     => b.addEventListener('click', () => { S.accentColor    = b.dataset.color;     applySettings(); saveSettings(); }));
+/* Stats type buttons (artiste / album) */
+document.querySelectorAll('[data-stats-type]').forEach(b => b.addEventListener('click', () => {
+  S.statsType = b.dataset.statsType; saveSettings(); syncStatsTypeButtons();
+  if (S.showExtendedStats && currentTrack) {
+    const a  = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
+    const al = currentTrack.album?.['#text'] || '';
+    const t  = currentTrack.name || '';
+    animateSubStats(() => fetchExtendedStats(a, al, t));
+  }
+}));
+
 document.querySelectorAll('[data-anim]').forEach(b      => b.addEventListener('click', () => { S.bgAnimation    = b.dataset.anim;      applySettings(); saveSettings(); }));
 document.querySelectorAll('[data-f]').forEach(b         => b.addEventListener('click', () => { S.fontChoice     = b.dataset.f;         applySettings(); saveSettings(); }));
 document.querySelectorAll('[data-priority]').forEach(b  => b.addEventListener('click', () => { S.sourcePriority = b.dataset.priority;  applySettings(); saveSettings(); }));
@@ -1193,30 +1207,19 @@ function injectPauseOverlay() {
    si l'élément n'existe pas encore dans le HTML.
    ============================================================ */
 function injectOwnStatsToggle() {
-  if (document.getElementById('set-own-stats')) return;
-  const parent = $.setExtendedStats?.closest('.sp-row');
-  if (!parent) return;
-
-  const row = document.createElement('div');
-  row.className = 'sp-row';
-  row.innerHTML = `
-    <label class="sp-label" for="set-own-stats">Mes stats personnelles</label>
-    <input type="checkbox" id="set-own-stats" class="sp-toggle" />
-  `;
-  parent.insertAdjacentElement('afterend', row);
-
-  /* Wirer le toggle nouvellement injecté */
+  /* Le toggle "Mes stats" est désormais directement dans le HTML — rien à injecter.
+     On se contente de câbler l'événement si l'élément n'est pas encore wiré. */
   const el = document.getElementById('set-own-stats');
-  if (el) {
-    el.checked = !!S.showOwnStats;
-    el.addEventListener('change', () => {
-      S.showOwnStats = el.checked;
-      applyExtendedStats();
-      saveSettings();
-    });
-    /* Mettre à jour la ref globale $ */
-    $.setOwnStats = el;
-  }
+  if (!el) return;
+  $.setOwnStats = el;
+  if (el._wired) return;
+  el._wired = true;
+  el.checked = !!S.showOwnStats;
+  el.addEventListener('change', () => {
+    S.showOwnStats = el.checked;
+    applyExtendedStats();
+    saveSettings();
+  });
 }
 
 /* ============================================================
@@ -1250,12 +1253,41 @@ function setAvatarInStorage(a, url) {
   try { localStorage.setItem(avatarCacheKey(a), JSON.stringify({ url, ts: Date.now() })); } catch {}
 }
 async function fetchArtistAvatarHD(artist) {
+  /* 1. iTunes Search — CORS-friendly, très fiable pour artistes connus */
+  try {
+    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=musicArtist&limit=5&country=fr`);
+    if (r.ok) {
+      const d = await r.json();
+      const exact = d.results?.find(a => a.artistName?.toLowerCase() === artist.toLowerCase());
+      const hit   = exact || d.results?.[0];
+      /* iTunes retourne artworkUrl100 — on monte à 600x600 */
+      if (hit?.artworkUrl100) return hit.artworkUrl100.replace('100x100bb', '600x600bb').replace('/100x100/', '/600x600/');
+    }
+  } catch {}
+
+  /* 2. Wikipedia API — photos haute qualité pour artistes mainstream */
+  try {
+    const wikiR = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artist)}&prop=pageimages&format=json&pithumbsize=600&origin=*`
+    );
+    if (wikiR.ok) {
+      const wikiD = await wikiR.json();
+      const pages = wikiD.query?.pages || {};
+      for (const page of Object.values(pages)) {
+        if (page.thumbnail?.source) return page.thumbnail.source;
+      }
+    }
+  } catch {}
+
+  /* 3. Deezer — pochette de haute qualité */
   try {
     const r = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(artist)}&limit=1`);
     if (r.ok) { const d = await r.json(); const img = d.data?.[0]?.picture_xl || d.data?.[0]?.picture_big; if (img) return img; }
   } catch {}
+
+  /* 4. MusicBrainz → TheAudioDB */
   try {
-    const mbR = await fetch(`https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(artist)}&fmt=json&limit=1`, { headers: { 'User-Agent': 'AURA/7.0' } });
+    const mbR = await fetch(`https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(artist)}&fmt=json&limit=1`, { headers: { 'User-Agent': 'AURA/9.0 (github.com/aura)' } });
     if (mbR.ok) {
       const mbid = (await mbR.json()).artists?.[0]?.id;
       if (mbid) {
@@ -1264,15 +1296,22 @@ async function fetchArtistAvatarHD(artist) {
       }
     }
   } catch {}
+
+  /* 5. TheAudioDB direct */
   try {
     const r = await fetch(`https://www.theaudiodb.com/api/v1/json/2/search.php?s=${encodeURIComponent(artist)}`);
     if (r.ok) { const img = (await r.json()).artists?.[0]?.strArtistThumb; if (img) return img; }
   } catch {}
+
+  /* 6. Last.fm — fallback ultime (images souvent basses résolution ou manquantes) */
   try {
     const r = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getInfo&artist=${encodeURIComponent(artist)}&api_key=${apiKey}&format=json`);
     if (r.ok) {
       const imgs = (await r.json()).artist?.image || [];
-      for (let i = imgs.length - 1; i >= 0; i--) { const u = imgs[i]['#text']; if (u && u.length > 10 && !u.includes('2a96cbd8b46e442fc41c2b86b821562f')) return u; }
+      for (let i = imgs.length - 1; i >= 0; i--) {
+        const u = imgs[i]['#text'];
+        if (u && u.length > 10 && !u.includes('2a96cbd8b46e442fc41c2b86b821562f')) return u;
+      }
     }
   } catch {}
   return null;
@@ -1479,16 +1518,14 @@ function getDiscordImageUrl(activity) {
    obtenir à la fois les stats globales et les stats personnelles.
    ============================================================ */
 async function fetchExtendedStats(artist, albumTitle, trackTitle) {
-  if (!S.showExtendedStats || !$.extendedStats) return;
-  if (!apiKey || !artist) { $.extendedStats.textContent = ''; return; }
+  if (!$.extendedStats && !$.subStats) return;
+  if (!S.showExtendedStats) { hideSubStats(); return; }
+  if (!apiKey || !artist) { if ($.extendedStats) $.extendedStats.textContent = ''; hideSubStats(); return; }
 
   try {
-    /* On injecte toujours le username — l'API retourne alors
-       stats.userplaycount + stats.playcount dans la même réponse. */
     const userParam = username ? `&username=${encodeURIComponent(username)}` : '';
 
     const [artRes, albRes, trkRes] = await Promise.all([
-
       fetch(
         `https://ws.audioscrobbler.com/2.0/` +
         `?method=artist.getInfo&artist=${encodeURIComponent(artist)}` +
@@ -1504,7 +1541,6 @@ async function fetchExtendedStats(artist, albumTitle, trackTitle) {
           ).then(r => r.json())
         : Promise.resolve(null),
 
-      /* Détail du titre — nécessaire pour userplaycount du morceau */
       (S.showOwnStats && trackTitle)
         ? fetch(
             `https://ws.audioscrobbler.com/2.0/` +
@@ -1515,41 +1551,114 @@ async function fetchExtendedStats(artist, albumTitle, trackTitle) {
         : Promise.resolve(null),
     ]);
 
-    const parts = [];
-
     /* ── Stats globales ── */
     const artGlobalPlays = parseInt(artRes?.artist?.stats?.playcount || '0');
-    if (artGlobalPlays > 0) parts.push(`${artGlobalPlays.toLocaleString('fr-FR')} écoutes · artiste`);
-
     const albGlobalPlays = parseInt(albRes?.album?.playcount || '0');
+
+    /* ── Mes stats ── */
+    const myArtPlays = S.showOwnStats ? parseInt(artRes?.artist?.stats?.userplaycount || '0') : 0;
+    const myTrkPlays = S.showOwnStats ? parseInt(trkRes?.track?.userplaycount || '0') : 0;
+
+    /* ── #extended-stats (ligne complète) ── */
+    const parts = [];
+    if (artGlobalPlays > 0) parts.push(`${artGlobalPlays.toLocaleString('fr-FR')} écoutes · artiste`);
     if (albGlobalPlays > 0) parts.push(`${albGlobalPlays.toLocaleString('fr-FR')} · album`);
-
-    /* ── Mes stats personnelles (si activé) ── */
     if (S.showOwnStats && username) {
-      const myArtPlays = parseInt(artRes?.artist?.stats?.userplaycount || '0');
       if (myArtPlays > 0) parts.push(`${myArtPlays.toLocaleString('fr-FR')} écoutes · moi`);
-
-      const myTrkPlays = parseInt(trkRes?.track?.userplaycount || '0');
       if (myTrkPlays > 0) parts.push(`${myTrkPlays.toLocaleString('fr-FR')} × ce titre`);
     }
+    if ($.extendedStats) $.extendedStats.textContent = parts.length ? parts.join('   ·   ') : '';
 
-    $.extendedStats.textContent = parts.length ? parts.join('   ·   ') : '';
+    /* ── #sub-stats (stat choisie sous le titre, avec animation) ── */
+    const statsType = S.statsType || 'artist';
+    let subVal = 0, subLabel = '';
+    if (statsType === 'artist' && artGlobalPlays > 0) {
+      subVal   = artGlobalPlays;
+      subLabel = 'écoutes artiste';
+    } else if (statsType === 'album' && albGlobalPlays > 0) {
+      subVal   = albGlobalPlays;
+      subLabel = 'écoutes album';
+    }
+
+    /* Perso en plus si activé */
+    let myLine = '';
+    if (S.showOwnStats && username) {
+      if (statsType === 'artist' && myArtPlays > 0) myLine = ` · ${myArtPlays.toLocaleString('fr-FR')} perso`;
+      if (statsType === 'album'  && myTrkPlays > 0) myLine = ` · ${myTrkPlays.toLocaleString('fr-FR')} perso`;
+    }
+
+    if (subVal > 0 && $.subStats) {
+      const nextArrow = statsType === 'artist' ? 'album' : 'artist';
+      const nextLabel = statsType === 'artist' ? 'Album' : 'Artiste';
+      $.subStats.innerHTML =
+        `<span class="sub-stats-val">${subVal.toLocaleString('fr-FR')}</span>` +
+        `<span class="sub-stats-sep">·</span>` +
+        `<span>${subLabel}${myLine}</span>` +
+        `<button class="sub-stats-type-btn" data-next-type="${nextArrow}" title="Basculer sur ${nextLabel}">` +
+          `<svg viewBox="0 0 16 16"><path d="M4 8l4-4 4 4M4 8l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>` +
+          `${nextLabel}` +
+        `</button>`;
+      /* Re-wire le bouton toggle inline */
+      $.subStats.querySelector('.sub-stats-type-btn')?.addEventListener('click', () => {
+        S.statsType = nextArrow; saveSettings();
+        syncStatsTypeButtons();
+        if (currentTrack) {
+          const a = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
+          const al = currentTrack.album?.['#text'] || '';
+          const t  = currentTrack.name || '';
+          animateSubStats(() => fetchExtendedStats(a, al, t));
+        }
+      });
+      showSubStats();
+    } else {
+      hideSubStats();
+    }
+
   } catch {
-    $.extendedStats.textContent = '';
+    if ($.extendedStats) $.extendedStats.textContent = '';
+    hideSubStats();
   }
+}
+
+/* ── Animation helpers pour #sub-stats ── */
+function showSubStats() {
+  if (!$.subStats) return;
+  requestAnimationFrame(() => $.subStats.classList.add('show'));
+}
+function hideSubStats() {
+  if (!$.subStats) return;
+  $.subStats.classList.remove('show');
+}
+function animateSubStats(callback) {
+  if (!$.subStats) { callback?.(); return; }
+  hideSubStats();
+  setTimeout(() => { callback?.(); }, 300);
+}
+
+/* ── Sync boutons statsType dans settings ── */
+function syncStatsTypeButtons() {
+  document.querySelectorAll('[data-stats-type]').forEach(b =>
+    b.classList.toggle('active', b.dataset.statsType === (S.statsType || 'artist'))
+  );
 }
 
 function applyExtendedStats() {
   if ($.extendedStats) {
     $.extendedStats.classList.toggle('on', S.showExtendedStats);
-    if (!S.showExtendedStats) $.extendedStats.textContent = '';
-    else if (currentTrack) {
+    if (!S.showExtendedStats) {
+      $.extendedStats.textContent = '';
+      hideSubStats();
+    } else if (currentTrack) {
       const artist = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
       const album  = currentTrack.album?.['#text'] || '';
       const title  = currentTrack.name || '';
       fetchExtendedStats(artist, album, title);
     }
   }
+  syncStatsTypeButtons();
+  /* Afficher/masquer la row statsType selon si les stats sont activées */
+  const row = document.getElementById('sp-sub-stats-row');
+  if (row) row.style.opacity = S.showExtendedStats ? '1' : '0.35';
 }
 
 function syncPriorityButtons() {
@@ -1909,6 +2018,7 @@ function handleTrack(track, fromLanyard = false) {
     currentTrack = null; currentTrackId = '';
     if (!S.canvasViz) stopCanvasViz();
     if ($.extendedStats) $.extendedStats.textContent = '';
+    hideSubStats();
     return;
   }
 
@@ -1916,7 +2026,30 @@ function handleTrack(track, fromLanyard = false) {
   $.content.style.opacity = '1';
   const id = trackId(track), isSame = (id === currentTrackId);
 
-  if (isSame && fromLanyard) { const np = track._isPaused || false; if (np !== isPaused) setPausedState(np); return; }
+  if (isSame && fromLanyard) {
+    const np = track._isPaused || false;
+    /* ── Détection de seek Discord ──
+       Si les timestamps ont changé (ex: avance rapide), on les met à jour
+       et on relance la progression au bon endroit — sans re-animer le titre. */
+    const startChanged = track._timestampStart > 0 && track._timestampStart !== currentTrack._timestampStart;
+    const endChanged   = track._timestampEnd   > 0 && track._timestampEnd   !== currentTrack._timestampEnd;
+    if (startChanged || endChanged) {
+      currentTrack._timestampStart = track._timestampStart;
+      currentTrack._timestampEnd   = track._timestampEnd;
+      currentTrack.duration        = track.duration;
+      lanyardTimestampStart = track._timestampStart;
+      lanyardTimestampEnd   = track._timestampEnd;
+      /* Reset barre et relance de la progression */
+      $.progressBar.style.transition = 'none';
+      $.progressBar.style.width      = '0%';
+      void $.progressBar.offsetWidth;
+      $.progressBar.style.transition = '';
+      cancelAnimationFrame(progressRAF);
+      if (!np) progressRAF = requestAnimationFrame(updateTrackProgress);
+    }
+    if (np !== isPaused) setPausedState(np);
+    return;
+  }
   if (isSame && !fromLanyard) return;
 
   currentTrackId = id; currentTrack = track;
@@ -1974,9 +2107,9 @@ function handleTrack(track, fromLanyard = false) {
   updateArtistAvatar(artist);
   if (lyricsOpen) loadLyrics(artist, title);
 
-  /* Extended stats — fetch en arrière-plan */
+  /* Extended stats — fetch en arrière-plan avec animation */
   const album = track.album?.['#text'] || '';
-  fetchExtendedStats(artist, album, title);
+  animateSubStats(() => fetchExtendedStats(artist, album, title));
 }
 
 /* ---- COLOR THIEF ---- */

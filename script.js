@@ -1354,26 +1354,35 @@ async function updateArtistAvatar(artist) {
 /* ============================================================
    POLLING — Lanyard always priority
    ============================================================ */
-function startPolling() { poll(); pollTimer = setInterval(poll, 1000); }
+
+function startPolling() {
+    poll(); 
+    pollTimer = setInterval(poll, 1000);
+}
 
 async function poll() {
-  if (lanyardActive && lanyardSpotifyData) {
-    setStatus('ok', '⚡ AURA Sync · ' + (lanyardSpotifyData.song || ''));
-    try { const { history } = await fetchRecentTracks(10); renderHistory(history); } catch {}
-    return;
-  }
-  if (S.sourcePriority === 'lastfm' || !lanyardActive) {
-    try {
-      const { current, history } = await fetchRecentTracks(10);
-      handleTrack(current);
-      renderHistory(history);
-      setStatus('ok', username !== originalUser ? 'Viewing: ' + username : 'Live');
-    } catch { setStatus('error', 'Network error'); }
-  }
-}
-function setStatus(state, text) {
-  $.stDot.className = state === 'loading' ? 'loading' : state === 'error' ? 'error' : '';
-  $.stText.textContent = text;
+    if (lanyardActive && lanyardSpotifyData) {
+        setStatus('ok', '⚡ AURA Sync · ' + (lanyardSpotifyData.song || 'En écoute...'));
+        
+        try {
+            const { history } = await fetchRecentTracks(10);
+            renderHistory(history);
+        } catch (e) {
+            console.error("Erreur historique:", e);
+        }
+        return;
+    }
+
+    if (S.sourcePriority === 'lastfm' || !lanyardActive) {
+        try {
+            const { current, history } = await fetchRecentTracks(10);
+            handleTrack(current);
+            renderHistory(history);
+            setStatus('ok', username !== originalUser ? 'Viewing: ' + username : 'Live');
+        } catch (err) {
+            setStatus('error', 'Network error');
+        }
+    }
 }
 
 /* ============================================================

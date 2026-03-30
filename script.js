@@ -703,12 +703,17 @@ function applyLyricsSettings() {
   );
   const posDesc = document.getElementById('lyrics-pos-desc');
   if (posDesc) {
-    const descs = {
-      right:  'Paroles sur le côté droit de l\'écran.',
-      center: 'Paroles au centre de l\'écran, par-dessus le fond.',
-      bottom: 'Paroles en bas de l\'écran, pleine largeur.',
-    };
-    posDesc.textContent = descs[pos] || descs.right;
+    if (window.t) {
+      const map = { right: 'lyr_pos_side_desc', center: 'lyr_pos_center_desc', bottom: 'lyr_pos_bottom_desc' };
+      posDesc.textContent = window.t(map[pos] || map.right);
+    } else {
+      const descs = {
+        right:  'Lyrics on the right side of the screen.',
+        center: 'Lyrics centered on screen, over the background.',
+        bottom: 'Lyrics at the bottom, full width.',
+      };
+      posDesc.textContent = descs[pos] || descs.right;
+    }
   }
 
   applyLyricsAmBg();
@@ -716,16 +721,16 @@ function applyLyricsSettings() {
 
   if ($.lyricsModeDesc) {
     $.lyricsModeDesc.textContent = bm === 'apple'
-      ? 'Dégradé de couleurs animé depuis la pochette.'
-      : 'Panneau transparent simple.';
+      ? (window.t ? window.t('lyr_panel_color_desc') : 'Animated color gradient from artwork.')
+      : (window.t ? window.t('lyr_panel_subtle_desc') : 'Simple transparent panel.');
   }
 }
 
 function updateLayoutDesc() {
   if (!$.layoutDesc) return;
   $.layoutDesc.textContent = S.heroLayout === 'minimal'
-    ? 'Juste une barre de progression et le titre du morceau.'
-    : 'Affichage complet avec pochette et informations du morceau.';
+    ? (window.t ? window.t('disp_view_minimal_desc') : 'Just a progress bar and the track title.')
+    : (window.t ? window.t('disp_view_full_desc') : 'Full display with artwork and track information.');
 }
 
 /* ---- SETTINGS EVENT LISTENERS ---- */
@@ -957,7 +962,7 @@ if ($.userSearch) {
     if (e.key !== 'Enter') return;
     const target = $.userSearch.value.trim();
     username = target !== '' ? target : originalUser;
-    setStatus('loading', target !== '' ? 'Viewing: ' + target : 'Back to you…');
+    setStatus('loading', target !== '' ? (window.t ? window.t('status_viewing') : 'Viewing: ') + target : (window.t ? window.t('status_loading') : 'Loading…'));
     clearInterval(pollTimer);
     poll();
     pollTimer = setInterval(poll, 1000);
@@ -978,11 +983,11 @@ if ($.btnLanyardConnect) {
     S.lanyardId = $.setLanyardId ? $.setLanyardId.value.trim() : ''; saveSettings();
     if ($.btnLanyardConnect.classList.contains('connected')) {
       lanyardDisconnect();
-      $.btnLanyardConnect.textContent = 'Connecter';
+      $.btnLanyardConnect.textContent = window.t ? window.t('sync_discord_btn_connect') : 'Connect';
       $.btnLanyardConnect.classList.remove('connected');
     } else if (S.lanyardId) {
       lanyardConnect(S.lanyardId);
-      $.btnLanyardConnect.textContent = 'Déconnecter';
+      $.btnLanyardConnect.textContent = window.t ? window.t('sync_discord_btn_disconnect') : 'Disconnect';
       $.btnLanyardConnect.classList.add('connected');
     }
   });
@@ -1025,6 +1030,87 @@ $.inKey.addEventListener('input',    clearError);
 $.inUser.addEventListener('keydown', e => { if (e.key === 'Enter') $.inKey.focus(); });
 $.inKey.addEventListener('keydown',  e => { if (e.key === 'Enter') attemptConnect(); });
 
+/* ============================================================
+   STATUS BAR — bottom-left dot + text
+   States: 'loading' | 'ok' | 'error'
+   ============================================================ */
+function setStatus(state, text) {
+  const dot   = $.stDot;
+  const txtEl = $.stText;
+  if (!dot) return;
+  dot.className = '';
+  if      (state === 'loading') dot.classList.add('loading');
+  else if (state === 'ok')      dot.classList.add('ok');
+  else if (state === 'error')   dot.classList.add('error');
+  if (txtEl && text !== undefined) txtEl.textContent = text;
+}
+
+/* ============================================================
+   LANGUAGE TOGGLE — wired after i18n.js is loaded
+   ============================================================ */
+function initLangToggle() {
+  const btn = document.getElementById('lang-toggle');
+  if (!btn) return;
+  btn.textContent = (window.getLang && window.getLang() === 'fr') ? 'EN' : 'FR';
+  btn.addEventListener('click', () => {
+    const next = (window.getLang && window.getLang() === 'fr') ? 'en' : 'fr';
+    if (window.setLang) window.setLang(next);
+    btn.textContent = next === 'fr' ? 'EN' : 'FR';
+    /* Re-apply dynamic strings that script.js owns */
+    applyDynamicI18n();
+  });
+}
+
+/* Re-apply script-generated strings when language changes */
+function applyDynamicI18n() {
+  /* Status bar */
+  if ($.stText) {
+    const current = $.stText.textContent;
+    /* Only replace known static strings */
+    if (current === 'Connexion…' || current === 'Connecting…')
+      $.stText.textContent = window.t ? window.t('status_connecting') : current;
+  }
+  /* Lanyard status if currently "off" */
+  const lanyardTxt = $.lanyardStatusText;
+  if (lanyardTxt) {
+    const cur = lanyardTxt.textContent;
+    if (cur.includes('Désactivé') || cur.includes('Disabled'))
+      lanyardTxt.textContent = window.t ? window.t('sync_discord_off') : cur;
+  }
+  /* Lanyard connect button label */
+  if ($.btnLanyardConnect) {
+    const isConnected = $.btnLanyardConnect.classList.contains('connected');
+    $.btnLanyardConnect.textContent = window.t
+      ? window.t(isConnected ? 'sync_discord_btn_disconnect' : 'sync_discord_btn_connect')
+      : (isConnected ? 'Disconnect' : 'Connect');
+  }
+  /* Test mode button */
+  const testBtn = document.getElementById('btn-test-mode');
+  if (testBtn) {
+    testBtn.textContent = window.t
+      ? window.t(testModeActive ? 'sync_test_mode_off' : 'sync_test_mode_btn')
+      : testBtn.textContent;
+  }
+  /* Lyrics position desc */
+  if (document.getElementById('lyrics-pos-desc')) updateLyricsPositionDesc();
+  /* Layout desc */
+  if ($.layoutDesc) updateLayoutDesc();
+  /* Priority desc */
+  syncPriorityButtons();
+}
+
+/* Expose for lanyard disconnect helper */
+function updateLyricsPositionDesc() {
+  const posDesc = document.getElementById('lyrics-pos-desc');
+  if (!posDesc || !window.t) return;
+  const pos = S.lyricsPosition || 'right';
+  const map = { right: 'lyr_pos_side_desc', center: 'lyr_pos_center_desc', bottom: 'lyr_pos_bottom_desc' };
+  posDesc.textContent = window.t(map[pos] || map.right);
+}
+
+/* Listen for language change events from i18n.js */
+document.addEventListener('aura:langchange', () => applyDynamicI18n());
+
 /* ---- INIT ---- */
 (function init() {
   loadSettings();
@@ -1032,12 +1118,22 @@ $.inKey.addEventListener('keydown',  e => { if (e.key === 'Enter') attemptConnec
   injectAriaLabels();
   injectPauseOverlay();
   injectOwnStatsToggle();
+  initLangToggle();
+  /* Initial status text from i18n */
+  if ($.stText && window.t) $.stText.textContent = window.t('status_connecting');
   const { u, k } = loadCache();
   if (u && k) {
     $.cachedName.textContent = u;
     $.cachedEntry.style.display = 'flex';
     $.cachedEntry.addEventListener('click', () => connectWith(u, k));
   }
+  /* Restore Lanyard connect button state */
+  if (S.lanyardId && $.btnLanyardConnect) {
+    $.btnLanyardConnect.textContent = window.t ? window.t('sync_discord_btn_disconnect') : 'Disconnect';
+    $.btnLanyardConnect.classList.add('connected');
+  }
+  /* Restore Lanyard ID input */
+  if ($.setLanyardId && S.lanyardId) $.setLanyardId.value = S.lanyardId;
 })();
 
 /* ---- LOGIN ---- */
@@ -1046,8 +1142,8 @@ $.btnConnect.addEventListener('click', attemptConnect);
 async function attemptConnect() {
   const u = $.inUser.value.trim();
   const k = $.inKey.value.trim();
-  if (!u) { showError('Entrez votre pseudo Last.fm.'); return; }
-  if (!k || k.length < 20) { showError('Clé API invalide (32 caractères hex).'); return; }
+  if (!u) { showError(window.t ? window.t('login_err_user') : 'Enter your Last.fm username.'); return; }
+  if (!k || k.length < 20) { showError(window.t ? window.t('login_err_key') : 'Invalid API key (32 hex characters).'); return; }
   connectWith(u, k);
 }
 
@@ -1068,7 +1164,7 @@ async function connectWith(u, k) {
     resetIdle();
   } catch(err) {
     showLoading(false);
-    showError(err.message || 'Connexion impossible.');
+    showError(err.message || (window.t ? window.t('status_network_err') : 'Connection failed.'));
   }
 }
 
@@ -1119,7 +1215,7 @@ function toggleZenMode() {
   if (btn) {
     btn.classList.toggle('active', zenMode);
     btn.setAttribute('aria-pressed', zenMode ? 'true' : 'false');
-    btn.setAttribute('aria-label', zenMode ? 'Désactiver le mode Focus Album' : 'Activer le mode Focus Album');
+    btn.setAttribute('aria-label', zenMode ? 'Disable Focus Album mode' : 'Enable Focus Album mode');
   }
   if (zenMode) {
     // Close all panels (including lyrics) when entering focus mode
@@ -1227,11 +1323,11 @@ function injectOwnStatsToggle() {
    ============================================================ */
 function injectAriaLabels() {
   const labels = {
-    'btn-lyrics':   'Ouvrir les paroles',
-    'btn-hist':     "Ouvrir l'historique",
-    'btn-settings': 'Ouvrir les paramètres',
+    'btn-lyrics':   window.t ? window.t('btn_lyrics') : 'Lyrics',
+    'btn-hist': window.t ? window.t('btn_history') : 'History',
+    'btn-settings': window.t ? window.t('btn_settings') : 'Settings',
     'btn-fs':       'Plein écran',
-    'btn-logout':   'Se déconnecter',
+    'btn-logout':   window.t ? window.t('sync_logout') : 'Log out',
     'ctx-btn-lastfm': 'Ouvrir sur Last.fm',
     'ctx-btn-share':  'Partager (Story 9:16)',
   };
@@ -1362,7 +1458,7 @@ function startPolling() {
 
 async function poll() {
     if (lanyardActive && lanyardSpotifyData) {
-        setStatus('ok', '⚡ AURA Sync · ' + (lanyardSpotifyData.song || 'En écoute...'));
+        setStatus('ok', (window.t ? window.t('status_sync') : '⚡ AURA Sync · ') + (lanyardSpotifyData.song || ''));
         
         try {
             const { history } = await fetchRecentTracks(10);
@@ -1378,9 +1474,9 @@ async function poll() {
             const { current, history } = await fetchRecentTracks(10);
             handleTrack(current);
             renderHistory(history);
-            setStatus('ok', username !== originalUser ? 'Viewing: ' + username : 'Live');
+            setStatus('ok', username !== originalUser ? (window.t ? window.t('status_viewing') : 'Viewing: ') + username : (window.t ? window.t('status_live') : 'Live'));
         } catch (err) {
-            setStatus('error', 'Network error');
+            setStatus('error', window.t ? window.t('status_network_err') : 'Network error');
         }
     }
 }
@@ -1398,7 +1494,7 @@ function lanyardConnect(discordId) {
   /* ── Validation : un ID Discord est un entier de 17-19 chiffres ── */
   if (!/^\d{17,19}$/.test(discordId)) {
     console.warn('[Lanyard] ID Discord invalide :', discordId);
-    setLanyardStatus('error', 'ID invalide — 17 à 19 chiffres attendus');
+    setLanyardStatus('error', window.t ? window.t('lanyard_invalid_id') : 'Invalid ID');
     if ($.btnLanyardConnect) {
       $.btnLanyardConnect.textContent = 'Connecter';
       $.btnLanyardConnect.classList.remove('connected');
@@ -1409,12 +1505,12 @@ function lanyardConnect(discordId) {
   console.log('[Lanyard] Connexion avec l\'ID :', discordId);
   lanyardCurrentDiscordId = discordId;
   lanyardDisconnect();
-  setLanyardStatus('connecting', 'Connexion en cours…');
+  setLanyardStatus('connecting', window.t ? window.t('lanyard_connecting') : 'Connecting…');
 
   try { lanyardWs = new WebSocket('wss://api.lanyard.rest/socket'); }
   catch (err) {
     console.error('[Lanyard] WebSocket non supporté :', err);
-    setLanyardStatus('error', 'WebSocket non supporté par ce navigateur');
+    setLanyardStatus('error', window.t ? window.t('lanyard_ws_unsupported') : 'WebSocket not supported');
     return;
   }
 
@@ -1422,7 +1518,7 @@ function lanyardConnect(discordId) {
   const connectTimeout = setTimeout(() => {
     if (lanyardWs && lanyardWs.readyState !== WebSocket.OPEN) {
       console.warn('[Lanyard] Timeout — aucune réponse de lanyard.rest');
-      setLanyardStatus('error', 'Délai dépassé — réessaye dans quelques secondes');
+      setLanyardStatus('error', window.t ? window.t('lanyard_timeout') : 'Timeout');
       lanyardWs.close();
     }
   }, 8000);
@@ -1464,7 +1560,7 @@ function lanyardConnect(discordId) {
   lanyardWs.onerror = (err) => {
     console.error('[Lanyard] Erreur WebSocket :', err);
     clearTimeout(connectTimeout);
-    setLanyardStatus('error', 'Connexion échouée — vérifie ton réseau');
+    setLanyardStatus('error', window.t ? window.t('lanyard_ws_error') : 'Connection failed');
     if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
   };
 
@@ -1475,7 +1571,7 @@ function lanyardConnect(discordId) {
     if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
     if (lanyardHbInterval) { clearInterval(lanyardHbInterval); lanyardHbInterval = null; }
     if (lanyardCurrentDiscordId) {
-      setLanyardStatus('connecting', 'Reconnexion dans 5s…');
+      setLanyardStatus('connecting', window.t ? window.t('lanyard_reconnecting') : 'Reconnecting in 5s…');
       console.log('[Lanyard] Tentative de reconnexion dans 5s…');
       lanyardReconnectTimer = setTimeout(() => lanyardConnect(lanyardCurrentDiscordId), 5000);
     }
@@ -1487,7 +1583,7 @@ function lanyardDisconnect() {
   if (lanyardHbInterval) { clearInterval(lanyardHbInterval); lanyardHbInterval = null; }
   if (lanyardWs) { try { lanyardWs.close(); } catch {} lanyardWs = null; }
   if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
-  setLanyardStatus('off', 'Désactivé — entrez un ID pour activer');
+  setLanyardStatus('off', window.t ? window.t('sync_discord_off') : 'Disabled — enter an ID to activate');
 }
 /* ============================================================
    DISCORD IMAGE URL — résout toutes les variantes de large_image
@@ -1564,54 +1660,59 @@ async function fetchExtendedStats(artist, albumTitle, trackTitle) {
     const artGlobalPlays = parseInt(artRes?.artist?.stats?.playcount || '0');
     const albGlobalPlays = parseInt(albRes?.album?.playcount || '0');
 
-    /* ── Mes stats ── */
+    /* ── My stats ── */
     const myArtPlays = S.showOwnStats ? parseInt(artRes?.artist?.stats?.userplaycount || '0') : 0;
     const myTrkPlays = S.showOwnStats ? parseInt(trkRes?.track?.userplaycount || '0') : 0;
 
-    /* ── #extended-stats (ligne complète) ── */
+    const locale = window.getLang ? window.getLang() + '-' + (window.getLang() === 'fr' ? 'FR' : 'US') : undefined;
+    const fmt = n => n.toLocaleString(locale);
+    const tStr = k => window.t ? window.t(k) : k;
+
+    /* ── #extended-stats (full line) ── */
     const parts = [];
-    if (artGlobalPlays > 0) parts.push(`${artGlobalPlays.toLocaleString('fr-FR')} écoutes · artiste`);
-    if (albGlobalPlays > 0) parts.push(`${albGlobalPlays.toLocaleString('fr-FR')} · album`);
+    if (artGlobalPlays > 0) parts.push(`${fmt(artGlobalPlays)} ${tStr('stats_plays_artist')}`);
+    if (albGlobalPlays > 0) parts.push(`${fmt(albGlobalPlays)} · ${tStr('stats_plays_album')}`);
     if (S.showOwnStats && username) {
-      if (myArtPlays > 0) parts.push(`${myArtPlays.toLocaleString('fr-FR')} écoutes · moi`);
-      if (myTrkPlays > 0) parts.push(`${myTrkPlays.toLocaleString('fr-FR')} × ce titre`);
+      if (myArtPlays > 0) parts.push(`${fmt(myArtPlays)} ${tStr('stats_plays_artist')} · ${tStr('stats_plays_personal')}`);
+      if (myTrkPlays > 0) parts.push(`${fmt(myTrkPlays)} ${tStr('stats_plays_track')}`);
     }
     if ($.extendedStats) $.extendedStats.textContent = parts.length ? parts.join('   ·   ') : '';
 
-    /* ── #sub-stats (stat choisie sous le titre, avec animation) ── */
+    /* ── #sub-stats (chosen stat below title) ── */
     const statsType = S.statsType || 'artist';
     let subVal = 0, subLabel = '';
     if (statsType === 'artist' && artGlobalPlays > 0) {
       subVal   = artGlobalPlays;
-      subLabel = 'écoutes artiste';
+      subLabel = tStr('stats_plays_artist');
     } else if (statsType === 'album' && albGlobalPlays > 0) {
       subVal   = albGlobalPlays;
-      subLabel = 'écoutes album';
+      subLabel = tStr('stats_plays_album');
     }
 
-    /* Perso en plus si activé */
+    /* Personal line if enabled */
     let myLine = '';
     if (S.showOwnStats && username) {
-      if (statsType === 'artist' && myArtPlays > 0) myLine = ` · ${myArtPlays.toLocaleString('fr-FR')} perso`;
-      if (statsType === 'album'  && myTrkPlays > 0) myLine = ` · ${myTrkPlays.toLocaleString('fr-FR')} perso`;
+      if (statsType === 'artist' && myArtPlays > 0) myLine = ` · ${fmt(myArtPlays)} ${tStr('stats_plays_personal')}`;
+      if (statsType === 'album'  && myTrkPlays > 0) myLine = ` · ${fmt(myTrkPlays)} ${tStr('stats_plays_personal')}`;
     }
 
     if (subVal > 0 && $.subStats) {
       const nextArrow = statsType === 'artist' ? 'album' : 'artist';
-      const nextLabel = statsType === 'artist' ? 'Album' : 'Artiste';
+      const nextLabel = tStr(statsType === 'artist' ? 'stats_switch_album' : 'stats_switch_artist');
       $.subStats.innerHTML =
-        `<span class="sub-stats-val">${subVal.toLocaleString('fr-FR')}</span>` +
+        `<span class="sub-stats-val">${fmt(subVal)}</span>` +
         `<span class="sub-stats-sep">·</span>` +
         `<span>${subLabel}${myLine}</span>` +
-        `<button class="sub-stats-type-btn" data-next-type="${nextArrow}" title="Basculer sur ${nextLabel}">` +
+        `<button class="sub-stats-type-btn" data-next-type="${nextArrow}" title="Switch to ${nextLabel}">` +
           `<svg viewBox="0 0 16 16"><path d="M4 8l4-4 4 4M4 8l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>` +
           `${nextLabel}` +
         `</button>`;
-      /* Re-wire le bouton toggle inline */
+      /* Re-wire inline toggle button */
       $.subStats.querySelector('.sub-stats-type-btn')?.addEventListener('click', () => {
         S.statsType = nextArrow; saveSettings();
         syncStatsTypeButtons();
         if (currentTrack) {
+
           const a = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
           const al = currentTrack.album?.['#text'] || '';
           const t  = currentTrack.name || '';
@@ -1680,8 +1781,8 @@ function syncPriorityButtons() {
   const descEl = document.getElementById('priority-desc');
   if (descEl) {
     descEl.textContent = S.sourcePriority === 'lastfm'
-      ? 'Le statut Discord est ignoré. AURA se base uniquement sur tes scrobbles Last.fm.'
-      : 'Si tu écoutes via Discord (Spotify, Apple Music, Deezer, Tidal…), AURA se synchronise en temps réel via Lanyard. Sinon, il bascule automatiquement sur Last.fm.';
+      ? (window.t ? window.t('sync_priority_status_lastfm') : 'Discord status is ignored. AURA relies solely on your Last.fm scrobbles.')
+      : (window.t ? window.t('sync_priority_status_discord') : 'When connected via Discord, your music appears in real time. Otherwise, AURA uses Last.fm automatically.');
   }
 }
 
@@ -1797,7 +1898,7 @@ function lanyardHandlePresence(data) {
     lanyardSpotifyData = null;
     lanyardTimestampStart = 0;
     lanyardTimestampEnd   = 0;
-    setLanyardStatus('no-music', 'Aucune musique détectée');
+    setLanyardStatus('no-music', window.t ? window.t('lanyard_no_music') : 'No music detected');
     if (S.sourcePriority !== 'lastfm') handleTrack(null);
   }
 }
@@ -1840,9 +1941,9 @@ function toggleTestMode() {
     clearInterval(testModeInterval); testModeInterval = null;
     console.log('[Mode Test] Désactivé');
 
-    setLanyardStatus('off', 'Désactivé — entre un identifiant pour activer');
+    setLanyardStatus('off', window.t ? window.t('sync_discord_off') : 'Disabled — enter an ID to activate');
     if ($.lanyardWsBadge) $.lanyardWsBadge.style.display = 'none';
-    if (btn) { btn.textContent = '▶ Activer le Mode Test'; btn.classList.remove('test-active'); }
+    if (btn) { btn.textContent = window.t ? window.t('sync_test_mode_btn') : '▶ Enable Test Mode'; btn.classList.remove('test-active'); }
 
     /* Remettre la source normale */
     handleTrack(null);
@@ -1872,12 +1973,12 @@ function toggleTestMode() {
     _isTest:        true,
   };
 
-  setLanyardStatus('test', '🧪 Mode Test actif');
+  setLanyardStatus('test', window.t ? window.t('lanyard_test') : '🧪 Test mode active');
   if ($.lanyardWsBadge) {
     $.lanyardWsBadge.textContent = 'TEST';
     $.lanyardWsBadge.style.display = 'inline-block';
   }
-  if (btn) { btn.textContent = '⏹ Arrêter le Mode Test'; btn.classList.add('test-active'); }
+  if (btn) { btn.textContent = window.t ? window.t('sync_test_mode_off') : '⏹ Stop Test Mode'; btn.classList.add('test-active'); }
 
   /* Afficher le morceau de démo */
   handleTrack(fakeTrack, false);
@@ -2501,13 +2602,14 @@ async function fetchLyricsFromLRCLIB(artist, title) {
 
 async function loadLyrics(artist, title) {
   stopLRC();
-  $.lrcContainer.innerHTML = '<span class="lp-empty">Chargement des paroles…</span>';
+  $.lrcContainer.innerHTML = '<span class="lp-empty">' + (window.t ? window.t('lyrics_fetching') : 'Loading lyrics…') + '</span>';
   $.lpBody.classList.remove('lrc-mode');
   setLPBadge('');
   let lyrData = getLRCCache(artist, title);
   if (!lyrData) { lyrData = await fetchLyricsFromLRCLIB(artist, title); if (lyrData) setLRCCache(artist, title, lyrData); }
   if (!lyrData) {
-    $.lrcContainer.innerHTML = `<span class="lp-empty">Aucune parole trouvée.<br/>Essayer sur <a href="https://genius.com/search?q=${encodeURIComponent(artist+' '+title)}" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Genius →</a></span>`;
+    const notFound = window.t ? window.t('lyrics_not_found') : 'No lyrics found.';
+    $.lrcContainer.innerHTML = `<span class="lp-empty">${notFound}<br/><a href="https://genius.com/search?q=${encodeURIComponent(artist+' '+title)}" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Genius →</a></span>`;
     setLPBadge('plain'); return;
   }
   if (lyrData.duration > 0) trackDuration = lyrData.duration;
@@ -2522,15 +2624,15 @@ async function loadLyrics(artist, title) {
   }
   lrcSynced = false; $.lpBody.classList.remove('lrc-mode');
   const plain = lyrData.plainLyrics ? lyrData.plainLyrics.trim().replace(/</g,'&lt;').replace(/\n/g,'<br>') : '';
-  $.lrcContainer.innerHTML = plain ? `<div class="plain-lyrics">${plain}</div>` : '<span class="lp-empty">Aucune parole trouvée.</span>';
+  $.lrcContainer.innerHTML = plain ? `<div class="plain-lyrics">${plain}</div>` : `<span class="lp-empty">${window.t ? window.t('lyrics_not_found') : 'No lyrics found.'}</span>`;
   setLPBadge('plain');
 }
 
 function setLPBadge(type) {
   if (!$.lpBadge) return;
   $.lpBadge.className = 'lp-badge';
-  if (type === 'synced') { $.lpBadge.classList.add('synced'); $.lpBadge.textContent = '⚡ Synced'; }
-  else if (type === 'plain') { $.lpBadge.classList.add('plain'); $.lpBadge.textContent = 'Text'; }
+  if (type === 'synced') { $.lpBadge.classList.add('synced'); $.lpBadge.textContent = window.t ? window.t('lyrics_synced_badge') : '● Synced'; }
+  else if (type === 'plain') { $.lpBadge.classList.add('plain'); $.lpBadge.textContent = window.t ? window.t('lyrics_plain_badge') : 'Plain text'; }
   else $.lpBadge.textContent = '';
 }
 
@@ -2642,7 +2744,7 @@ $.btnLyrics.addEventListener('click', () => {
     /* Only shift hero in right-panel mode; center/bottom modes don't need it */
     if ((S.lyricsPosition || 'right') === 'right') $.hero.classList.add('shifted');
     if (currentTrack) loadLyrics(currentTrack.artist?.name||currentTrack.artist?.['#text']||'', currentTrack.name||'');
-    else { $.lrcContainer.innerHTML = "<span class='lp-empty'>En attente d'un titre…</span>"; setLPBadge(''); }
+    else { $.lrcContainer.innerHTML = "<span class='lp-empty'>" + (window.t ? window.t('lyrics_waiting') : 'Waiting for a track…') + "</span>"; setLPBadge(''); }
   }
   resetIdle();
 });

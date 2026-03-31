@@ -406,6 +406,10 @@ function applyAnimatedGlow() {
 /* ---- APPLY SETTINGS ---- */
 function applySettings() {
   document.documentElement.style.setProperty('--accent', S.accentColor);
+  /* Derive --accent-rgb for rgba() usage in CSS */
+  const _hex = S.accentColor.replace('#','');
+  const _r = parseInt(_hex.slice(0,2),16), _g = parseInt(_hex.slice(2,4),16), _b = parseInt(_hex.slice(4,6),16);
+  if (!isNaN(_r)) document.documentElement.style.setProperty('--accent-rgb', `${_r},${_g},${_b}`);
   document.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('active', b.dataset.color === S.accentColor));
 
   document.documentElement.style.setProperty('--blur-amount', S.blur + 'px');
@@ -568,7 +572,11 @@ function applyLyricsSettings() {
 
   /* Title anim style */
   const ta = S.titleAnimStyle || 'fade-up';
-  document.body.classList.remove('title-anim-fade-up','title-anim-slide-left','title-anim-scale-in','title-anim-blur-in','title-anim-split','title-anim-none');
+  document.body.classList.remove(
+    'title-anim-fade-up','title-anim-fade-down','title-anim-slide-left','title-anim-slide-right',
+    'title-anim-scale-in','title-anim-scale-down','title-anim-blur-in',
+    'title-anim-flip-x','title-anim-swing','title-anim-split','title-anim-glitch','title-anim-none'
+  );
   document.body.classList.add('title-anim-' + ta);
   document.querySelectorAll('[data-title-anim]').forEach(b => b.classList.toggle('active', b.dataset.titleAnim === ta));
 
@@ -1047,17 +1055,42 @@ function setStatus(state, text) {
 
 /* ============================================================
    LANGUAGE TOGGLE — wired after i18n.js is loaded
+   Works for both login card button AND settings panel selector
    ============================================================ */
-function initLangToggle() {
+function syncLangButtons(lang) {
+  /* Login card mini-toggle */
   const btn = document.getElementById('lang-toggle');
-  if (!btn) return;
-  btn.textContent = (window.getLang && window.getLang() === 'fr') ? 'EN' : 'FR';
-  btn.addEventListener('click', () => {
-    const next = (window.getLang && window.getLang() === 'fr') ? 'en' : 'fr';
-    if (window.setLang) window.setLang(next);
-    btn.textContent = next === 'fr' ? 'EN' : 'FR';
-    /* Re-apply dynamic strings that script.js owns */
-    applyDynamicI18n();
+  if (btn) btn.textContent = lang === 'fr' ? 'EN' : 'FR';
+  /* Settings panel pill selector */
+  document.querySelectorAll('[data-lang]').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+}
+
+function initLangToggle() {
+  const currentLang = window.getLang ? window.getLang() : 'en';
+  syncLangButtons(currentLang);
+
+  /* Login card button */
+  const btn = document.getElementById('lang-toggle');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const next = (window.getLang && window.getLang() === 'fr') ? 'en' : 'fr';
+      if (window.setLang) window.setLang(next);
+      syncLangButtons(next);
+      applyDynamicI18n();
+    });
+  }
+
+  /* Settings panel language buttons */
+  document.querySelectorAll('[data-lang]').forEach(b => {
+    b.addEventListener('click', () => {
+      const lang = b.dataset.lang;
+      if (!lang) return;
+      if (window.setLang) window.setLang(lang);
+      syncLangButtons(lang);
+      applyDynamicI18n();
+    });
   });
 }
 
@@ -1656,64 +1689,90 @@ async function fetchExtendedStats(artist, albumTitle, trackTitle) {
         : Promise.resolve(null),
     ]);
 
-    /* ── Stats globales ── */
+    /* ── Global stats ── */
     const artGlobalPlays = parseInt(artRes?.artist?.stats?.playcount || '0');
     const albGlobalPlays = parseInt(albRes?.album?.playcount || '0');
 
-    /* ── My stats ── */
+    /* ── My personal stats ── */
     const myArtPlays = S.showOwnStats ? parseInt(artRes?.artist?.stats?.userplaycount || '0') : 0;
     const myTrkPlays = S.showOwnStats ? parseInt(trkRes?.track?.userplaycount || '0') : 0;
 
     const locale = window.getLang ? window.getLang() + '-' + (window.getLang() === 'fr' ? 'FR' : 'US') : undefined;
-    const fmt = n => n.toLocaleString(locale);
-    const tStr = k => window.t ? window.t(k) : k;
+    const fmt    = n  => n.toLocaleString(locale);
+    const fmtK   = n  => n >= 1000000 ? (n/1000000).toFixed(1).replace('.0','') + 'M'
+                       : n >= 1000    ? (n/1000).toFixed(1).replace('.0','') + 'K'
+                       : String(n);
+    const tStr   = k  => window.t ? window.t(k) : k;
 
-    /* ── #extended-stats (full line) ── */
-    const parts = [];
-    if (artGlobalPlays > 0) parts.push(`${fmt(artGlobalPlays)} ${tStr('stats_plays_artist')}`);
-    if (albGlobalPlays > 0) parts.push(`${fmt(albGlobalPlays)} · ${tStr('stats_plays_album')}`);
-    if (S.showOwnStats && username) {
-      if (myArtPlays > 0) parts.push(`${fmt(myArtPlays)} ${tStr('stats_plays_artist')} · ${tStr('stats_plays_personal')}`);
-      if (myTrkPlays > 0) parts.push(`${fmt(myTrkPlays)} ${tStr('stats_plays_track')}`);
-    }
-    if ($.extendedStats) $.extendedStats.textContent = parts.length ? parts.join('   ·   ') : '';
+    /* ── #extended-stats — hidden compact line (kept for reference, not shown by default) ── */
+    if ($.extendedStats) $.extendedStats.textContent = '';
 
-    /* ── #sub-stats (chosen stat below title) ── */
+    /* ── #sub-stats — new card-based design ── */
     const statsType = S.statsType || 'artist';
-    let subVal = 0, subLabel = '';
-    if (statsType === 'artist' && artGlobalPlays > 0) {
-      subVal   = artGlobalPlays;
-      subLabel = tStr('stats_plays_artist');
-    } else if (statsType === 'album' && albGlobalPlays > 0) {
-      subVal   = albGlobalPlays;
-      subLabel = tStr('stats_plays_album');
-    }
+    const nextArrow = statsType === 'artist' ? 'album' : 'artist';
 
-    /* Personal line if enabled */
-    let myLine = '';
-    if (S.showOwnStats && username) {
-      if (statsType === 'artist' && myArtPlays > 0) myLine = ` · ${fmt(myArtPlays)} ${tStr('stats_plays_personal')}`;
-      if (statsType === 'album'  && myTrkPlays > 0) myLine = ` · ${fmt(myTrkPlays)} ${tStr('stats_plays_personal')}`;
-    }
+    /* Determine which global count to show */
+    const globalVal   = statsType === 'artist' ? artGlobalPlays : albGlobalPlays;
+    const globalScope = statsType === 'artist' ? tStr('stats_scope_artist') : tStr('stats_scope_album');
+    /* Personal count: artist plays for "artist" mode, track plays for "album" mode */
+    const myVal       = S.showOwnStats && username
+      ? (statsType === 'artist' ? myArtPlays : myTrkPlays)
+      : 0;
 
-    if (subVal > 0 && $.subStats) {
-      const nextArrow = statsType === 'artist' ? 'album' : 'artist';
-      const nextLabel = tStr(statsType === 'artist' ? 'stats_switch_album' : 'stats_switch_artist');
-      $.subStats.innerHTML =
-        `<span class="sub-stats-val">${fmt(subVal)}</span>` +
-        `<span class="sub-stats-sep">·</span>` +
-        `<span>${subLabel}${myLine}</span>` +
-        `<button class="sub-stats-type-btn" data-next-type="${nextArrow}" title="Switch to ${nextLabel}">` +
-          `<svg viewBox="0 0 16 16"><path d="M4 8l4-4 4 4M4 8l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>` +
-          `${nextLabel}` +
-        `</button>`;
-      /* Re-wire inline toggle button */
-      $.subStats.querySelector('.sub-stats-type-btn')?.addEventListener('click', () => {
+    if (globalVal > 0 && $.subStats) {
+      const switchLabel = tStr(statsType === 'artist' ? 'stats_switch_album' : 'stats_switch_artist');
+
+      /* Build HTML */
+      let html = `<div class="ss-cards">`;
+
+      /* Card 1 — Global plays */
+      html += `
+        <div class="ss-card ss-card-global">
+          <div class="ss-card-icon">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zM2 8a6 6 0 1112 0A6 6 0 012 8z" opacity=".4"/><path d="M8 4v4.5l3 1.5-.5.87L7 9V4h1z"/></svg>
+          </div>
+          <div class="ss-card-body">
+            <span class="ss-val">${fmtK(globalVal)}</span>
+            <span class="ss-label">${globalScope}</span>
+          </div>
+        </div>`;
+
+      /* Card 2 — My plays (only if enabled and > 0) */
+      if (myVal > 0) {
+        const myLabel = statsType === 'artist'
+          ? tStr('stats_my_artist')
+          : tStr('stats_my_track');
+        html += `
+          <div class="ss-card ss-card-personal">
+            <div class="ss-card-icon">
+              <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 13c0-3.31 2.69-5 6-5s6 1.69 6 5H2z"/></svg>
+            </div>
+            <div class="ss-card-body">
+              <span class="ss-val ss-val-accent">${fmtK(myVal)}</span>
+              <span class="ss-label">${myLabel}</span>
+            </div>
+          </div>`;
+      }
+
+      /* Switch button */
+      html += `
+        <button class="ss-switch" data-next-type="${nextArrow}" title="Switch to ${switchLabel}">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M3 5h10M3 8h7M3 11h4"/>
+          </svg>
+          ${switchLabel}
+        </button>`;
+
+      html += `</div>`;
+
+      $.subStats.innerHTML = html;
+
+      /* Wire switch button */
+      $.subStats.querySelector('.ss-switch')?.addEventListener('click', () => {
         S.statsType = nextArrow; saveSettings();
         syncStatsTypeButtons();
         if (currentTrack) {
-
-          const a = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
+          const a  = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
           const al = currentTrack.album?.['#text'] || '';
           const t  = currentTrack.name || '';
           animateSubStats(() => fetchExtendedStats(a, al, t));
@@ -1802,12 +1861,13 @@ function lanyardHandlePresence(data) {
     if (!ts || !ts.start) {
       trackPaused = true;
     } else if (!ts.end) {
-      /* start sans end = souvent pause Spotify */
+      /* start without end = Spotify pause */
       trackPaused = true;
     } else if (ts.end <= Date.now()) {
-      /* La fin est déjà passée : morceau fini ou pause tardive */
+      /* End already passed: track finished or late pause */
       trackPaused = true;
     } else {
+      /* Active timestamps confirm playback */
       trackPaused = false;
     }
 
@@ -2138,38 +2198,61 @@ function handleTrack(track, fromLanyard = false) {
 
   if (isSame && fromLanyard) {
     const np = track._isPaused || false;
-    /* ── Détection de seek Discord ──
-       Si les timestamps ont changé (ex: avance rapide), on les met à jour
-       et on relance la progression au bon endroit — sans re-animer le titre. */
+    /* ── Seek / timestamp change detection ──
+       If start changed significantly (>3s) → playback resumed or seeked → force play */
     const startChanged = track._timestampStart > 0 && track._timestampStart !== currentTrack._timestampStart;
     const endChanged   = track._timestampEnd   > 0 && track._timestampEnd   !== currentTrack._timestampEnd;
+
+    /* Extra safety: if timestamps show the track is actively progressing
+       (start recently set, end in the future) treat as playing regardless of _isPaused flag.
+       This catches Spotify's edge case where it sends isPaused=true right after track change. */
+    const tsStart = track._timestampStart || 0;
+    const tsEnd   = track._timestampEnd   || 0;
+    const now = Date.now();
+    const tsConfirmsPlaying = tsStart > 0 && tsEnd > now && (now - tsStart) > 500;
+    const resolvedPaused = tsConfirmsPlaying ? false : np;
+
     if (startChanged || endChanged) {
       currentTrack._timestampStart = track._timestampStart;
       currentTrack._timestampEnd   = track._timestampEnd;
       currentTrack.duration        = track.duration;
       lanyardTimestampStart = track._timestampStart;
       lanyardTimestampEnd   = track._timestampEnd;
-      /* Reset barre et relance de la progression */
+      /* Reset progress bar instantly */
       $.progressBar.style.transition = 'none';
       $.progressBar.style.width      = '0%';
       void $.progressBar.offsetWidth;
       $.progressBar.style.transition = '';
       cancelAnimationFrame(progressRAF);
-      if (!np) progressRAF = requestAnimationFrame(updateTrackProgress);
+      if (!resolvedPaused) progressRAF = requestAnimationFrame(updateTrackProgress);
     }
-    if (np !== isPaused) setPausedState(np);
+    if (resolvedPaused !== isPaused) setPausedState(resolvedPaused);
     return;
   }
   if (isSame && !fromLanyard) return;
 
-  currentTrackId = id; currentTrack = track;
-  isPaused = track._isPaused || false; trackPausedAt = 0;
+  /* ── New track: always clear pause state first ── */
+  if (isPaused) {
+    isPaused = false;
+    const overlay = document.getElementById('pause-overlay');
+    if (overlay) overlay.classList.remove('visible');
+    if ($.artWrap) $.artWrap.classList.remove('art-paused');
+    document.body.classList.remove('is-paused');
+  }
 
-  /* Réinitialisation instantanée de la barre — sans animation pour
-     éviter tout artefact visuel lors du changement de morceau. */
+  currentTrackId = id; currentTrack = track;
+  /* Resolve pause state with timestamp sanity check */
+  const _tsS = track._timestampStart || 0;
+  const _tsE = track._timestampEnd   || 0;
+  const _now = Date.now();
+  const _tsConfirmsPlaying = _tsS > 0 && _tsE > _now && (_now - _tsS) > 500;
+  isPaused = _tsConfirmsPlaying ? false : (track._isPaused || false);
+  trackPausedAt = 0;
+
+  /* Reset progress bar instantly */
   $.progressBar.style.transition = 'none';
   $.progressBar.style.width      = '0%';
-  void $.progressBar.offsetWidth; // force reflow avant de ré-activer les transitions
+  void $.progressBar.offsetWidth;
   $.progressBar.style.transition  = '';
 
   $.artWrap.classList.add('playing');

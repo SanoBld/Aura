@@ -256,6 +256,21 @@
         <button class="btn-test-mode" id="btn-test-mode" data-i18n="sync_test_mode_btn">&#9654; Enable Test Mode</button>
       </div>
 
+      <!-- LANGUAGE -->
+      <div class="sync-section-header" data-i18n="sync_section_lang">Language</div>
+      <div class="sync-card sync-card-lang">
+        <div class="lang-selector" id="lang-selector" role="group" aria-label="Language">
+          <button class="lang-btn active" data-lang="en">
+            <span class="lang-flag">🇬🇧</span>
+            <span class="lang-name">English</span>
+          </button>
+          <button class="lang-btn" data-lang="fr">
+            <span class="lang-flag">🇫🇷</span>
+            <span class="lang-name">Français</span>
+          </button>
+        </div>
+      </div>
+
       <button class="sp-logout" id="btn-logout" data-i18n="sync_logout">Log out</button>
     </div>
 
@@ -540,12 +555,18 @@
       <div class="sp-section">
         <div class="sp-section-label" data-i18n="lyr_title_anim">🎵 Title entrance effect</div>
         <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.875rem">
-          <button class="sp-option active" data-title-anim="fade-up" data-i18n="lyr_title_rise">Rise</button>
-          <button class="sp-option" data-title-anim="slide-left" data-i18n="lyr_title_slide">Slide</button>
-          <button class="sp-option" data-title-anim="scale-in" data-i18n="lyr_title_zoom">Zoom</button>
-          <button class="sp-option" data-title-anim="blur-in" data-i18n="lyr_title_blur">Blur</button>
-          <button class="sp-option" data-title-anim="split" data-i18n="lyr_title_split">Split</button>
-          <button class="sp-option" data-title-anim="none" data-i18n="lyr_title_none">None</button>
+          <button class="sp-option active" data-title-anim="fade-up"    data-i18n="lyr_title_rise">Rise</button>
+          <button class="sp-option" data-title-anim="fade-down"         data-i18n="lyr_title_drop">Drop</button>
+          <button class="sp-option" data-title-anim="slide-left"        data-i18n="lyr_title_slide">Slide</button>
+          <button class="sp-option" data-title-anim="slide-right"       data-i18n="lyr_title_slide_r">Slide ←</button>
+          <button class="sp-option" data-title-anim="scale-in"          data-i18n="lyr_title_zoom">Zoom</button>
+          <button class="sp-option" data-title-anim="scale-down"        data-i18n="lyr_title_zoom_out">Zoom out</button>
+          <button class="sp-option" data-title-anim="blur-in"           data-i18n="lyr_title_blur">Blur</button>
+          <button class="sp-option" data-title-anim="flip-x"            data-i18n="lyr_title_flip">Flip</button>
+          <button class="sp-option" data-title-anim="swing"             data-i18n="lyr_title_swing">Swing</button>
+          <button class="sp-option" data-title-anim="split"             data-i18n="lyr_title_split">Split</button>
+          <button class="sp-option" data-title-anim="glitch"            data-i18n="lyr_title_glitch">Glitch</button>
+          <button class="sp-option" data-title-anim="none"              data-i18n="lyr_title_none">None</button>
         </div>
       </div>
 

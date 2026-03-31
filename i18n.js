@@ -214,10 +214,16 @@
       lyr_autoscroll:       'Follow active line',
       lyr_title_anim:       '🎵 Title entrance effect',
       lyr_title_rise:       'Rise',
-      lyr_title_slide:      'Slide',
+      lyr_title_drop:       'Drop',
+      lyr_title_slide:      'Slide →',
+      lyr_title_slide_r:    'Slide ←',
       lyr_title_zoom:       'Zoom',
+      lyr_title_zoom_out:   'Zoom out',
       lyr_title_blur:       'Blur',
+      lyr_title_flip:       'Flip',
+      lyr_title_swing:      'Swing',
       lyr_title_split:      'Split',
+      lyr_title_glitch:     'Glitch',
       lyr_title_none:       'None',
       lyr_dots:             '✦ Glowing dots (color background)',
       lyr_show_dots:        'Show dots',
@@ -282,6 +288,13 @@
       stats_plays_track:    '× this track',
       stats_switch_album:   'Album',
       stats_switch_artist:  'Artist',
+      stats_scope_artist:   'artist plays',
+      stats_scope_album:    'album plays',
+      stats_my_artist:      'my plays',
+      stats_my_track:       'my plays',
+
+      /* Language section */
+      sync_section_lang:    'Language',
 
       /* Ctx menu */
       ctx_lastfm: 'Last.fm',
@@ -502,10 +515,16 @@
       lyr_autoscroll:       'Suivre la ligne en cours',
       lyr_title_anim:       '🎵 Effet d\'entrée du titre',
       lyr_title_rise:       'Monte',
-      lyr_title_slide:      'Glisse',
+      lyr_title_drop:       'Descend',
+      lyr_title_slide:      'Glisse →',
+      lyr_title_slide_r:    'Glisse ←',
       lyr_title_zoom:       'Zoom',
+      lyr_title_zoom_out:   'Zoom arrière',
       lyr_title_blur:       'Flou',
+      lyr_title_flip:       'Flip',
+      lyr_title_swing:      'Swing',
       lyr_title_split:      'Éclatement',
+      lyr_title_glitch:     'Glitch',
       lyr_title_none:       'Aucun',
       lyr_dots:             '✦ Points lumineux (fond couleurs)',
       lyr_show_dots:        'Afficher les points',
@@ -570,6 +589,13 @@
       stats_plays_track:    '× ce titre',
       stats_switch_album:   'Album',
       stats_switch_artist:  'Artiste',
+      stats_scope_artist:   'écoutes artiste',
+      stats_scope_album:    'écoutes album',
+      stats_my_artist:      'mes écoutes',
+      stats_my_track:       'mes écoutes',
+
+      /* Language section */
+      sync_section_lang:    'Langue',
 
       /* Ctx menu */
       ctx_lastfm: 'Last.fm',

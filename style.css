@@ -2383,3 +2383,55 @@ body.dots-sparkle .title-dot:nth-child(5) { top: 85%; left: 50%; transform: tran
   #lyrics-panel, #hist-panel { height: 88vh; }
   .lp-body { max-height: 75vh; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   WORD-LEVEL LYRICS — karaoke highlight
+   Added in share.js v2.0 / script.js v10
+════════════════════════════════════════════════════════════════════════════ */
+
+/* Word spans within an LRC line */
+.lrc-line-words .lrc-word {
+  display: inline;
+  transition: color 0.08s ease, text-shadow 0.12s ease, opacity 0.08s ease;
+}
+
+/* Non-active lines: all words at inactive opacity */
+.lrc-line:not(.active) .lrc-word {
+  color: inherit;
+  opacity: 1;
+}
+
+/* Active line future words */
+.lrc-line.active .lrc-word.word-future {
+  color: var(--lyrics-inactive-color);
+  opacity: 0.55;
+}
+
+/* Active line past words */
+.lrc-line.active .lrc-word.word-past {
+  color: var(--lyrics-active-color);
+  opacity: 0.72;
+  text-shadow: none;
+}
+
+/* Currently spoken word */
+.lrc-line.active .lrc-word.word-current {
+  color: var(--lyrics-active-color);
+  opacity: 1;
+  text-shadow:
+    0 0 20px var(--lyrics-active-color),
+    0 0 40px rgba(var(--accent-rgb, 224,36,94), 0.35);
+  animation: wordPop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes wordPop {
+  from { transform: scale(0.9); }
+  to   { transform: scale(1); }
+}
+
+/* Ensure word spans don't break layout */
+.lrc-line.lrc-line-words {
+  display: block;
+  word-break: break-word;
+  white-space: normal;
+}

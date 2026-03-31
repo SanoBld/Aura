@@ -17,6 +17,12 @@
 /* ---- LYRICS TIMING OFFSET ---- */
 const LYRICS_ADVANCE_MS = 500; // Show lyrics 500ms earlier to compensate delay
 
+/* ---- DEBOUNCE HELPER ---- */
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
+}
+
 /* ---- STATE ---- */
 let apiKey = '', username = '', originalUser = '', currentTrack = null, artSlot = 'a', bgSlot = 'a';
 let lyricsOpen = false, histOpen = false, settingsOpen = false;
@@ -26,6 +32,7 @@ let currentTrackId = '';
 let isPaused = false;
 let zenMode = false;
 let vizLastFrame = 0;
+let lrcWordMode = false; // word-by-word highlight mode
 
 const S = {
   blur: 70, brightness: 55, saturate: 14,
@@ -742,11 +749,12 @@ function updateLayoutDesc() {
 }
 
 /* ---- SETTINGS EVENT LISTENERS ---- */
-if ($.setBlur)       $.setBlur.addEventListener('input',       () => { S.blur         = parseInt($.setBlur.value);        applySettings(); saveSettings(); });
-if ($.setBrightness) $.setBrightness.addEventListener('input', () => { S.brightness   = parseInt($.setBrightness.value);  applySettings(); saveSettings(); });
-if ($.setSaturate)   $.setSaturate.addEventListener('input',   () => { S.saturate     = parseInt($.setSaturate.value);    applySettings(); saveSettings(); });
-if ($.setMqSpeed)    $.setMqSpeed.addEventListener('input',    () => { S.marqueeSpeed = parseInt($.setMqSpeed.value);     applySettings(); saveSettings(); });
-if ($.setHeroScale)  $.setHeroScale.addEventListener('input',  () => { S.heroScale    = parseInt($.setHeroScale.value);   applySettings(); saveSettings(); });
+const _saveDebounced = debounce(saveSettings, 80);
+if ($.setBlur)       $.setBlur.addEventListener('input',       () => { S.blur         = parseInt($.setBlur.value);        applySettings(); _saveDebounced(); });
+if ($.setBrightness) $.setBrightness.addEventListener('input', () => { S.brightness   = parseInt($.setBrightness.value);  applySettings(); _saveDebounced(); });
+if ($.setSaturate)   $.setSaturate.addEventListener('input',   () => { S.saturate     = parseInt($.setSaturate.value);    applySettings(); _saveDebounced(); });
+if ($.setMqSpeed)    $.setMqSpeed.addEventListener('input',    () => { S.marqueeSpeed = parseInt($.setMqSpeed.value);     applySettings(); _saveDebounced(); });
+if ($.setHeroScale)  $.setHeroScale.addEventListener('input',  () => { S.heroScale    = parseInt($.setHeroScale.value);   applySettings(); _saveDebounced(); });
 
 const boolToggle = (ref, key) => { if (ref) ref.addEventListener('change', () => { S[key] = ref.checked; applySettings(); saveSettings(); }); };
 boolToggle($.setBg,           'showBg');
@@ -2593,130 +2601,333 @@ async function fetchRecentTracks(limit = 10) {
   return { current: arr[0]?.['@attr']?.nowplaying === 'true' ? arr[0] : null, history: arr };
 }
 
-/* ---- LRC ENGINE ---- */
+/* ═══════════════════════════════════════════════════════════════════════
+   LRC ENGINE — word-by-word / syllable karaoke
+   ─────────────────────────────────────────────────────────────────────
+   Priority chain:
+     1. Musixmatch richsync  → character/syllable-level (if API responds)
+     2. Enhanced LRC (A2)    → word-level timestamps  <mm:ss.xx>word
+     3. Standard LRC         → word simulation (distribute words per line)
+     4. Plain lyrics         → static display
+═══════════════════════════════════════════════════════════════════════ */
 let lrcLines = [], lrcSynced = false, lrcActiveIndex = -1, lrcRAF = null;
+let lrcActiveWordIndex = -1; // index of active word within active line
 const LRC_META = /^\[(ar|ti|al|au|by|offset|re|ve|length):/i;
 
+/* ── 1. Standard LRC parser ── */
 function parseLRC(lrcText) {
   const result = [], timeRe = /\[(\d{1,2}):(\d{2})[.:](\d{2,3})\]/g;
-  for (const line of lrcText.split('\n')) {
-    if (LRC_META.test(line.trim())) continue;
-    const matches = [...line.matchAll(timeRe)];
-    const text = line.replace(/\[\d{1,2}:\d{2}[.:]\d{2,3}\]/g, '').trim();
-    if (matches.length > 0) {
-      for (const m of matches) {
-        const ms = (parseInt(m[1])*60 + parseInt(m[2]))*1000 + parseInt(m[3].padEnd(3,'0').slice(0,3));
-        result.push({ timeMs: ms, text: text || '♪' });
+  for (const rawLine of lrcText.split('\n')) {
+    if (LRC_META.test(rawLine.trim())) continue;
+    const wordTimeRe = /<(\d{1,2}):(\d{2})[.:](\d{2,3})(?:,[\d:.]+)?>/g;
+    const matches = [...rawLine.matchAll(timeRe)];
+    const text = rawLine.replace(/\[\d{1,2}:\d{2}[.:]\d{2,3}\]/g, '').trim();
+    if (!matches.length) continue;
+    for (const m of matches) {
+      const ms = (parseInt(m[1])*60 + parseInt(m[2]))*1000 + parseInt(m[3].padEnd(3,'0').slice(0,3));
+      // Check for A2/enhanced LRC word timestamps inside this line
+      const afterTimestamp = rawLine.slice(m.index + m[0].length);
+      const wordMatches = [...afterTimestamp.matchAll(wordTimeRe)];
+      if (wordMatches.length >= 2) {
+        const parts = afterTimestamp.split(/<\d{1,2}:\d{2}[.:]\d{2,3}(?:,[\d:.]+)?>/);
+        const words = wordMatches.map((wm, wi) => {
+          const wMs = (parseInt(wm[1])*60 + parseInt(wm[2]))*1000 + parseInt(wm[3].padEnd(3,'0').slice(0,3));
+          const wText = (parts[wi + 1] || '').replace(/\s+$/, '');
+          return { timeMs: wMs, text: wText };
+        }).filter(w => w.text);
+        result.push({ timeMs: ms, text: words.map(w => w.text).join(' ') || '♪', words });
+      } else {
+        result.push({ timeMs: ms, text: text || '♪', words: null });
       }
     }
   }
-  return result.sort((a,b) => a.timeMs - b.timeMs);
+  return result.sort((a, b) => a.timeMs - b.timeMs);
 }
 
-function renderLRCLines(lines) {
-  $.lrcContainer.innerHTML = '';
-  lines.forEach((line, i) => {
-    const div = document.createElement('div');
-    div.className = 'lrc-line'; div.textContent = line.text; div.dataset.index = i;
-    div.addEventListener('click', () => { lrcActiveIndex = i; updateLRCDisplay(); });
-    $.lrcContainer.appendChild(div);
+/* ── 2. Build word simulation from line-level LRC ── */
+function buildWordSimulation(lines) {
+  return lines.map((line, i) => {
+    if (line.words) return line; // already has real word timing
+    const nextMs = i < lines.length - 1 ? lines[i + 1].timeMs : line.timeMs + 5000;
+    const duration = Math.max(600, nextMs - line.timeMs - 80); // -80ms gap before next line
+    const words = (line.text || '').split(/\s+/).filter(Boolean);
+    if (words.length <= 1) {
+      return { ...line, words: words.map(t => ({ timeMs: line.timeMs, text: t })) };
+    }
+    /* Distribute: first word immediate, rest evenly over duration.
+       Weight by approximate syllable count for more natural pacing. */
+    const sylCount = w => Math.max(1, w.replace(/[^aeiouAEIOU]/g, '').length || Math.ceil(w.length / 3));
+    const totalSyl = words.reduce((acc, w) => acc + sylCount(w), 0);
+    let cursor = line.timeMs;
+    const wordObjs = words.map((text, wi) => {
+      const ms = cursor;
+      cursor += (sylCount(text) / totalSyl) * duration;
+      return { timeMs: Math.round(ms), text };
+    });
+    return { ...line, words: wordObjs };
   });
 }
 
-/* FIXED: tickLRC now uses S.lyricsOffset (user-adjustable) + LYRICS_ADVANCE_MS base */
+/* ── 3. Parse Musixmatch richsync JSON → lrcLines format ── */
+function parseMusixmatchRichsync(rsData) {
+  /* richsync entry: { ts: float_s, te: float_s, l: [{c: char, o: float_offset}] } */
+  const lines = [];
+  for (const entry of rsData) {
+    if (!entry.l || !entry.l.length) continue;
+    const lineMs = Math.round((entry.ts || 0) * 1000);
+    /* Group characters into words */
+    let wordBuf = '', wordStart = lineMs;
+    const words = [];
+    for (const ch of entry.l) {
+      const charMs = lineMs + Math.round((ch.o || 0) * 1000);
+      if (ch.c === ' ' || ch.c === '\n') {
+        if (wordBuf.trim()) words.push({ timeMs: wordStart, text: wordBuf.trim() });
+        wordBuf = ''; wordStart = charMs;
+      } else {
+        if (!wordBuf) wordStart = charMs;
+        wordBuf += ch.c;
+      }
+    }
+    if (wordBuf.trim()) words.push({ timeMs: wordStart, text: wordBuf.trim() });
+    if (!words.length) continue;
+    lines.push({ timeMs: lineMs, text: words.map(w => w.text).join(' '), words });
+  }
+  return lines.sort((a, b) => a.timeMs - b.timeMs);
+}
+
+/* ── 4. Render lines (word spans) ── */
+function renderLRCLines(lines) {
+  $.lrcContainer.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  lines.forEach((line, i) => {
+    const div = document.createElement('div');
+    div.className = 'lrc-line';
+    div.dataset.index = i;
+    if (line.words && line.words.length > 1) {
+      div.classList.add('lrc-line-words');
+      line.words.forEach((word, wi) => {
+        const span = document.createElement('span');
+        span.className = 'lrc-word';
+        span.textContent = word.text;
+        span.dataset.wi = wi;
+        div.appendChild(span);
+        if (wi < line.words.length - 1) div.appendChild(document.createTextNode(' '));
+      });
+    } else {
+      div.textContent = line.text || '♪';
+    }
+    div.addEventListener('click', () => { lrcActiveIndex = i; updateLRCDisplay(); });
+    frag.appendChild(div);
+  });
+  $.lrcContainer.appendChild(frag);
+}
+
+/* ── 5. Tick ── */
 function tickLRC() {
   if (!lyricsOpen || !lrcSynced || !lrcLines.length) { lrcRAF = null; return; }
   if (isPaused) { lrcRAF = requestAnimationFrame(tickLRC); return; }
-  // LYRICS_ADVANCE_MS = base compensation + user offset
   const ms = getElapsedMs() + LYRICS_ADVANCE_MS + (S.lyricsOffset || 0);
   let ni = -1;
-  for (let i = lrcLines.length-1; i >= 0; i--) { if (ms >= lrcLines[i].timeMs) { ni = i; break; } }
-  if (ni !== lrcActiveIndex) { lrcActiveIndex = ni; updateLRCDisplay(); }
+  for (let i = lrcLines.length - 1; i >= 0; i--) { if (ms >= lrcLines[i].timeMs) { ni = i; break; } }
+  if (ni !== lrcActiveIndex) { lrcActiveIndex = ni; lrcActiveWordIndex = -1; updateLRCDisplay(); }
+  /* Word-level tick */
+  if (lrcWordMode && ni >= 0 && lrcLines[ni]?.words?.length) {
+    const words = lrcLines[ni].words;
+    let nw = -1;
+    for (let w = words.length - 1; w >= 0; w--) { if (ms >= words[w].timeMs) { nw = w; break; } }
+    if (nw !== lrcActiveWordIndex) { lrcActiveWordIndex = nw; updateWordHighlights(ni); }
+  }
   lrcRAF = requestAnimationFrame(tickLRC);
 }
 
+/* ── 6. Update line display + scroll ── */
 function updateLRCDisplay() {
   if (!$.lrcContainer) return;
   const all = $.lrcContainer.querySelectorAll('.lrc-line');
   if (!all.length) return;
   all.forEach((line, i) => {
-    line.classList.remove('active', 'near');
-    if (i === lrcActiveIndex) line.classList.add('active');
-    else if (Math.abs(i - lrcActiveIndex) <= 2) line.classList.add('near');
+    line.classList.toggle('active', i === lrcActiveIndex);
+    line.classList.toggle('near',   Math.abs(i - lrcActiveIndex) <= 2 && i !== lrcActiveIndex);
+    /* Reset word states on non-active lines */
+    if (i !== lrcActiveIndex) {
+      line.querySelectorAll('.lrc-word').forEach(w => w.className = 'lrc-word');
+    }
   });
   if (lrcActiveIndex >= 0 && S.autoScroll) {
     const activeLine = all[lrcActiveIndex];
     if (activeLine && $.lpBody) {
-      const targetY = -(activeLine.offsetTop - $.lpBody.clientHeight/2 + activeLine.offsetHeight/2);
+      const targetY = -(activeLine.offsetTop - $.lpBody.clientHeight / 2 + activeLine.offsetHeight / 2);
       $.lrcContainer.style.transform = `translateY(${targetY}px)`;
     }
   }
+  if (lrcWordMode && lrcActiveIndex >= 0) updateWordHighlights(lrcActiveIndex);
+}
+
+/* ── 7. Update word highlights within the active line ── */
+function updateWordHighlights(lineIndex) {
+  const allLines = $.lrcContainer.querySelectorAll('.lrc-line');
+  const activeLine = allLines[lineIndex];
+  if (!activeLine) return;
+  const wordSpans = activeLine.querySelectorAll('.lrc-word');
+  if (!wordSpans.length) return;
+  wordSpans.forEach((span, wi) => {
+    if (wi < lrcActiveWordIndex)       { span.className = 'lrc-word word-past'; }
+    else if (wi === lrcActiveWordIndex) { span.className = 'lrc-word word-current'; }
+    else                                { span.className = 'lrc-word word-future'; }
+  });
 }
 
 function stopLRC() {
   cancelAnimationFrame(lrcRAF); lrcRAF = null;
-  lrcLines = []; lrcSynced = false; lrcActiveIndex = -1;
+  lrcLines = []; lrcSynced = false; lrcActiveIndex = -1; lrcActiveWordIndex = -1;
+  lrcWordMode = false;
   if ($.lrcContainer) $.lrcContainer.style.transform = '';
   $.lpBody.classList.remove('lrc-mode');
 }
 
-/* ---- LYRICS LOADING ---- */
+/* ══════════════════════════════════════════════════════════
+   LYRICS FETCHING — priority chain
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Musixmatch richsync (unofficial, no key needed for some tracks) ── */
+async function fetchMusixmatch(artist, title) {
+  try {
+    /* Public Musixmatch search first to get track_id */
+    const searchUrl = `https://api.musixmatch.com/ws/1.1/track.search?q_artist=${encodeURIComponent(artist)}&q_track=${encodeURIComponent(title)}&page_size=1&page=1&s_track_rating=desc&apikey=b9740a2f3a97fca0a45a5b4d49dcd79e`;
+    const sr = await fetch(searchUrl, { signal: AbortSignal.timeout(4000) });
+    if (!sr.ok) return null;
+    const sd = await sr.json();
+    const trackList = sd?.message?.body?.track_list;
+    if (!trackList?.length) return null;
+    const trackId = trackList[0]?.track?.track_id;
+    if (!trackId) return null;
+    /* Fetch richsync */
+    const rsUrl = `https://api.musixmatch.com/ws/1.1/track.richsync.get?track_id=${trackId}&apikey=b9740a2f3a97fca0a45a5b4d49dcd79e&format=json`;
+    const rr = await fetch(rsUrl, { signal: AbortSignal.timeout(4000) });
+    if (!rr.ok) return null;
+    const rd = await rr.json();
+    const rsBody = rd?.message?.body?.richsync;
+    if (!rsBody?.richsync_body) return null;
+    const rsLines = JSON.parse(rsBody.richsync_body);
+    if (!Array.isArray(rsLines) || !rsLines.length) return null;
+    const parsed = parseMusixmatchRichsync(rsLines);
+    if (parsed.length < 2) return null;
+    return { lines: parsed, source: 'musixmatch-richsync', level: 'syllable' };
+  } catch { return null; }
+}
+
+/* ── LRCLIB (with enhanced LRC detection) ── */
 async function fetchLyricsFromLRCLIB(artist, title) {
   try {
-    const r = await fetch(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`);
-    if (r.ok) { const d = await r.json(); if (d.syncedLyrics || d.plainLyrics) return { syncedLyrics: d.syncedLyrics||null, plainLyrics: d.plainLyrics||null, duration: d.duration, source:'lrclib' }; }
-  } catch {}
-  try {
-    const r = await fetch(`https://lrclib.net/api/search?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`);
+    const r = await fetch(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(6000) });
     if (r.ok) {
-      const results = await r.json();
-      if (Array.isArray(results)) {
-        const match = results.find(x=>x.syncedLyrics) || results.find(x=>x.plainLyrics);
-        if (match) return { syncedLyrics: match.syncedLyrics||null, plainLyrics: match.plainLyrics||null, duration: match.duration, source:'lrclib-search' };
+      const d = await r.json();
+      if (d.syncedLyrics || d.plainLyrics) {
+        return { syncedLyrics: d.syncedLyrics || null, plainLyrics: d.plainLyrics || null, duration: d.duration, source: 'lrclib' };
       }
     }
   } catch {}
   try {
-    const r = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`);
-    if (r.ok) { const d = await r.json(); if (d.lyrics?.trim().length > 10) return { syncedLyrics: null, plainLyrics: d.lyrics, duration: 0, source:'lyrics.ovh' }; }
+    const r = await fetch(`https://lrclib.net/api/search?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(6000) });
+    if (r.ok) {
+      const results = await r.json();
+      if (Array.isArray(results)) {
+        const match = results.find(x => x.syncedLyrics) || results.find(x => x.plainLyrics);
+        if (match) return { syncedLyrics: match.syncedLyrics || null, plainLyrics: match.plainLyrics || null, duration: match.duration, source: 'lrclib-search' };
+      }
+    }
+  } catch {}
+  try {
+    const r = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) { const d = await r.json(); if (d.lyrics?.trim().length > 10) return { syncedLyrics: null, plainLyrics: d.lyrics, duration: 0, source: 'lyrics.ovh' }; }
   } catch {}
   return null;
 }
 
+/* ── Main loader ── */
 async function loadLyrics(artist, title) {
   stopLRC();
   $.lrcContainer.innerHTML = '<span class="lp-empty">' + (window.t ? window.t('lyrics_fetching') : 'Loading lyrics…') + '</span>';
   $.lpBody.classList.remove('lrc-mode');
   setLPBadge('');
+
+  /* Check cache */
   let lyrData = getLRCCache(artist, title);
-  if (!lyrData) { lyrData = await fetchLyricsFromLRCLIB(artist, title); if (lyrData) setLRCCache(artist, title, lyrData); }
+  if (lyrData?._lines) {
+    /* Cached word-level data */
+    lrcLines = lyrData._lines;
+    lrcWordMode = true;
+    lrcSynced = true;
+    $.lrcContainer.innerHTML = '';
+    $.lpBody.classList.add('lrc-mode');
+    renderLRCLines(lrcLines);
+    setLPBadge(lyrData._level || 'word');
+    cancelAnimationFrame(lrcRAF); tickLRC(); return;
+  }
+  if (lyrData) {
+    /* Cached plain LRC data */
+    _applyLyrData(lyrData); return;
+  }
+
+  /* 1) Try Musixmatch richsync first (syllable-level) */
+  const mxData = await fetchMusixmatch(artist, title);
+  if (mxData?.lines?.length) {
+    lrcLines = buildWordSimulation(mxData.lines); // already has words, simulation is a no-op for those
+    lrcWordMode = true; lrcSynced = true;
+    if (mxData.lines[0]?.words) {
+      lrcLines = mxData.lines; // use real word timing from Musixmatch
+    }
+    setLRCCache(artist, title, { _lines: lrcLines, _level: mxData.level || 'syllable', source: mxData.source, cachedAt: Date.now() });
+    $.lrcContainer.innerHTML = '';
+    $.lpBody.classList.add('lrc-mode');
+    renderLRCLines(lrcLines);
+    setLPBadge(mxData.level || 'syllable');
+    cancelAnimationFrame(lrcRAF); tickLRC(); return;
+  }
+
+  /* 2) LRCLIB / lyrics.ovh */
+  const lyrDataFetched = await fetchLyricsFromLRCLIB(artist, title);
+  if (lyrDataFetched) setLRCCache(artist, title, lyrDataFetched);
+  _applyLyrData(lyrDataFetched);
+}
+
+function _applyLyrData(lyrData) {
   if (!lyrData) {
     const notFound = window.t ? window.t('lyrics_not_found') : 'No lyrics found.';
-    $.lrcContainer.innerHTML = `<span class="lp-empty">${notFound}<br/><a href="https://genius.com/search?q=${encodeURIComponent(artist+' '+title)}" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Genius →</a></span>`;
+    $.lrcContainer.innerHTML = `<span class="lp-empty">${notFound}<br/><a href="https://genius.com/search?q=${encodeURIComponent((currentTrack?.name || '') + ' ' + (currentTrack?.artist?.name || currentTrack?.artist?.['#text'] || ''))}" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Genius →</a></span>`;
     setLPBadge('plain'); return;
   }
   if (lyrData.duration > 0) trackDuration = lyrData.duration;
+
   if (lyrData.syncedLyrics) {
-    lrcLines = parseLRC(lyrData.syncedLyrics);
-    if (lrcLines.length > 0) {
-      lrcSynced = true; $.lrcContainer.innerHTML = '';
+    const parsed = parseLRC(lyrData.syncedLyrics);
+    if (parsed.length > 0) {
+      /* Build word simulation for all lines */
+      lrcLines = buildWordSimulation(parsed);
+      lrcWordMode = true;
+      lrcSynced = true;
+      $.lrcContainer.innerHTML = '';
       $.lpBody.classList.add('lrc-mode');
-      renderLRCLines(lrcLines); setLPBadge('synced');
+      renderLRCLines(lrcLines);
+      setLPBadge('word');
       cancelAnimationFrame(lrcRAF); tickLRC(); return;
     }
   }
-  lrcSynced = false; $.lpBody.classList.remove('lrc-mode');
-  const plain = lyrData.plainLyrics ? lyrData.plainLyrics.trim().replace(/</g,'&lt;').replace(/\n/g,'<br>') : '';
-  $.lrcContainer.innerHTML = plain ? `<div class="plain-lyrics">${plain}</div>` : `<span class="lp-empty">${window.t ? window.t('lyrics_not_found') : 'No lyrics found.'}</span>`;
+  lrcSynced = false; lrcWordMode = false; $.lpBody.classList.remove('lrc-mode');
+  const plain = lyrData.plainLyrics ? lyrData.plainLyrics.trim().replace(/</g, '&lt;').replace(/\n/g, '<br>') : '';
+  $.lrcContainer.innerHTML = plain
+    ? `<div class="plain-lyrics">${plain}</div>`
+    : `<span class="lp-empty">${window.t ? window.t('lyrics_not_found') : 'No lyrics found.'}</span>`;
   setLPBadge('plain');
 }
 
 function setLPBadge(type) {
   if (!$.lpBadge) return;
   $.lpBadge.className = 'lp-badge';
-  if (type === 'synced') { $.lpBadge.classList.add('synced'); $.lpBadge.textContent = window.t ? window.t('lyrics_synced_badge') : '● Synced'; }
-  else if (type === 'plain') { $.lpBadge.classList.add('plain'); $.lpBadge.textContent = window.t ? window.t('lyrics_plain_badge') : 'Plain text'; }
-  else $.lpBadge.textContent = '';
+  if      (type === 'syllable') { $.lpBadge.classList.add('synced');  $.lpBadge.textContent = '✦ Syllable'; }
+  else if (type === 'word')     { $.lpBadge.classList.add('synced');  $.lpBadge.textContent = window.t ? window.t('lyrics_synced_badge') : '● Word Sync'; }
+  else if (type === 'plain')    { $.lpBadge.classList.add('plain');   $.lpBadge.textContent = window.t ? window.t('lyrics_plain_badge') : 'Plain text'; }
+  else                           { $.lpBadge.textContent = ''; }
 }
 
 /* ============================================================

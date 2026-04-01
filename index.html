@@ -45,8 +45,20 @@
       <span class="l-cached-arrow">&rarr;</span>
     </div>
     <div id="l-error"></div>
+
+    <!-- REMOTE MODE -->
+    <div class="l-rc-divider"></div>
+    <button class="l-rc-toggle" id="btn-rc-toggle" type="button">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M17 1H7C5.9 1 5 1.9 5 3v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm-5 20c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm5-4H7V4h10v13z"/></svg>
+      <span data-i18n="login_rc_btn">Mode Télécommande</span>
+    </button>
+    <div class="l-rc-form" id="rc-form" style="display:none">
+      <input type="text" id="rc-code-input" placeholder="Code (ex: AB3F7K)" maxlength="6" autocomplete="off" spellcheck="false" inputmode="text"/>
+      <button class="l-rc-connect" id="btn-rc-connect" type="button">Connecter →</button>
+      <div class="l-rc-error" id="rc-error"></div>
+    </div>
+
     <button id="lang-toggle" class="l-lang-toggle" aria-label="Switch language">FR</button>
-    <a href="?remote=true" class="l-remote-link" data-i18n="login_remote_link">Use as Remote Control →</a>
   </div>
 </div>
 
@@ -273,6 +285,12 @@
       </div>
 
       <button class="sp-logout" id="btn-logout" data-i18n="sync_logout">Log out</button>
+      <!-- TÉLÉCOMMANDE — code affiché ici par remote.js -->
+      <div class="sync-section-header" data-i18n="sync_section_rc">Télécommande</div>
+      <div class="sync-card" id="rc-display-section">
+        <div class="rc-config-note" style="font-size:.75rem;opacity:.45">Chargement…</div>
+      </div>
+
     </div>
 
     <!-- TAB 2: DISPLAY -->
@@ -419,6 +437,18 @@
           <button class="sp-option" data-bg="dark" data-i18n="app_bg_dark">Dark</button>
           <button class="sp-option" data-bg="titlecolor" data-i18n="app_bg_title">🌈 Title</button>
         </div>
+        <div id="sp-titlecolor-ambiance" style="display:none">
+          <div style="margin-bottom:.75rem">
+            <div class="sp-section-label" style="margin-bottom:.375rem;border-bottom:none;padding-bottom:0">Luminosité <span class="sp-slider-val" id="val-title-color-brightness">100%</span></div>
+            <input type="range" class="sp-slider" id="set-title-color-brightness" min="10" max="200" value="100"/>
+            <div class="sp-slider-label"><span>Sombre</span><span>Vif</span></div>
+          </div>
+          <div>
+            <div class="sp-section-label" style="margin-bottom:.375rem;border-bottom:none;padding-bottom:0">Contraste <span class="sp-slider-val" id="val-title-color-contrast">100%</span></div>
+            <input type="range" class="sp-slider" id="set-title-color-contrast" min="50" max="150" value="100"/>
+            <div class="sp-slider-label"><span>Doux</span><span>Fort</span></div>
+          </div>
+        </div>
         <div class="sp-row" style="margin-bottom:0.5rem">
           <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)" data-i18n="app_bg_movement">Background movement</span>
         </div>
@@ -483,6 +513,22 @@
 
     <!-- TAB 4: LYRICS -->
     <div class="sp-tab-pane" id="tab-lyrics" role="tabpanel">
+
+      <div class="sp-section">
+        <div class="sp-section-label">🎬 Render mode</div>
+        <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.5rem">
+          <button class="sp-option" data-lrc-render="basic">Static</button>
+          <button class="sp-option" data-lrc-render="scroll">Scroll</button>
+          <button class="sp-option sp-option active" data-lrc-render="phrase">Phrase</button>
+          <button class="sp-option" data-lrc-render="karaoke">🎤 Karaoke</button>
+        </div>
+        <div id="sp-karaoke-opts" style="display:none;margin-top:.75rem">
+          <div class="sp-row">
+            <span class="sp-row-label">✨ Progressive fill</span>
+            <label class="toggle"><input type="checkbox" id="set-karaoke-fill" checked aria-label="Progressive fill"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+        </div>
+      </div>
 
       <div class="sp-section">
         <div class="sp-section-label"><span data-i18n="lyr_size">Text size</span> <span class="sp-slider-val" id="set-lyrics-size-val">100%</span></div>
@@ -717,5 +763,6 @@
 <script src="i18n.js"></script>
 <script src="script.js"></script>
 <script src="share.js"></script>
+<script src="remote.js"></script>
 </body>
 </html>

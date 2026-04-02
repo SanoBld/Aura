@@ -36,6 +36,7 @@ function rcInitDisplay() {
     _rcBC = new BroadcastChannel('aura_rc_' + _rcCode);
     _rcBC.onmessage = ev => { if (ev.data?._from === 'remote') _rcApplyRemoteData(ev.data); };
   }
+  /* Listen for commands from remote via localStorage polling */
   const _lsInKey = _lsKey(_rcCode + '_cmd');
   _rcPollTO = setInterval(() => {
     try {
@@ -45,7 +46,8 @@ function rcInitDisplay() {
     } catch {}
   }, RC_LS_POLL_MS);
   if (_fbOK()) _rcListenFB();
-  rcPushNow();
+  /* Delay push to ensure window.S is fully initialised */
+  setTimeout(rcPushNow, 50);
   rcRenderCodeBadge(_rcCode);
 }
 
@@ -277,15 +279,25 @@ function _rcBuildHTML(d) {
 
 function rcRenderCodeBadge(code) {
   const el = document.getElementById('rc-display-section'); if (!el) return;
-  const transport = typeof BroadcastChannel !== 'undefined' ? '⚡ BroadcastChannel' : '📡 LocalStorage';
+  const hasBc = typeof BroadcastChannel !== 'undefined';
+  const hasFb = _fbOK();
+  const transport = hasFb ? '🌐 Firebase (cross-réseau)' : hasBc ? '⚡ BroadcastChannel' : '📡 LocalStorage';
+  const scope = hasFb ? 'Fonctionne sur tous les appareils.' : 'Fonctionne entre onglets du même navigateur uniquement.';
+  const remoteUrl = location.href.split('?')[0] + '?rcmode=remote&code=' + code;
   el.innerHTML = `<div class="rc-code-block">
     <div class="rc-code-label">Code télécommande</div>
     <div class="rc-code-value">${code}</div>
-    <button class="rc-copy-btn" id="rc-copy-btn">Copier</button>
-    <p class="rc-code-hint">Transport : ${transport}${_fbOK()?' + Firebase':''}<br>Ouvre un nouvel onglet et entre ce code.</p>
+    <div style="display:flex;gap:6px;margin-top:4px">
+      <button class="rc-copy-btn" id="rc-copy-btn">Copier le code</button>
+      <button class="rc-copy-btn" id="rc-copy-link-btn" style="flex:1">Copier le lien</button>
+    </div>
+    <p class="rc-code-hint">${transport} — ${scope}${!hasFb ? '<br><span style="opacity:.5">Pour cross-réseau, configurer <code>AURA_RTDB_URL</code> dans remote.js</span>' : ''}</p>
   </div>`;
   document.getElementById('rc-copy-btn')?.addEventListener('click', function() {
-    navigator.clipboard.writeText(code).then(() => { this.textContent='✓ Copié!'; setTimeout(()=>{this.textContent='Copier';},1500); }).catch(()=>{});
+    navigator.clipboard.writeText(code).then(() => { this.textContent='✓ Copié!'; setTimeout(()=>{this.textContent='Copier le code';},1500); }).catch(()=>{});
+  });
+  document.getElementById('rc-copy-link-btn')?.addEventListener('click', function() {
+    navigator.clipboard.writeText(remoteUrl).then(() => { this.textContent='✓ Lien copié!'; setTimeout(()=>{this.textContent='Copier le lien';},1500); }).catch(()=>{});
   });
 }
 

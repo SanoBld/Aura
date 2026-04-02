@@ -39,6 +39,9 @@
   --mq-speed:      38s;
   --hero-scale:    1;
   --lyrics-size:   1;
+  --lyrics-weight:         400;
+  --lyrics-letter-spacing: 0em;
+  --lyrics-line-height:    1.8;
 
   /* [NEW] Lyrics backdrop blur (controlled by slider) */
   --lyrics-backdrop-blur: 0px;
@@ -915,8 +918,10 @@ body.lyrics-pos-bottom #lrc-container { padding: 12vh 0.5rem 16vh; }
   transform: scale(.96);
   transform-origin: center center;
   transition: opacity .4s var(--ease), filter .4s var(--ease), color .4s var(--ease), transform .35s var(--spring);
-  cursor: pointer; line-height: 1.8; white-space: pre-wrap;
+  cursor: pointer; line-height: var(--lyrics-line-height, 1.8); white-space: pre-wrap;
   text-shadow: var(--text-shadow-legible);
+  font-weight: var(--lyrics-weight, 400);
+  letter-spacing: var(--lyrics-letter-spacing, 0em);
 }
 .lrc-line.active {
   color: var(--lyrics-active-color);
@@ -1088,15 +1093,21 @@ body.lf-display .lrc-line { font-family: 'Bebas Neue', sans-serif !important; fo
 }
 .sp-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.75rem; letter-spacing: .08em; color: #fff; margin-bottom: 1.25rem; }
 
-.sp-tabs { display: flex; gap: 2px; }
+.sp-tabs {
+  display: flex; gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sp-tabs::-webkit-scrollbar { display: none; }
 .sp-tab {
-  flex: 1; padding: 0.625rem 0.25rem;
+  flex: 0 0 auto; padding: 0.625rem 0.6rem;
   min-height: 44px;
   background: transparent; border: none; border-bottom: 2px solid transparent;
   color: var(--ui-dim);
   font-family: 'Instrument Sans', sans-serif;
-  font-size: 0.5625rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
-  cursor: pointer;
+  font-size: 0.5rem; font-weight: 500; letter-spacing: .07em; text-transform: uppercase;
+  cursor: pointer; white-space: nowrap;
   transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease), transform .15s var(--spring);
   border-radius: 6px 6px 0 0;
 }
@@ -2700,39 +2711,42 @@ body.lrc-render-karaoke .lrc-line.near {
   transform: scale(.97);
 }
 
-/* Karaoke word spans */
+/* Karaoke word spans — grey base ALWAYS visible */
 .kw {
   display: inline-block;
   position: relative;
   color: var(--lyrics-inactive-color);
-  transition: color .25s var(--ease);
+  transition: color .3s var(--ease);
   white-space: pre;
 }
 
-/* Progressive fill: clip-path reveals a colored overlay left→right */
+/* Active line words: base stays grey, ::after overlay slides from left */
 body.karaoke-fill .lrc-line.active .kw {
-  background: linear-gradient(
-    to right,
-    var(--lyrics-active-color) var(--kw-fill, 0%),
-    transparent           var(--kw-fill, 0%)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  transition: background .06s linear;
+  color: color-mix(in srgb, var(--lyrics-inactive-color) 60%, transparent);
+}
+body.karaoke-fill .lrc-line.active .kw::after {
+  content: attr(data-word);
+  position: absolute;
+  left: 0; top: 0;
+  color: var(--lyrics-active-color);
+  white-space: pre;
+  /* Clip reveals left→right based on --kw-fill */
+  clip-path: inset(0 calc(100% - var(--kw-fill, 0%)) 0 0);
+  transition: clip-path 0.06s linear;
+  pointer-events: none;
+  font: inherit;
+  letter-spacing: inherit;
+}
+/* Glow on fully filled words */
+body.karaoke-fill .lrc-line.active .kw[style*="100%"]::after {
+  text-shadow: 0 0 18px color-mix(in srgb, var(--lyrics-active-color) 70%, transparent);
 }
 
-/* When karaoke fill is off: just tint active words */
+/* When karaoke fill is OFF: tint active words */
 body:not(.karaoke-fill) .lrc-line.active .kw {
   color: var(--lyrics-active-color);
-  text-shadow: 0 0 14px color-mix(in srgb, var(--lyrics-active-color) 45%, transparent);
-  transition: color .18s var(--ease), text-shadow .18s var(--ease);
-}
-
-/* Glow pulse on karaoke active line */
-body.lrc-render-karaoke .lrc-line.active {
-  text-shadow: 0 0 24px color-mix(in srgb, var(--lyrics-active-color) 30%, transparent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--lyrics-active-color) 45%, transparent);
+  transition: color .2s var(--ease), text-shadow .2s var(--ease);
 }
 
 

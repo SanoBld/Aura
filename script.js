@@ -80,6 +80,10 @@ const S = {
   karaokeProgressiveFill: true,   // progressive word fill in karaoke mode
   titleColorBrightness: 100,      // 10-200 — titlecolor bg brightness
   titleColorContrast: 100,        // 50-150 — titlecolor bg contrast
+  // v10b typography
+  lyricsWeight: 400,              // 100-900 font weight
+  lyricsLetterSpacing: 0,         // -2 to 8 (units of 0.01em)
+  lyricsLineHeight: 180,          // 120-260 (%)
 };
 
 /* ---- DOM REFS ---- */
@@ -224,6 +228,13 @@ const $ = {
   setTitleColorContrast:     document.getElementById('set-title-color-contrast'),
   valTitleColorBrightness:   document.getElementById('val-title-color-brightness'),
   valTitleColorContrast:     document.getElementById('val-title-color-contrast'),
+  // v10b typography
+  setLyricsWeight:       document.getElementById('set-lyrics-weight'),
+  valLyricsWeight:       document.getElementById('val-lyrics-weight'),
+  setLyricsLetterSpacing:document.getElementById('set-lyrics-letter-spacing'),
+  valLyricsLetterSpacing:document.getElementById('val-lyrics-letter-spacing'),
+  setLyricsLineHeight:   document.getElementById('set-lyrics-line-height'),
+  valLyricsLineHeight:   document.getElementById('val-lyrics-line-height'),
 };
 
 /* ---- CACHE / PERSISTENCE ---- */
@@ -584,9 +595,22 @@ function applySettings() {
 function applyLyricsSettings() {
   const size = S.lyricsSize || 100;
   document.documentElement.style.setProperty('--lyrics-size', (size / 100).toFixed(2));
-
   if ($.setLyricsSize) { $.setLyricsSize.value = size; updateSliderFill($.setLyricsSize); }
   if ($.setLyricsSizeVal) $.setLyricsSizeVal.textContent = size + '%';
+
+  /* v10b typography */
+  const lw  = S.lyricsWeight       ?? 400;
+  const lls = S.lyricsLetterSpacing ?? 0;
+  const llh = S.lyricsLineHeight    ?? 180;
+  document.documentElement.style.setProperty('--lyrics-weight',         lw);
+  document.documentElement.style.setProperty('--lyrics-letter-spacing', (lls * 0.01) + 'em');
+  document.documentElement.style.setProperty('--lyrics-line-height',    (llh / 100).toFixed(2));
+  if ($.setLyricsWeight)        { $.setLyricsWeight.value        = lw;  updateSliderFill($.setLyricsWeight); }
+  if ($.valLyricsWeight)        $.valLyricsWeight.textContent    = lw;
+  if ($.setLyricsLetterSpacing) { $.setLyricsLetterSpacing.value = lls; updateSliderFill($.setLyricsLetterSpacing); }
+  if ($.valLyricsLetterSpacing) $.valLyricsLetterSpacing.textContent = lls > 0 ? '+' + lls : lls;
+  if ($.setLyricsLineHeight)    { $.setLyricsLineHeight.value    = llh; updateSliderFill($.setLyricsLineHeight); }
+  if ($.valLyricsLineHeight)    $.valLyricsLineHeight.textContent = llh + '%';
 
   /* Font — button group */
   const fc = S.lyricsFontChoice || 'serif';
@@ -1433,48 +1457,49 @@ function setAvatarInStorage(a, url) {
   try { localStorage.setItem(avatarCacheKey(a), JSON.stringify({ url, ts: Date.now() })); } catch {}
 }
 async function fetchArtistAvatarHD(artist) {
-  /* 1. iTunes Search — CORS-friendly, très fiable pour artistes connus */
+  /* 1. Wikipedia EN — source la plus fiable pour les photos d'artistes */
   try {
-    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=musicArtist&limit=5&country=fr`);
-    if (r.ok) {
-      const d = await r.json();
-      const exact = d.results?.find(a => a.artistName?.toLowerCase() === artist.toLowerCase());
-      const hit   = exact || d.results?.[0];
-      /* iTunes retourne artworkUrl100 — on monte à 600x600 */
-      if (hit?.artworkUrl100) return hit.artworkUrl100.replace('100x100bb', '600x600bb').replace('/100x100/', '/600x600/');
-    }
-  } catch {}
-
-  /* 2. Wikipedia API — photos haute qualité pour artistes mainstream */
-  try {
-    const wikiR = await fetch(
+    const r = await fetch(
       `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artist)}&prop=pageimages&format=json&pithumbsize=600&origin=*`
     );
-    if (wikiR.ok) {
-      const wikiD = await wikiR.json();
-      const pages = wikiD.query?.pages || {};
+    if (r.ok) {
+      const d = await r.json();
+      const pages = d.query?.pages || {};
       for (const page of Object.values(pages)) {
         if (page.thumbnail?.source) return page.thumbnail.source;
       }
     }
   } catch {}
 
-  /* 3. Deezer — pochette de haute qualité */
+  /* 2. Wikipedia FR — fallback si l'artiste est francophone */
+  try {
+    const r = await fetch(
+      `https://fr.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artist)}&prop=pageimages&format=json&pithumbsize=600&origin=*`
+    );
+    if (r.ok) {
+      const d = await r.json();
+      const pages = d.query?.pages || {};
+      for (const page of Object.values(pages)) {
+        if (page.thumbnail?.source) return page.thumbnail.source;
+      }
+    }
+  } catch {}
+
+  /* 3. iTunes Search — artwork artiste 600×600 */
+  try {
+    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=musicArtist&limit=5&country=fr`);
+    if (r.ok) {
+      const d = await r.json();
+      const exact = d.results?.find(a => a.artistName?.toLowerCase() === artist.toLowerCase());
+      const hit   = exact || d.results?.[0];
+      if (hit?.artworkUrl100) return hit.artworkUrl100.replace('100x100bb', '600x600bb').replace('/100x100/', '/600x600/');
+    }
+  } catch {}
+
+  /* 4. Deezer — photo artiste */
   try {
     const r = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(artist)}&limit=1`);
     if (r.ok) { const d = await r.json(); const img = d.data?.[0]?.picture_xl || d.data?.[0]?.picture_big; if (img) return img; }
-  } catch {}
-
-  /* 4. MusicBrainz → TheAudioDB */
-  try {
-    const mbR = await fetch(`https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(artist)}&fmt=json&limit=1`, { headers: { 'User-Agent': 'AURA/9.0 (github.com/aura)' } });
-    if (mbR.ok) {
-      const mbid = (await mbR.json()).artists?.[0]?.id;
-      if (mbid) {
-        const taR = await fetch(`https://www.theaudiodb.com/api/v1/json/2/artist-mb.php?i=${mbid}`);
-        if (taR.ok) { const img = (await taR.json()).artists?.[0]?.strArtistThumb; if (img) return img; }
-      }
-    }
   } catch {}
 
   /* 5. TheAudioDB direct */
@@ -1483,7 +1508,7 @@ async function fetchArtistAvatarHD(artist) {
     if (r.ok) { const img = (await r.json()).artists?.[0]?.strArtistThumb; if (img) return img; }
   } catch {}
 
-  /* 6. Last.fm — fallback ultime (images souvent basses résolution ou manquantes) */
+  /* 6. Last.fm fallback */
   try {
     const r = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getInfo&artist=${encodeURIComponent(artist)}&api_key=${apiKey}&format=json`);
     if (r.ok) {
@@ -1498,9 +1523,10 @@ async function fetchArtistAvatarHD(artist) {
 }
 function applyAvatarUrl(url) {
   if (!url) return;
-  const img = new Image(); img.crossOrigin = 'anonymous';
-  img.onload = () => { $.artistAvatar.src = url; $.artistAvatar.classList.add('loaded'); if ($.avatarFallback) $.avatarFallback.style.opacity = '0'; };
-  img.src = url;
+  /* Pas de crossOrigin — évite les erreurs CORS sur certaines sources (iTunes, Deezer) */
+  $.artistAvatar.src = url;
+  $.artistAvatar.classList.add('loaded');
+  if ($.avatarFallback) $.avatarFallback.style.opacity = '0';
 }
 async function updateArtistAvatar(artist) {
   if (!S.showAvatar) return;
@@ -2685,9 +2711,13 @@ function renderLRCLinesKaraoke(lines) {
     div.className = 'lrc-line'; div.dataset.index = i;
     const words = line.text.split(' ');
     words.forEach((word, wi) => {
+      if (!word) return;
       const span = document.createElement('span');
-      span.className = 'kw'; span.textContent = word;
+      span.className = 'kw';
+      span.textContent = word;
+      span.dataset.word = word;  // used by ::after pseudo for overlay text
       span.dataset.wi = wi;
+      span.style.setProperty('--kw-fill', '0%');
       div.appendChild(span);
       if (wi < words.length - 1) div.appendChild(document.createTextNode(' '));
     });
@@ -3047,6 +3077,11 @@ if ($.setTitleColorContrast) {
     saveSettings();
   }, { passive: true });
 }
+/* v10b: Typography */
+const _typoApply = debounce(() => { applyLyricsSettings(); saveSettings(); }, 40);
+if ($.setLyricsWeight)        $.setLyricsWeight.addEventListener('input',        () => { S.lyricsWeight        = parseInt($.setLyricsWeight.value);        _typoApply(); }, { passive: true });
+if ($.setLyricsLetterSpacing) $.setLyricsLetterSpacing.addEventListener('input', () => { S.lyricsLetterSpacing  = parseInt($.setLyricsLetterSpacing.value);  _typoApply(); }, { passive: true });
+if ($.setLyricsLineHeight)    $.setLyricsLineHeight.addEventListener('input',    () => { S.lyricsLineHeight     = parseInt($.setLyricsLineHeight.value);     _typoApply(); }, { passive: true });
 
 /* ── Globals pour remote.js ── */
 window.S = S;

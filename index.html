@@ -156,286 +156,266 @@
   </div>
 
   <!-- SETTINGS PANEL -->
+  <!-- SETTINGS PANEL -->
   <div id="settings-panel">
     <div class="sp-header">
       <div class="sp-title" data-i18n="settings_title">Settings</div>
       <div class="sp-tabs" role="tablist">
-        <button class="sp-tab active" data-tab="sync"   role="tab" aria-selected="true"  aria-controls="tab-sync"   data-i18n="tab_sync">Connection</button>
-        <button class="sp-tab"        data-tab="layout" role="tab" aria-selected="false" aria-controls="tab-layout" data-i18n="tab_layout">Display</button>
-        <button class="sp-tab"        data-tab="visual" role="tab" aria-selected="false" aria-controls="tab-visual" data-i18n="tab_visual">Appearance</button>
-        <button class="sp-tab"        data-tab="lyrics" role="tab" aria-selected="false" aria-controls="tab-lyrics" data-i18n="tab_lyrics">Lyrics</button>
+        <button class="sp-tab active" data-tab="sync"    role="tab" aria-selected="true"  data-i18n="tab_sync">Connexion</button>
+        <button class="sp-tab"        data-tab="artwork" role="tab" aria-selected="false" data-i18n="tab_artwork">Pochette</button>
+        <button class="sp-tab"        data-tab="bg"      role="tab" aria-selected="false" data-i18n="tab_bg">Fond</button>
+        <button class="sp-tab"        data-tab="lyrics"  role="tab" aria-selected="false" data-i18n="tab_lyrics">Paroles</button>
+        <button class="sp-tab"        data-tab="effects" role="tab" aria-selected="false" data-i18n="tab_effects">Effets</button>
       </div>
     </div>
 
-    <!-- TAB 1: CONNECTION -->
+    <!-- TAB 1: CONNEXION -->
     <div class="sp-tab-pane active" id="tab-sync" role="tabpanel">
-
-      <div class="sync-section-header" data-i18n="sync_section_sources">Data sources</div>
-
-      <!-- Card Last.fm -->
+      <div class="sync-section-header" data-i18n="sync_section_sources">Sources</div>
       <div class="sync-card">
         <div class="sync-card-header">
-          <div class="sync-card-icon lastfm" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="#e0245e"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
-          </div>
+          <div class="sync-card-icon lastfm"><svg viewBox="0 0 24 24" width="14" height="14" fill="#e0245e"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
           <div class="sync-card-title" data-i18n="sync_card_lastfm">Last.fm</div>
           <span class="sync-card-username" id="display-username">&mdash;</span>
         </div>
         <div class="user-search-wrap">
-          <input type="text" id="user-search" class="user-search-input" data-i18n="sync_user_placeholder" data-i18n-attr="placeholder" placeholder="View another user…" aria-label="Other Last.fm user"/>
+          <input type="text" id="user-search" class="user-search-input" placeholder="Voir un autre utilisateur…" aria-label="Other Last.fm user"/>
         </div>
-        <div class="sync-hint" data-i18n="sync_user_hint">Press Enter to switch account</div>
+        <div class="sync-hint" data-i18n="sync_user_hint">Appuyer sur Entrée pour changer</div>
       </div>
 
-      <!-- Card Discord -->
       <div class="sync-card">
         <div class="sync-card-header">
-          <div class="sync-card-icon discord" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="#5865f2"><path d="M20.3 4.37a19.8 19.8 0 0 0-4.88-1.51 13.7 13.7 0 0 0-.6 1.24 18.3 18.3 0 0 0-5.5 0A13 13 0 0 0 8.7 2.86 19.7 19.7 0 0 0 3.83 4.38C.55 9.2-.34 13.9.1 18.54a19.94 19.94 0 0 0 6.07 3.07 15 15 0 0 0 1.3-2.1 12.98 12.98 0 0 1-2.05-.99l.5-.38a14.25 14.25 0 0 0 12.15 0c.16.13.33.26.5.38-.65.38-1.34.71-2.05.99.38.73.82 1.42 1.3 2.09a19.87 19.87 0 0 0 6.07-3.07c.5-5.23-.85-9.87-3.57-13.96zM8.02 15.78c-1.18 0-2.16-1.09-2.16-2.42s.95-2.42 2.16-2.42c1.2 0 2.18 1.08 2.16 2.42 0 1.33-.95 2.42-2.16 2.42zm7.96 0c-1.18 0-2.16-1.09-2.16-2.42s.95-2.42 2.16-2.42c1.2 0 2.18 1.08 2.16 2.42 0 1.33-.94 2.42-2.16 2.42z"/></svg>
-          </div>
+          <div class="sync-card-icon discord"><svg viewBox="0 0 24 24" width="14" height="14" fill="#5865f2"><path d="M20.3 4.37a19.8 19.8 0 0 0-4.88-1.51 13.7 13.7 0 0 0-.6 1.24 18.3 18.3 0 0 0-5.5 0A13 13 0 0 0 8.7 2.86 19.7 19.7 0 0 0 3.83 4.38C.55 9.2-.34 13.9.1 18.54a19.94 19.94 0 0 0 6.07 3.07 15 15 0 0 0 1.3-2.1 12.98 12.98 0 0 1-2.05-.99l.5-.38a14.25 14.25 0 0 0 12.15 0c.16.13.33.26.5.38-.65.38-1.34.71-2.05.99.38.73.82 1.42 1.3 2.09a19.87 19.87 0 0 0 6.07-3.07c.5-5.23-.85-9.87-3.57-13.96zM8.02 15.78c-1.18 0-2.16-1.09-2.16-2.42s.95-2.42 2.16-2.42c1.2 0 2.18 1.08 2.16 2.42 0 1.33-.95 2.42-2.16 2.42zm7.96 0c-1.18 0-2.16-1.09-2.16-2.42s.95-2.42 2.16-2.42c1.2 0 2.18 1.08 2.16 2.42 0 1.33-.94 2.42-2.16 2.42z"/></svg></div>
           <div class="sync-card-title" data-i18n="sync_discord_title">Discord · Lanyard</div>
           <span class="lanyard-ws-badge" id="lanyard-ws-badge" style="display:none" data-i18n="sync_discord_live_badge">Live</span>
         </div>
-        <div class="aura-sync-desc" data-i18n="sync_discord_desc">Displays your music in real time via your Discord status (through Lanyard).</div>
+        <div class="aura-sync-desc" data-i18n="sync_discord_desc">Musique en temps réel via Discord (Lanyard).</div>
         <div class="lanyard-connect-wrap">
-          <input type="text" id="set-lanyard-id" class="user-search-input" data-i18n="sync_discord_id_placeholder" data-i18n-attr="placeholder" placeholder="Your Discord ID…" autocomplete="off" spellcheck="false" aria-label="Discord ID"/>
-          <button class="lanyard-connect-btn" id="btn-lanyard-connect" data-i18n="sync_discord_btn_connect">Connect</button>
+          <input type="text" id="set-lanyard-id" class="user-search-input" placeholder="Votre Discord ID…" autocomplete="off" spellcheck="false" aria-label="Discord ID"/>
+          <button class="lanyard-connect-btn" id="btn-lanyard-connect" data-i18n="sync_discord_btn_connect">Connecter</button>
         </div>
         <div class="lanyard-status-row" id="lanyard-status-row" aria-live="polite">
           <div class="lanyard-dot" id="lanyard-dot"></div>
-          <span id="lanyard-status-text" data-i18n="sync_discord_off">Disabled — enter an ID to activate</span>
+          <span id="lanyard-status-text" data-i18n="sync_discord_off">Désactivé</span>
         </div>
         <div class="lanyard-help">
-          <strong data-i18n="sync_discord_help_title">Where to find your ID?</strong><br/>
-          <span id="lanyard-help-body">Discord &rarr; Settings &rarr; Advanced &rarr; Enable Developer Mode<br/>Right-click your profile &rarr; <em>Copy User ID</em></span>
+          <strong data-i18n="sync_discord_help_title">Où trouver votre ID ?</strong><br/>
+          <span id="lanyard-help-body">Discord → Paramètres → Avancé → Mode développeur<br/>Clic droit sur votre profil → <em>Copier l'ID</em></span>
         </div>
       </div>
 
-      <!-- FLOW CONFIGURATION -->
-      <div class="sync-section-header" data-i18n="sync_section_flow">Flow configuration</div>
-
+      <div class="sync-section-header" data-i18n="sync_section_flow">Configuration</div>
       <div class="sync-card">
-        <div class="sync-card-label" data-i18n="sync_priority_label">Priority source</div>
-        <div class="sync-priority-selector" role="group" aria-label="Priority source">
+        <div class="sync-card-label" data-i18n="sync_priority_label">Source prioritaire</div>
+        <div class="sync-priority-selector" role="group">
           <button class="sync-priority-btn active" data-priority="lanyard" aria-pressed="true">
-            <span class="sync-priority-badge" aria-hidden="true">&#9889;</span>
+            <span class="sync-priority-badge">⚡</span>
             <span class="sync-priority-label" data-i18n="sync_priority_discord_label">Discord Focus</span>
-            <span class="sync-priority-desc" data-i18n="sync_priority_discord_desc">Real-time via Lanyard. Falls back to Last.fm automatically if nothing is playing.</span>
+            <span class="sync-priority-desc" data-i18n="sync_priority_discord_desc">Temps réel via Lanyard. Bascule sur Last.fm si rien ne joue.</span>
           </button>
           <button class="sync-priority-btn" data-priority="lastfm" aria-pressed="false">
-            <span class="sync-priority-badge" aria-hidden="true">&#128253;</span>
+            <span class="sync-priority-badge">📻</span>
             <span class="sync-priority-label" data-i18n="sync_priority_lastfm_label">Last.fm Focus</span>
-            <span class="sync-priority-desc" data-i18n="sync_priority_lastfm_desc">Scrobble history only. Discord status is ignored.</span>
+            <span class="sync-priority-desc" data-i18n="sync_priority_lastfm_desc">Historique scrobbles uniquement.</span>
           </button>
         </div>
-        <div class="sync-priority-status" id="priority-desc" data-i18n="sync_priority_status_discord">When connected via Discord, your music appears in real time. Otherwise, AURA uses Last.fm automatically.</div>
+        <div class="sync-priority-status" id="priority-desc"></div>
       </div>
 
-      <!-- DISPLAY PREFERENCES -->
-      <div class="sync-section-header" data-i18n="sync_section_display">Display preferences</div>
-
+      <div class="sync-section-header" data-i18n="sync_section_display">Affichage</div>
       <div class="sync-card">
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="sync_extended_stats">Extended stats</span>
-          <label class="toggle"><input type="checkbox" id="set-extended-stats" aria-label="Extended stats"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label" data-i18n="sync_extended_stats">Stats étendues</span>
+          <label class="toggle"><input type="checkbox" id="set-extended-stats"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-        <div class="sync-hint" style="margin-bottom:0.875rem" data-i18n="sync_extended_hint">Show play count under the track title.</div>
-
+        <div class="sync-hint" style="margin-bottom:0.875rem" data-i18n="sync_extended_hint">Affiche le nombre d'écoutes sous le titre.</div>
         <div id="sp-sub-stats-row">
-          <div class="sync-card-label" style="margin-bottom:0.5rem" data-i18n="sync_stats_of">Show plays for</div>
+          <div class="sync-card-label" style="margin-bottom:0.5rem" data-i18n="sync_stats_of">Écoutes pour</div>
           <div class="sp-option-group" style="margin-bottom:0.75rem">
-            <button class="sp-option active" data-stats-type="artist" data-i18n="sync_stats_artist">Artist</button>
+            <button class="sp-option active" data-stats-type="artist" data-i18n="sync_stats_artist">Artiste</button>
             <button class="sp-option" data-stats-type="album" data-i18n="sync_stats_album">Album</button>
           </div>
           <div class="sp-row">
-            <span class="sp-row-label" data-i18n="sync_own_stats">My personal stats</span>
-            <label class="toggle"><input type="checkbox" id="set-own-stats" aria-label="My stats"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            <span class="sp-row-label" data-i18n="sync_own_stats">Mes stats personnelles</span>
+            <label class="toggle"><input type="checkbox" id="set-own-stats"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
           </div>
         </div>
-
-        <div class="sync-card-label" style="margin-bottom:0.5rem;margin-top:1rem" data-i18n="sync_open_on_start">Open on startup</div>
+        <div class="sync-card-label" style="margin-bottom:0.5rem;margin-top:1rem" data-i18n="sync_open_on_start">Ouvrir au démarrage</div>
         <div class="sp-option-group">
-          <button class="sp-option active" data-panel="lyrics" data-i18n="sync_open_lyrics">Lyrics</button>
-          <button class="sp-option" data-panel="history" data-i18n="sync_open_history">History</button>
-          <button class="sp-option" data-panel="none" data-i18n="sync_open_none">Nothing</button>
+          <button class="sp-option active" data-panel="lyrics" data-i18n="sync_open_lyrics">Paroles</button>
+          <button class="sp-option" data-panel="history" data-i18n="sync_open_history">Historique</button>
+          <button class="sp-option" data-panel="none" data-i18n="sync_open_none">Rien</button>
         </div>
       </div>
 
-      <!-- DEVELOPMENT -->
-      <div class="sync-section-header" data-i18n="sync_section_dev">Development</div>
-
+      <div class="sync-section-header" data-i18n="sync_section_dev">Développement</div>
       <div class="sync-card">
-        <div class="aura-sync-desc" data-i18n="sync_test_desc">Simulates a listening session without Spotify or Last.fm. Useful for testing animations, artwork and gradients.</div>
-        <button class="btn-test-mode" id="btn-test-mode" data-i18n="sync_test_mode_btn">&#9654; Enable Test Mode</button>
+        <div class="aura-sync-desc" data-i18n="sync_test_desc">Simule une session sans Spotify ni Last.fm.</div>
+        <button class="btn-test-mode" id="btn-test-mode" data-i18n="sync_test_mode_btn">▶ Activer le mode test</button>
       </div>
 
-      <!-- LANGUAGE -->
-      <div class="sync-section-header" data-i18n="sync_section_lang">Language</div>
+      <div class="sync-section-header" data-i18n="sync_section_lang">Langue</div>
       <div class="sync-card sync-card-lang">
-        <div class="lang-selector" id="lang-selector" role="group" aria-label="Language">
-          <button class="lang-btn active" data-lang="en">
-            <span class="lang-flag">🇬🇧</span>
-            <span class="lang-name">English</span>
-          </button>
-          <button class="lang-btn" data-lang="fr">
-            <span class="lang-flag">🇫🇷</span>
-            <span class="lang-name">Français</span>
-          </button>
+        <div class="lang-selector" id="lang-selector" role="group">
+          <button class="lang-btn active" data-lang="en"><span class="lang-flag">🇬🇧</span><span class="lang-name">English</span></button>
+          <button class="lang-btn" data-lang="fr"><span class="lang-flag">🇫🇷</span><span class="lang-name">Français</span></button>
         </div>
       </div>
 
-      <button class="sp-logout" id="btn-logout" data-i18n="sync_logout">Log out</button>
-      <!-- TÉLÉCOMMANDE — code affiché ici par remote.js -->
+      <button class="sp-logout" id="btn-logout" data-i18n="sync_logout">Se déconnecter</button>
+
       <div class="sync-section-header" data-i18n="sync_section_rc">Télécommande</div>
       <div class="sync-card" id="rc-display-section">
         <div class="rc-config-note" style="font-size:.75rem;opacity:.45">Chargement…</div>
       </div>
-
     </div>
 
-    <!-- TAB 2: DISPLAY -->
-    <div class="sp-tab-pane" id="tab-layout" role="tabpanel">
+    <!-- TAB 2: POCHETTE -->
+    <div class="sp-tab-pane" id="tab-artwork" role="tabpanel">
 
       <div class="sp-section">
-        <div class="sp-section-label"><span data-i18n="disp_hero_scale">Main screen size</span> <span class="sp-slider-val" id="val-hero-scale">100%</span></div>
-        <input type="range" class="sp-slider" id="set-hero-scale" min="60" max="140" value="100" data-i18n="disp_hero_scale" data-i18n-attr="aria-label"/>
-        <div class="sp-slider-label"><span data-i18n="app_slow">Slow</span><span data-i18n="app_fast">Fast</span></div>
-      </div>
-
-      <div class="sp-section">
-        <div class="sp-section-label" data-i18n="disp_view">View</div>
+        <div class="sp-section-label" data-i18n="disp_view">Vue</div>
         <div class="sp-option-group">
-          <button class="sp-option active" data-layout="standard" data-i18n="disp_view_full">Full</button>
-          <button class="sp-option" data-layout="minimal" data-i18n="disp_view_minimal">Minimal</button>
+          <button class="sp-option active" data-layout="standard" data-i18n="disp_view_full">Complète</button>
+          <button class="sp-option" data-layout="minimal" data-i18n="disp_view_minimal">Minimale</button>
         </div>
-        <div class="sp-layout-desc" id="layout-desc" data-i18n="disp_view_full_desc">Full display with artwork and track information.</div>
+        <div class="sp-layout-desc" id="layout-desc" data-i18n="disp_view_full_desc">Affichage complet avec pochette et infos.</div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="disp_position">Content position</div>
+        <div class="sp-section-label" data-i18n="disp_position">Position du contenu</div>
         <div class="sp-option-group">
-          <button class="sp-option" data-align="left" data-i18n="disp_pos_left">← Left</button>
-          <button class="sp-option active" data-align="center" data-i18n="disp_pos_center">· Center</button>
-          <button class="sp-option" data-align="right" data-i18n="disp_pos_right">Right →</button>
+          <button class="sp-option" data-align="left" data-i18n="disp_pos_left">← Gauche</button>
+          <button class="sp-option active" data-align="center" data-i18n="disp_pos_center">· Centre</button>
+          <button class="sp-option" data-align="right" data-i18n="disp_pos_right">Droite →</button>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="disp_artwork">Album artwork</div>
+        <div class="sp-section-label" data-i18n="disp_hero_scale">Taille <span class="sp-slider-val" id="val-hero-scale">100%</span></div>
+        <input type="range" class="sp-slider" id="set-hero-scale" min="60" max="140" value="100"/>
+        <div class="sp-slider-label"><span>Petit</span><span>Grand</span></div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-section-label" data-i18n="disp_artwork">Pochette</div>
         <div class="sp-row" style="margin-bottom:0.5rem">
-          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)" data-i18n="disp_shape">Shape</span>
+          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)">Forme</span>
         </div>
         <div class="sp-option-group" style="margin-bottom:0.875rem">
-          <button class="sp-option active" data-art-shape="22px" data-i18n="disp_shape_round">Rounded</button>
-          <button class="sp-option" data-art-shape="50%" data-i18n="disp_shape_circle">Circle</button>
-          <button class="sp-option" data-art-shape="6px" data-i18n="disp_shape_square">Square</button>
+          <button class="sp-option active" data-art-shape="22px" data-i18n="disp_shape_round">Arrondie</button>
+          <button class="sp-option" data-art-shape="50%" data-i18n="disp_shape_circle">Cercle</button>
+          <button class="sp-option" data-art-shape="6px" data-i18n="disp_shape_square">Carré</button>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="disp_glow">Glow around artwork</span>
-          <label class="toggle"><input type="checkbox" id="set-glow" checked aria-label="Glow"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label" data-i18n="disp_glow">Lueur autour de la pochette</span>
+          <label class="toggle"><input type="checkbox" id="set-glow" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row" id="sp-glow-pulse-row">
-          <span class="sp-row-label" data-i18n="disp_glow_pulse">✨ Pulsed glow</span>
-          <label class="toggle"><input type="checkbox" id="set-art-glow-pulse" aria-label="Pulsed glow"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label" data-i18n="disp_glow_pulse">✨ Lueur pulsée</span>
+          <label class="toggle"><input type="checkbox" id="set-art-glow-pulse"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="disp_show_art">Show artwork</span>
-          <label class="toggle"><input type="checkbox" id="set-art" checked aria-label="Artwork"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label" data-i18n="disp_show_art">Afficher la pochette</span>
+          <label class="toggle"><input type="checkbox" id="set-art" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="disp_floating_art">Floating artwork</span>
-          <label class="toggle"><input type="checkbox" id="set-album-anim" checked aria-label="Artwork animation"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label" data-i18n="disp_floating_art">Pochette flottante</span>
+          <label class="toggle"><input type="checkbox" id="set-album-anim" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label" data-i18n="app_vinyl">🎵 Mode vinyle</span>
+          <label class="toggle"><input type="checkbox" id="set-vinyl-mode"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="disp_what_to_show">What to display</div>
+        <div class="sp-section-label" data-i18n="disp_what_to_show">Éléments affichés</div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="disp_bg_image">Background image (blurred artwork)</span>
-          <label class="toggle"><input type="checkbox" id="set-bg" checked aria-label="Background image"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label" data-i18n="disp_artist_photo">Artist photo</span>
-          <label class="toggle"><input type="checkbox" id="set-avatar" checked aria-label="Artist photo"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label" data-i18n="disp_artist_photo">Photo artiste</span>
+          <label class="toggle"><input type="checkbox" id="set-avatar" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="disp_bg_text">Large background text</span>
-          <label class="toggle"><input type="checkbox" id="set-marquee" checked aria-label="Background text"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label" data-i18n="disp_progress_bar">Progress bar</span>
-          <label class="toggle"><input type="checkbox" id="set-show-progress" checked aria-label="Progress bar"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-      </div>
-
-      <div class="sp-section sp-shortcuts-section">
-        <div class="sp-section-label"><span data-i18n="disp_shortcuts">Keyboard shortcuts</span> <span style="font-size:0.55rem;opacity:.4;font-weight:400" data-i18n="disp_shortcuts_note">(desktop only)</span></div>
-        <div class="sp-shortcuts">
-          <div class="sp-shortcut"><span class="sp-key">L</span><span class="sp-key-label" data-i18n="key_lyrics">Lyrics</span></div>
-          <div class="sp-shortcut"><span class="sp-key">H</span><span class="sp-key-label" data-i18n="key_history">History</span></div>
-          <div class="sp-shortcut"><span class="sp-key">S</span><span class="sp-key-label" data-i18n="key_settings">Settings</span></div>
-          <div class="sp-shortcut"><span class="sp-key">F</span><span class="sp-key-label" data-i18n="key_fullscreen">Fullscreen</span></div>
-          <div class="sp-shortcut"><span class="sp-key">M</span><span class="sp-key-label" data-i18n="key_hide">Hide</span></div>
-          <div class="sp-shortcut"><span class="sp-key">Z</span><span class="sp-key-label" data-i18n="key_focus">Focus</span></div>
-          <div class="sp-shortcut"><span class="sp-key">Esc</span><span class="sp-key-label" data-i18n="key_close">Close</span></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- TAB 3: APPEARANCE -->
-    <div class="sp-tab-pane" id="tab-visual" role="tabpanel">
-
-      <div class="sp-section">
-        <div class="sp-section-label" data-i18n="app_accent_color">Accent color</div>
-        <div class="sp-swatches" id="color-swatches" role="group" aria-label="Accent color">
-          <button class="sp-swatch active" data-color="#e0245e" style="background:#e0245e" data-i18n="app_color_pink" data-i18n-attr="aria-label"></button>
-          <button class="sp-swatch" data-color="#7c3aed" style="background:#7c3aed" data-i18n="app_color_violet" data-i18n-attr="aria-label"></button>
-          <button class="sp-swatch" data-color="#0891b2" style="background:#0891b2" data-i18n="app_color_blue" data-i18n-attr="aria-label"></button>
-          <button class="sp-swatch" data-color="#059669" style="background:#059669" data-i18n="app_color_green" data-i18n-attr="aria-label"></button>
-          <button class="sp-swatch" data-color="#d97706" style="background:#d97706" data-i18n="app_color_orange" data-i18n-attr="aria-label"></button>
-          <button class="sp-swatch" data-color="#ec4899" style="background:#ec4899" data-i18n="app_color_lightpink" data-i18n-attr="aria-label"></button>
-          <button class="sp-swatch" data-color="#ffffff" style="background:#fff" data-i18n="app_color_white" data-i18n-attr="aria-label"></button>
+          <span class="sp-row-label" data-i18n="disp_progress_bar">Barre de progression</span>
+          <label class="toggle"><input type="checkbox" id="set-show-progress" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="app_effects">Effects</div>
-        <div class="sp-row">
-          <span class="sp-row-label" data-i18n="app_vinyl">🎵 Vinyl mode</span>
-          <label class="toggle"><input type="checkbox" id="set-vinyl-mode" aria-label="Vinyl mode"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label" data-i18n="app_auto_colors">🎨 Auto colors (from artwork)</span>
-          <label class="toggle"><input type="checkbox" id="set-color-thief" aria-label="Auto colors"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        <div class="sp-section-label" data-i18n="app_accent_color">Couleur accent</div>
+        <div class="sp-swatches" id="color-swatches" role="group">
+          <button class="sp-swatch active" data-color="#e0245e" style="background:#e0245e"></button>
+          <button class="sp-swatch" data-color="#7c3aed" style="background:#7c3aed"></button>
+          <button class="sp-swatch" data-color="#0891b2" style="background:#0891b2"></button>
+          <button class="sp-swatch" data-color="#059669" style="background:#059669"></button>
+          <button class="sp-swatch" data-color="#d97706" style="background:#d97706"></button>
+          <button class="sp-swatch" data-color="#ec4899" style="background:#ec4899"></button>
+          <button class="sp-swatch" data-color="#ffffff" style="background:#fff"></button>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="app_font">Font</div>
-        <div class="sp-option-group" style="margin-bottom:0.75rem;flex-wrap:wrap">
+        <div class="sp-section-label" data-i18n="app_font">Police</div>
+        <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.75rem">
           <button class="sp-option active" data-f="default" data-i18n="app_font_aura">Aura</button>
           <button class="sp-option" data-f="inter" data-i18n="app_font_inter">Inter</button>
           <button class="sp-option" data-f="modern" data-i18n="app_font_modern">Modern</button>
           <button class="sp-option" data-f="serif" data-i18n="app_font_serif">Serif</button>
           <button class="sp-option" data-f="mono" data-i18n="app_font_mono">Mono</button>
         </div>
-        <div class="sp-row" style="margin-top:0.5rem">
-          <span class="sp-row-label" data-i18n="app_clean_style">🎵 Clean style</span>
-          <label class="toggle"><input type="checkbox" id="set-apple-mode" aria-label="Clean style"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        <div class="sp-row">
+          <span class="sp-row-label" data-i18n="app_clean_style">🍎 Style Apple Music</span>
+          <label class="toggle"><input type="checkbox" id="set-apple-mode"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label" data-i18n="app_auto_colors">🎨 Couleurs auto (pochette)</span>
+          <label class="toggle"><input type="checkbox" id="set-color-thief"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="app_bg">Background</div>
-        <div class="sp-row" style="margin-bottom:0.5rem">
-          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)" data-i18n="app_bg_mode">Mode</span>
+        <div class="sp-section-label" data-i18n="lyr_title_anim">🎵 Entrée du titre</div>
+        <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.875rem">
+          <button class="sp-option active" data-title-anim="fade-up">Montée</button>
+          <button class="sp-option" data-title-anim="fade-down">Descente</button>
+          <button class="sp-option" data-title-anim="slide-left">Slide →</button>
+          <button class="sp-option" data-title-anim="slide-right">Slide ←</button>
+          <button class="sp-option" data-title-anim="scale-in">Zoom</button>
+          <button class="sp-option" data-title-anim="scale-down">Zoom ↓</button>
+          <button class="sp-option" data-title-anim="blur-in">Flou</button>
+          <button class="sp-option" data-title-anim="flip-x">Flip</button>
+          <button class="sp-option" data-title-anim="swing">Swing</button>
+          <button class="sp-option" data-title-anim="split">Split</button>
+          <button class="sp-option" data-title-anim="glitch">Glitch</button>
+          <button class="sp-option" data-title-anim="none">Aucune</button>
         </div>
+      </div>
+
+      <div class="sp-section sp-shortcuts-section">
+        <div class="sp-section-label">⌨ Raccourcis <span style="font-size:0.55rem;opacity:.4;font-weight:400">(bureau)</span></div>
+        <div class="sp-shortcuts">
+          <div class="sp-shortcut"><span class="sp-key">L</span><span class="sp-key-label">Paroles</span></div>
+          <div class="sp-shortcut"><span class="sp-key">H</span><span class="sp-key-label">Historique</span></div>
+          <div class="sp-shortcut"><span class="sp-key">S</span><span class="sp-key-label">Réglages</span></div>
+          <div class="sp-shortcut"><span class="sp-key">F</span><span class="sp-key-label">Plein écran</span></div>
+          <div class="sp-shortcut"><span class="sp-key">Z</span><span class="sp-key-label">Focus</span></div>
+          <div class="sp-shortcut"><span class="sp-key">Esc</span><span class="sp-key-label">Fermer</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 3: FOND -->
+    <div class="sp-tab-pane" id="tab-bg" role="tabpanel">
+
+      <div class="sp-section">
+        <div class="sp-section-label" data-i18n="app_bg">Mode fond</div>
         <div class="sp-option-group" style="margin-bottom:0.875rem;flex-wrap:wrap">
           <button class="sp-option active" data-bg="album" data-i18n="app_bg_album">Album</button>
-          <button class="sp-option" data-bg="color" data-i18n="app_bg_color">Color</button>
-          <button class="sp-option" data-bg="dark" data-i18n="app_bg_dark">Dark</button>
-          <button class="sp-option" data-bg="titlecolor" data-i18n="app_bg_title">🌈 Title</button>
+          <button class="sp-option" data-bg="color" data-i18n="app_bg_color">Couleur</button>
+          <button class="sp-option" data-bg="dark" data-i18n="app_bg_dark">Sombre</button>
+          <button class="sp-option" data-bg="titlecolor" data-i18n="app_bg_title">🌈 Titre</button>
         </div>
         <div id="sp-titlecolor-ambiance" style="display:none">
           <div style="margin-bottom:.75rem">
@@ -449,268 +429,285 @@
             <div class="sp-slider-label"><span>Doux</span><span>Fort</span></div>
           </div>
         </div>
-        <div class="sp-row" style="margin-bottom:0.5rem">
-          <span class="sp-row-label" style="font-size:0.6875rem;color:var(--ui-dim)" data-i18n="app_bg_movement">Background movement</span>
-        </div>
-        <div class="sp-option-group" style="margin-bottom:0.875rem;flex-wrap:wrap">
-          <button class="sp-option active" data-anim="none" data-i18n="app_bg_still">Still</button>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-section-label" data-i18n="app_bg_movement">Mouvement</div>
+        <div class="sp-option-group" style="flex-wrap:wrap">
+          <button class="sp-option active" data-anim="none" data-i18n="app_bg_still">Fixe</button>
           <button class="sp-option" data-anim="blobs" data-i18n="app_bg_blobs">Blobs</button>
-          <button class="sp-option" data-anim="legere" data-i18n="app_bg_light">Light</button>
-          <button class="sp-option" data-anim="energique" data-i18n="app_bg_energetic">Energetic</button>
-          <button class="sp-option" data-anim="flottante" data-i18n="app_bg_floating">Floating</button>
+          <button class="sp-option" data-anim="legere" data-i18n="app_bg_light">Léger</button>
+          <button class="sp-option" data-anim="energique" data-i18n="app_bg_energetic">Vif</button>
+          <button class="sp-option" data-anim="flottante" data-i18n="app_bg_floating">Flottant</button>
         </div>
-        <div class="sp-row">
-          <span class="sp-row-label" data-i18n="app_gradient">🌊 Color gradient</span>
-          <label class="toggle"><input type="checkbox" id="set-fluid-gradient" aria-label="Animated gradient"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label" data-i18n="app_grain">✦ Film grain</span>
-          <label class="toggle"><input type="checkbox" id="set-grain" aria-label="Film grain"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="app_blur">Background blur</span> <span class="sp-slider-val" id="val-blur">70%</span></div>
-          <input type="range" class="sp-slider" id="set-blur" min="0" max="120" value="70" aria-label="Background blur"/>
-          <div class="sp-slider-label"><span data-i18n="app_blur_sharp">Sharp</span><span data-i18n="app_blur_very">Very blurry</span></div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-section-label">Filtres</div>
+        <div style="margin-top:0.5rem">
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="app_blur">Flou</span> <span class="sp-slider-val" id="val-blur">70%</span></div>
+          <input type="range" class="sp-slider" id="set-blur" min="0" max="120" value="70"/>
+          <div class="sp-slider-label"><span>Net</span><span>Très flou</span></div>
         </div>
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="app_brightness">Brightness</span> <span class="sp-slider-val" id="val-brightness">55%</span></div>
-          <input type="range" class="sp-slider" id="set-brightness" min="10" max="90" value="55" aria-label="Brightness"/>
-          <div class="sp-slider-label"><span data-i18n="app_brightness_dark">Dark</span><span data-i18n="app_brightness_light">Light</span></div>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="app_brightness">Luminosité</span> <span class="sp-slider-val" id="val-brightness">55%</span></div>
+          <input type="range" class="sp-slider" id="set-brightness" min="10" max="90" value="55"/>
+          <div class="sp-slider-label"><span>Sombre</span><span>Clair</span></div>
         </div>
         <div style="margin-top:0.875rem">
           <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="app_saturation">Saturation</span> <span class="sp-slider-val" id="val-saturate">47%</span></div>
-          <input type="range" class="sp-slider" id="set-saturate" min="0" max="30" value="14" aria-label="Saturation"/>
-          <div class="sp-slider-label"><span data-i18n="app_sat_grey">Grey</span><span data-i18n="app_sat_vivid">Vivid</span></div>
+          <input type="range" class="sp-slider" id="set-saturate" min="0" max="30" value="14"/>
+          <div class="sp-slider-label"><span>Gris</span><span>Vivide</span></div>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="app_audio_fx">Audio effects</div>
+        <div class="sp-section-label">Extras</div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="app_eq_bars">📊 Sound bars</span>
-          <label class="toggle"><input type="checkbox" id="set-eq-viz" aria-label="Sound bars"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label" data-i18n="app_gradient">🌊 Dégradé de couleur</span>
+          <label class="toggle"><input type="checkbox" id="set-fluid-gradient"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="app_spectrum">🌈 Sound spectrum</span>
-          <label class="toggle"><input type="checkbox" id="set-canvas-viz" aria-label="Sound spectrum"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label" data-i18n="app_grain">✦ Grain cinéma</span>
+          <label class="toggle"><input type="checkbox" id="set-grain"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-        <div class="sp-row sp-fps-row" id="sp-fps-row">
-          <span class="sp-row-label" data-i18n="app_fluidity">🎯 Smoothness</span>
-          <div class="sp-option-group sp-fps-group" role="group">
-            <button class="sp-option active" data-fps="60" aria-pressed="true" data-i18n="app_fps_high">High</button>
-            <button class="sp-option" data-fps="30" aria-pressed="false" data-i18n="app_fps_eco">Eco</button>
-          </div>
+        <div class="sp-row">
+          <span class="sp-row-label" data-i18n="disp_bg_image">Image de fond (pochette floutée)</span>
+          <label class="toggle"><input type="checkbox" id="set-bg" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label" data-i18n="disp_bg_text">Texte de fond</span>
+          <label class="toggle"><input type="checkbox" id="set-marquee" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label"><span data-i18n="app_bg_text_speed">Background text speed</span> <span class="sp-slider-val" id="val-mq-speed">44%</span></div>
-        <input type="range" class="sp-slider" id="set-mq-speed" min="10" max="60" value="32" aria-label="Background text speed"/>
-        <div class="sp-slider-label"><span data-i18n="app_slow">Slow</span><span data-i18n="app_fast">Fast</span></div>
+        <div class="sp-section-label"><span>Vitesse texte fond</span> <span class="sp-slider-val" id="val-mq-speed">44%</span></div>
+        <input type="range" class="sp-slider" id="set-mq-speed" min="10" max="60" value="32"/>
+        <div class="sp-slider-label"><span>Lent</span><span>Rapide</span></div>
       </div>
 
     </div>
 
-    <!-- TAB 4: LYRICS -->
+    <!-- TAB 4: PAROLES -->
     <div class="sp-tab-pane" id="tab-lyrics" role="tabpanel">
 
       <div class="sp-section">
-        <div class="sp-section-label">🎬 Render mode</div>
+        <div class="sp-section-label">🎬 Mode d'affichage</div>
         <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.5rem">
-          <button class="sp-option" data-lrc-render="basic">Static</button>
-          <button class="sp-option" data-lrc-render="scroll">Scroll</button>
-          <button class="sp-option sp-option active" data-lrc-render="phrase">Phrase</button>
-          <button class="sp-option" data-lrc-render="karaoke">🎤 Karaoke</button>
+          <button class="sp-option" data-lrc-render="basic">Statique</button>
+          <button class="sp-option" data-lrc-render="scroll">Défilement</button>
+          <button class="sp-option active" data-lrc-render="phrase">Phrase</button>
+          <button class="sp-option" data-lrc-render="karaoke">🎤 Karaoké</button>
         </div>
         <div id="sp-karaoke-opts" style="display:none;margin-top:.75rem">
           <div class="sp-row">
-            <span class="sp-row-label">✨ Progressive fill</span>
-            <label class="toggle"><input type="checkbox" id="set-karaoke-fill" checked aria-label="Progressive fill"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            <span class="sp-row-label">✨ Remplissage progressif</span>
+            <label class="toggle"><input type="checkbox" id="set-karaoke-fill" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
           </div>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label"><span data-i18n="lyr_size">Text size</span> <span class="sp-slider-val" id="set-lyrics-size-val">100%</span></div>
-        <input type="range" class="sp-slider" id="set-lyrics-size" min="70" max="160" value="100" aria-label="Text size"/>
-        <div class="sp-slider-label"><span data-i18n="lyr_size_small">Small</span><span data-i18n="lyr_size_large">Large</span></div>
-      </div>
-
-      <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_style">Writing style</div>
-        <div class="sp-option-group" style="flex-wrap:wrap">
-          <button class="sp-option active" data-lyrics-font="serif" data-i18n="lyr_style_classic">Classic</button>
-          <button class="sp-option" data-lyrics-font="sans" data-i18n="lyr_style_simple">Simple</button>
-          <button class="sp-option" data-lyrics-font="mono" data-i18n="lyr_style_machine">Machine</button>
-          <button class="sp-option" data-lyrics-font="display" data-i18n="lyr_style_impact">Impact</button>
+        <div class="sp-section-label">✏️ Typographie</div>
+        <div>
+          <div class="sp-section-label" style="margin-bottom:.375rem;border-bottom:none;padding-bottom:0"><span>Taille</span> <span class="sp-slider-val" id="set-lyrics-size-val">100%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-size" min="70" max="160" value="100"/>
+          <div class="sp-slider-label"><span>Petit</span><span>Grand</span></div>
+        </div>
+        <div style="margin-top:.875rem">
+          <div class="sp-section-label" style="margin-bottom:.375rem;border-bottom:none;padding-bottom:0"><span>Graisse</span> <span class="sp-slider-val" id="val-lyrics-weight">400</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-weight" min="100" max="900" step="100" value="400"/>
+          <div class="sp-slider-label"><span>Fin</span><span>Gras</span></div>
+        </div>
+        <div style="margin-top:.875rem">
+          <div class="sp-section-label" style="margin-bottom:.375rem;border-bottom:none;padding-bottom:0"><span>Espacement</span> <span class="sp-slider-val" id="val-lyrics-letter-spacing">0</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-letter-spacing" min="-2" max="8" value="0"/>
+          <div class="sp-slider-label"><span>Serré</span><span>Espacé</span></div>
+        </div>
+        <div style="margin-top:.875rem">
+          <div class="sp-section-label" style="margin-bottom:.375rem;border-bottom:none;padding-bottom:0"><span>Interligne</span> <span class="sp-slider-val" id="val-lyrics-line-height">180%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-line-height" min="120" max="260" step="10" value="180"/>
+          <div class="sp-slider-label"><span>Compact</span><span>Aéré</span></div>
+        </div>
+        <div class="sp-option-group" style="flex-wrap:wrap;margin-top:.875rem">
+          <button class="sp-option active" data-lyrics-font="serif">Classique</button>
+          <button class="sp-option" data-lyrics-font="sans">Simple</button>
+          <button class="sp-option" data-lyrics-font="mono">Machine</button>
+          <button class="sp-option" data-lyrics-font="display">Impact</button>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_text_color">🎨 Text color</div>
+        <div class="sp-section-label">🎨 Couleurs</div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="lyr_color_auto">Auto color (from artwork)</span>
-          <label class="toggle"><input type="checkbox" id="set-lyrics-color-auto" aria-label="Auto color"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Auto (depuis la pochette)</span>
+          <label class="toggle"><input type="checkbox" id="set-lyrics-color-auto"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div id="sp-lyrics-color-row">
           <div class="sp-row" style="margin-top:0.5rem">
-            <span class="sp-row-label" style="font-size:0.75rem" data-i18n="lyr_active_line">Active line</span>
+            <span class="sp-row-label" style="font-size:0.75rem" data-i18n="lyr_active_line">Ligne active</span>
             <input type="color" id="set-lyrics-active-color" value="#e0245e" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
           </div>
           <div class="sp-row">
-            <span class="sp-row-label" style="font-size:0.75rem" data-i18n="lyr_other_lines">Other lines</span>
+            <span class="sp-row-label" style="font-size:0.75rem" data-i18n="lyr_other_lines">Autres lignes</span>
             <input type="color" id="set-lyrics-inactive-color" value="#ffffff" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
           </div>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_bg">🌙 Lyrics background</div>
+        <div class="sp-section-label">🌙 Fond des paroles</div>
         <div class="sp-option-group" style="margin-bottom:0.875rem;flex-wrap:wrap">
-          <button class="sp-option active" data-lyrics-bg="none" data-i18n="lyr_bg_none">None</button>
-          <button class="sp-option" data-lyrics-bg="dark" data-i18n="lyr_bg_dark">Dark</button>
-          <button class="sp-option" data-lyrics-bg="custom" data-i18n="lyr_bg_custom">Custom</button>
-          <button class="sp-option" data-lyrics-bg="auto" data-i18n="lyr_bg_artwork">🌈 Artwork</button>
+          <button class="sp-option active" data-lyrics-bg="none">Aucun</button>
+          <button class="sp-option" data-lyrics-bg="dark">Sombre</button>
+          <button class="sp-option" data-lyrics-bg="custom">Perso</button>
+          <button class="sp-option" data-lyrics-bg="auto">🌈 Pochette</button>
         </div>
         <div id="sp-lyrics-bg-color-row" class="sp-row" style="display:none">
-          <span class="sp-row-label" style="font-size:0.75rem" data-i18n="lyr_bg_color_label">Background color</span>
+          <span class="sp-row-label" style="font-size:0.75rem">Couleur de fond</span>
           <input type="color" id="set-lyrics-bg-color" value="#0a0a0f" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
         </div>
         <div style="margin-top:0.625rem">
-          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0"><span data-i18n="lyr_bg_intensity">Intensity</span> <span class="sp-slider-val" id="val-lyrics-bg-opacity">40%</span></div>
-          <input type="range" class="sp-slider" id="set-lyrics-bg-opacity" min="0" max="100" value="40" aria-label="Lyrics background intensity"/>
-          <div class="sp-slider-label"><span data-i18n="lyr_bg_transparent">Transparent</span><span data-i18n="lyr_bg_opaque">Opaque</span></div>
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Intensité <span class="sp-slider-val" id="val-lyrics-bg-opacity">40%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-bg-opacity" min="0" max="100" value="40"/>
+          <div class="sp-slider-label"><span>Transparent</span><span>Opaque</span></div>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_anim">✨ Text animation</div>
+        <div class="sp-section-label">✨ Animation</div>
         <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.875rem">
-          <button class="sp-option active" data-lyrics-anim="fade" data-i18n="lyr_anim_fade">Fade</button>
-          <button class="sp-option" data-lyrics-anim="slide" data-i18n="lyr_anim_slide">Slide</button>
-          <button class="sp-option" data-lyrics-anim="scale" data-i18n="lyr_anim_scale">Zoom</button>
-          <button class="sp-option" data-lyrics-anim="blur" data-i18n="lyr_anim_blur">Blur</button>
-          <button class="sp-option" data-lyrics-anim="bounce" data-i18n="lyr_anim_bounce">Bounce</button>
-          <button class="sp-option" data-lyrics-anim="none" data-i18n="lyr_anim_none">None</button>
+          <button class="sp-option active" data-lyrics-anim="fade">Fondu</button>
+          <button class="sp-option" data-lyrics-anim="slide">Glissement</button>
+          <button class="sp-option" data-lyrics-anim="scale">Zoom</button>
+          <button class="sp-option" data-lyrics-anim="blur">Flou</button>
+          <button class="sp-option" data-lyrics-anim="bounce">Rebond</button>
+          <button class="sp-option" data-lyrics-anim="none">Aucune</button>
         </div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="lyr_autoscroll">Follow active line</span>
-          <label class="toggle"><input type="checkbox" id="set-autoscroll" checked aria-label="Auto-scroll"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Suivre la ligne active</span>
+          <label class="toggle"><input type="checkbox" id="set-autoscroll" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_title_anim">🎵 Title entrance effect</div>
-        <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.875rem">
-          <button class="sp-option active" data-title-anim="fade-up"    data-i18n="lyr_title_rise">Rise</button>
-          <button class="sp-option" data-title-anim="fade-down"         data-i18n="lyr_title_drop">Drop</button>
-          <button class="sp-option" data-title-anim="slide-left"        data-i18n="lyr_title_slide">Slide</button>
-          <button class="sp-option" data-title-anim="slide-right"       data-i18n="lyr_title_slide_r">Slide ←</button>
-          <button class="sp-option" data-title-anim="scale-in"          data-i18n="lyr_title_zoom">Zoom</button>
-          <button class="sp-option" data-title-anim="scale-down"        data-i18n="lyr_title_zoom_out">Zoom out</button>
-          <button class="sp-option" data-title-anim="blur-in"           data-i18n="lyr_title_blur">Blur</button>
-          <button class="sp-option" data-title-anim="flip-x"            data-i18n="lyr_title_flip">Flip</button>
-          <button class="sp-option" data-title-anim="swing"             data-i18n="lyr_title_swing">Swing</button>
-          <button class="sp-option" data-title-anim="split"             data-i18n="lyr_title_split">Split</button>
-          <button class="sp-option" data-title-anim="glitch"            data-i18n="lyr_title_glitch">Glitch</button>
-          <button class="sp-option" data-title-anim="none"              data-i18n="lyr_title_none">None</button>
+        <div class="sp-section-label">📌 Position</div>
+        <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.5rem">
+          <button class="sp-option active" data-lyrics-pos="right">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="8" y="1" width="5" height="12" rx="1" opacity="0.9"/><rect x="1" y="1" width="6" height="12" rx="1" opacity="0.25"/></svg>Côté
+          </button>
+          <button class="sp-option" data-lyrics-pos="center">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="2" y="3" width="10" height="8" rx="2" opacity="0.9"/></svg>Centre
+          </button>
+          <button class="sp-option" data-lyrics-pos="bottom">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="1" y="8" width="12" height="5" rx="1" opacity="0.9"/><rect x="1" y="1" width="12" height="6" rx="1" opacity="0.2"/></svg>Bas
+          </button>
         </div>
+        <div class="sp-layout-desc" id="lyrics-pos-desc">Paroles sur le côté droit.</div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_dots">✦ Glowing dots (color background)</div>
-        <div class="sp-row">
-          <span class="sp-row-label" data-i18n="lyr_show_dots">Show dots</span>
-          <label class="toggle"><input type="checkbox" id="set-title-dots" checked aria-label="Glowing dots"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        <div class="sp-section-label">🌐 Style panel</div>
+        <div class="sp-option-group" style="margin-bottom:0.625rem;flex-wrap:wrap">
+          <button class="sp-option active" data-lyrics-blur-mode="standard">Discret</button>
+          <button class="sp-option" data-lyrics-blur-mode="apple">🍎 Coloré</button>
         </div>
-        <div class="sp-row">
-          <span class="sp-row-label" style="font-size:0.75rem" data-i18n="lyr_dots_color">Color</span>
-          <input type="color" id="set-dots-color" value="#e0245e" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
-        </div>
-        <div style="margin-top:0.625rem">
-          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0"><span data-i18n="lyr_dots_brightness">Brightness</span> <span class="sp-slider-val" id="val-dots-brightness">70%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-brightness" min="10" max="100" value="70"/>
-          <div class="sp-slider-label"><span data-i18n="lyr_dots_dim">Dim</span><span data-i18n="lyr_dots_bright">Bright</span></div>
-        </div>
-        <div style="margin-top:0.625rem">
-          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0"><span data-i18n="lyr_dots_size">Size</span> <span class="sp-slider-val" id="val-dots-size">50%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-size" min="10" max="100" value="50"/>
-          <div class="sp-slider-label"><span data-i18n="lyr_dots_small">Small</span><span data-i18n="lyr_dots_large">Large</span></div>
-        </div>
-        <div style="margin-top:0.625rem">
-          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0"><span data-i18n="lyr_dots_speed">Speed</span> <span class="sp-slider-val" id="val-dots-speed">50%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-speed" min="10" max="100" value="50"/>
-          <div class="sp-slider-label"><span data-i18n="lyr_dots_slow">Slow</span><span data-i18n="lyr_dots_fast">Fast</span></div>
-        </div>
-        <div class="sp-option-group" style="margin-top:0.75rem;flex-wrap:wrap">
-          <button class="sp-option active" data-dots-anim="orbit" data-i18n="lyr_dots_anim_orbit">Orbit</button>
-          <button class="sp-option" data-dots-anim="pulse" data-i18n="lyr_dots_anim_pulse">Pulse</button>
-          <button class="sp-option" data-dots-anim="wave" data-i18n="lyr_dots_anim_wave">Wave</button>
-          <button class="sp-option" data-dots-anim="sparkle" data-i18n="lyr_dots_anim_sparkle">Sparkle</button>
-        </div>
+        <div class="sp-layout-desc" id="lyrics-mode-desc">Panel transparent simple.</div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label"><span data-i18n="lyr_timing">⏱ Lyrics timing</span> <span class="sp-slider-val" id="val-lyrics-offset">0ms</span></div>
-        <input type="range" class="sp-slider" id="set-lyrics-offset" min="-2000" max="2000" step="50" value="0" aria-label="Lyrics timing"/>
+        <div class="sp-section-label">⏱ Timing <span class="sp-slider-val" id="val-lyrics-offset">0ms</span></div>
+        <input type="range" class="sp-slider" id="set-lyrics-offset" min="-2000" max="2000" step="50" value="0"/>
         <div class="sp-slider-label"><span>-2s</span><span>+2s</span></div>
-        <div class="sp-layout-desc" data-i18n="lyr_timing_desc">Adjust if lyrics appear too early or too late.</div>
+        <div class="sp-layout-desc">Ajuster si les paroles arrivent trop tôt ou trop tard.</div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_readability">🎨 Readability</div>
+        <div class="sp-section-label">🔍 Lisibilité</div>
         <div class="sp-row">
-          <span class="sp-row-label" data-i18n="lyr_adaptive_colors">Adaptive colors</span>
-          <label class="toggle"><input type="checkbox" id="set-lyrics-auto-color" aria-label="Adaptive colors"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <span class="sp-row-label">Couleurs adaptatives</span>
+          <label class="toggle"><input type="checkbox" id="set-lyrics-auto-color"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="lyr_blur_behind">Blur behind lyrics</span> <span class="sp-slider-val" id="val-lyrics-blur">0%</span></div>
-          <input type="range" class="sp-slider" id="set-lyrics-blur" min="0" max="100" value="0" aria-label="Blur behind lyrics"/>
-          <div class="sp-slider-label"><span data-i18n="lyr_blur_none">None</span><span data-i18n="lyr_blur_max">Max</span></div>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Flou derrière <span class="sp-slider-val" id="val-lyrics-blur">0%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-blur" min="0" max="100" value="0"/>
+          <div class="sp-slider-label"><span>Aucun</span><span>Max</span></div>
         </div>
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="lyr_shadow_offset">Shadow offset</span> <span class="sp-slider-val" id="val-shadow-offset">1px</span></div>
-          <input type="range" class="sp-slider" id="set-shadow-offset" min="0" max="8" value="1" aria-label="Shadow offset"/>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Ombre offset <span class="sp-slider-val" id="val-shadow-offset">1px</span></div>
+          <input type="range" class="sp-slider" id="set-shadow-offset" min="0" max="8" value="1"/>
           <div class="sp-slider-label"><span>0px</span><span>8px</span></div>
         </div>
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="lyr_shadow_blur">Shadow softness</span> <span class="sp-slider-val" id="val-shadow-blur">3px</span></div>
-          <input type="range" class="sp-slider" id="set-shadow-blur" min="0" max="24" value="3" aria-label="Shadow softness"/>
-          <div class="sp-slider-label"><span data-i18n="lyr_shadow_sharp">Sharp</span><span data-i18n="lyr_shadow_soft">Soft</span></div>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Douceur ombre <span class="sp-slider-val" id="val-shadow-blur">3px</span></div>
+          <input type="range" class="sp-slider" id="set-shadow-blur" min="0" max="24" value="3"/>
+          <div class="sp-slider-label"><span>Net</span><span>Doux</span></div>
         </div>
         <div style="margin-top:0.875rem">
-          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0"><span data-i18n="lyr_shadow_intensity">Shadow intensity</span> <span class="sp-slider-val" id="val-lyrics-shadow">55%</span></div>
-          <input type="range" class="sp-slider" id="set-lyrics-shadow" min="0" max="100" value="55" aria-label="Shadow intensity"/>
-          <div class="sp-slider-label"><span data-i18n="lyr_shadow_hidden">Hidden</span><span data-i18n="lyr_shadow_strong">Strong</span></div>
+          <div class="sp-section-label" style="margin-bottom:0.625rem;border-bottom:none;padding-bottom:0">Intensité ombre <span class="sp-slider-val" id="val-lyrics-shadow">55%</span></div>
+          <input type="range" class="sp-slider" id="set-lyrics-shadow" min="0" max="100" value="55"/>
+          <div class="sp-slider-label"><span>Cachée</span><span>Forte</span></div>
         </div>
       </div>
 
       <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_position">📌 Lyrics position</div>
-        <div class="sp-option-group" style="flex-wrap:wrap;margin-bottom:0.5rem">
-          <button class="sp-option active" data-lyrics-pos="right">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="8" y="1" width="5" height="12" rx="1" opacity="0.9"/><rect x="1" y="1" width="6" height="12" rx="1" opacity="0.25"/></svg><span data-i18n="lyr_pos_side">Side</span>
-          </button>
-          <button class="sp-option" data-lyrics-pos="center">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="2" y="3" width="10" height="8" rx="2" opacity="0.9"/></svg><span data-i18n="lyr_pos_center">Center</span>
-          </button>
-          <button class="sp-option" data-lyrics-pos="bottom">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="1" y="8" width="12" height="5" rx="1" opacity="0.9"/><rect x="1" y="1" width="12" height="6" rx="1" opacity="0.2"/></svg><span data-i18n="lyr_pos_bottom">Bottom</span>
-          </button>
+        <div class="sp-section-label">✦ Points lumineux</div>
+        <div class="sp-row">
+          <span class="sp-row-label">Afficher les points</span>
+          <label class="toggle"><input type="checkbox" id="set-title-dots" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-        <div class="sp-layout-desc" id="lyrics-pos-desc" data-i18n="lyr_pos_side_desc">Lyrics on the right side of the screen.</div>
-      </div>
-
-      <div class="sp-section">
-        <div class="sp-section-label" data-i18n="lyr_panel_style">🌐 Panel style</div>
-        <div class="sp-option-group" style="margin-bottom:0.625rem;flex-wrap:wrap">
-          <button class="sp-option active" data-lyrics-blur-mode="standard" data-i18n="lyr_panel_discrete">Subtle</button>
-          <button class="sp-option" data-lyrics-blur-mode="apple" data-i18n="lyr_panel_colorful">🍎 Colorful</button>
+        <div class="sp-row">
+          <span class="sp-row-label" style="font-size:0.75rem">Couleur</span>
+          <input type="color" id="set-dots-color" value="#e0245e" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
         </div>
-        <div class="sp-layout-desc" id="lyrics-mode-desc" data-i18n="lyr_panel_subtle_desc">Simple transparent panel.</div>
+        <div style="margin-top:0.625rem">
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Luminosité <span class="sp-slider-val" id="val-dots-brightness">70%</span></div>
+          <input type="range" class="sp-slider" id="set-dots-brightness" min="10" max="100" value="70"/>
+          <div class="sp-slider-label"><span>Dim</span><span>Bright</span></div>
+        </div>
+        <div style="margin-top:0.625rem">
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Taille <span class="sp-slider-val" id="val-dots-size">50%</span></div>
+          <input type="range" class="sp-slider" id="set-dots-size" min="10" max="100" value="50"/>
+        </div>
+        <div style="margin-top:0.625rem">
+          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Vitesse <span class="sp-slider-val" id="val-dots-speed">50%</span></div>
+          <input type="range" class="sp-slider" id="set-dots-speed" min="10" max="100" value="50"/>
+        </div>
+        <div class="sp-option-group" style="margin-top:0.75rem;flex-wrap:wrap">
+          <button class="sp-option active" data-dots-anim="orbit">Orbite</button>
+          <button class="sp-option" data-dots-anim="pulse">Pulse</button>
+          <button class="sp-option" data-dots-anim="wave">Vague</button>
+          <button class="sp-option" data-dots-anim="sparkle">Étincelle</button>
+        </div>
       </div>
 
     </div>
+
+    <!-- TAB 5: EFFETS -->
+    <div class="sp-tab-pane" id="tab-effects" role="tabpanel">
+
+      <div class="sp-section">
+        <div class="sp-section-label" data-i18n="app_audio_fx">Effets audio</div>
+        <div class="sp-row">
+          <span class="sp-row-label" data-i18n="app_eq_bars">📊 Barres sonores</span>
+          <label class="toggle"><input type="checkbox" id="set-eq-viz"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row">
+          <span class="sp-row-label" data-i18n="app_spectrum">🌈 Spectre sonore</span>
+          <label class="toggle"><input type="checkbox" id="set-canvas-viz"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="sp-row sp-fps-row" id="sp-fps-row">
+          <span class="sp-row-label" data-i18n="app_fluidity">🎯 Fluidité</span>
+          <div class="sp-option-group sp-fps-group" role="group">
+            <button class="sp-option active" data-fps="60" aria-pressed="true" data-i18n="app_fps_high">Haute</button>
+            <button class="sp-option" data-fps="30" aria-pressed="false" data-i18n="app_fps_eco">Éco</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   </div><!-- /settings-panel -->
 
   <!-- UI OVERLAY (desktop) -->

@@ -89,6 +89,9 @@ const S = {
   // v10c — réglages supplémentaires
   lyricsAdvanceMs: 500,           // décalage de base paroles (ms) — remplace LYRICS_ADVANCE_MS
   vizFpsCustom: 60,               // FPS personnalisé visualiseur (10-144)
+  // v11 — sources paroles
+  lyricsSource: 'lrclib',         // 'lrclib' | 'lrclib+genius'
+  geniusToken: '',                // Genius client access token (optionnel)
 };
 
 /* ---- DOM REFS ---- */
@@ -310,6 +313,56 @@ function gcLRCCache() {
     }
   } catch {}
 }
+
+/* ---- ANIMATION CSS INJECTION (v11) ---- */
+(function injectAnimCSS() {
+  const style = document.createElement('style');
+  style.id = 'aura-anim-v11';
+  style.textContent = `
+    /* === Album art swap animation === */
+    @keyframes aura-art-reveal {
+      0%   { opacity: 0; transform: scale(0.88) translateY(10px); filter: blur(6px) saturate(0.4); }
+      55%  { filter: blur(0px) saturate(1); }
+      100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px) saturate(1); }
+    }
+    @keyframes aura-art-morph {
+      0%   { opacity: 0; clip-path: inset(8% 8% 8% 8% round 24px); transform: scale(0.94); filter: blur(8px); }
+      60%  { clip-path: inset(0% 0% 0% 0% round var(--art-radius, 22px)); filter: blur(0px); }
+      100% { opacity: 1; transform: scale(1); clip-path: inset(0% 0% 0% 0% round var(--art-radius, 22px)); }
+    }
+    #art-a.art-animate-in,
+    #art-b.art-animate-in {
+      animation: aura-art-morph 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    /* === Title text enter animation === */
+    @keyframes aura-title-enter {
+      0%   { opacity: 0; transform: translateY(14px) scale(0.96); filter: blur(4px); }
+      55%  { filter: blur(0px); }
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+    }
+    @keyframes aura-artist-enter {
+      0%   { opacity: 0; transform: translateX(-10px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    #track-title.title-entering {
+      animation: aura-title-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    }
+    #artist-row.show.artist-entering {
+      animation: aura-artist-enter 0.45s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    /* === Lyrics source badge === */
+    .lp-source-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.55rem; font-weight: 600; letter-spacing: .06em;
+      padding: 2px 7px; border-radius: 20px; text-transform: uppercase;
+      margin-left: 6px; vertical-align: middle;
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .lp-source-badge.genius { background: rgba(255,208,0,0.12); color: #ffd000; border-color: rgba(255,208,0,0.25); }
+  `;
+  document.head.appendChild(style);
+})();
 
 /* ---- SETTINGS TABS ---- */
 document.querySelectorAll('.sp-tab').forEach(tab => {
@@ -2396,15 +2449,19 @@ function handleTrack(track, fromLanyard = false) {
   $.mq.textContent = (title + '   ·   ' + artist + '   ·   ').repeat(10);
 
   $.title.classList.remove('show', 'scrolling', 'title-entering');
-  $.artistRow.classList.remove('show');
+  $.artistRow.classList.remove('show', 'artist-entering');
   setTimeout(() => {
     $.title.textContent = title; $.artist.textContent = artist;
     void $.title.offsetWidth;
+    void $.artistRow.offsetWidth;
     $.title.classList.add('show', 'title-entering');
-    $.artistRow.classList.add('show');
-    setTimeout(() => { $.title.classList.remove('title-entering'); }, 800);
+    $.artistRow.classList.add('show', 'artist-entering');
+    setTimeout(() => {
+      $.title.classList.remove('title-entering');
+      $.artistRow.classList.remove('artist-entering');
+    }, 900);
     setTimeout(checkTitleOverflow, 200);
-  }, 400);
+  }, 380);
 
   let imgUrl = track.albumArtUrl || '';
   if (!imgUrl) {
@@ -2593,6 +2650,17 @@ function swapArt(url, artist, title) {
   const fbBack  = artSlot==='a' ? $.fbB  : $.fbA;
   const grad = fallbackGradient(artist), letter = fallbackLetter(title);
 
+  /* Helper — déclenche l'animation morphing sur l'image entrante */
+  function _animateIn(el) {
+    el.classList.remove('art-animate-in');
+    void el.offsetWidth; // reflow pour reset animation
+    el.classList.add('art-animate-in');
+    // Sync le --art-radius CSS var avec S.artShape pour l'animation clip-path
+    const radius = S.artShape || '22px';
+    el.style.setProperty('--art-radius', radius === '50%' ? '50%' : radius);
+    el.addEventListener('animationend', () => el.classList.remove('art-animate-in'), { once: true });
+  }
+
   if (!url) {
     /* Fallback : image par défaut si aucune pochette n'est trouvée */
     const fallbackUrl = 'assets/default-cover.jpg';
@@ -2609,6 +2677,7 @@ function swapArt(url, artist, title) {
     back.onload = () => {
       fbBack.style.opacity = '0'; back.style.opacity = '1';
       front.style.opacity = '0'; fbFront.style.opacity = '0';
+      _animateIn(back);
       artSlot = artSlot==='a' ? 'b' : 'a';
       updateBg(fallbackUrl, null);
       $.artGlow.style.backgroundImage = `url('${fallbackUrl}')`;
@@ -2630,6 +2699,7 @@ function swapArt(url, artist, title) {
   back.onload = () => {
     fbBack.style.opacity = '0'; back.style.opacity = '1';
     front.style.opacity = '0'; fbFront.style.opacity = '0';
+    _animateIn(back);
     artSlot = artSlot==='a' ? 'b' : 'a';
     updateBg(url, null);
     $.artGlow.style.backgroundImage = `url('${url}')`;
@@ -2863,27 +2933,81 @@ function stopLRC() {
   $.lpBody.classList.remove('lrc-mode');
 }
 
-/* ---- LYRICS LOADING ---- */
+/* ---- LYRICS LOADING (v11 — LRCLIB primary · Genius secondary) ---- */
+
+/* LRCLIB — source principale avec signature enrichie (album + durée) */
 async function fetchLyricsFromLRCLIB(artist, title) {
+  // Tentative 1 : /api/get — match exact avec métadonnées
   try {
-    const r = await fetch(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`);
-    if (r.ok) { const d = await r.json(); if (d.syncedLyrics || d.plainLyrics) return { syncedLyrics: d.syncedLyrics||null, plainLyrics: d.plainLyrics||null, duration: d.duration, source:'lrclib' }; }
+    const track  = currentTrack;
+    const album  = track?.album?.['#text'] || '';
+    const dur    = track?.duration ? Math.round(parseInt(track.duration) / 1000) : 0;
+    const params = new URLSearchParams({ artist_name: artist, track_name: title });
+    if (album) params.set('album_name', album);
+    if (dur > 0) params.set('duration', dur);
+    const r = await fetch(`https://lrclib.net/api/get?${params}`);
+    if (r.ok) {
+      const d = await r.json();
+      if (d.syncedLyrics || d.plainLyrics)
+        return { syncedLyrics: d.syncedLyrics||null, plainLyrics: d.plainLyrics||null, duration: d.duration, source: 'lrclib' };
+    }
   } catch {}
+  // Tentative 2 : /api/search — fuzzy match
   try {
     const r = await fetch(`https://lrclib.net/api/search?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`);
     if (r.ok) {
       const results = await r.json();
       if (Array.isArray(results)) {
-        const match = results.find(x=>x.syncedLyrics) || results.find(x=>x.plainLyrics);
-        if (match) return { syncedLyrics: match.syncedLyrics||null, plainLyrics: match.plainLyrics||null, duration: match.duration, source:'lrclib-search' };
+        const match = results.find(x => x.syncedLyrics) || results.find(x => x.plainLyrics);
+        if (match)
+          return { syncedLyrics: match.syncedLyrics||null, plainLyrics: match.plainLyrics||null, duration: match.duration, source: 'lrclib-search' };
       }
     }
   } catch {}
-  try {
-    const r = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`);
-    if (r.ok) { const d = await r.json(); if (d.lyrics?.trim().length > 10) return { syncedLyrics: null, plainLyrics: d.lyrics, duration: 0, source:'lyrics.ovh' }; }
-  } catch {}
   return null;
+}
+
+/* GENIUS — source secondaire (paroles plain-text via token Genius + CORS proxy) */
+async function fetchLyricsFromGenius(artist, title) {
+  const token = (S.geniusToken || '').trim();
+  if (!token) return null;
+  try {
+    const proxy  = 'https://corsproxy.io/?url=';
+    const q      = encodeURIComponent(`${artist} ${title}`);
+    const apiUrl = `https://api.genius.com/search?q=${q}&access_token=${encodeURIComponent(token)}`;
+    const r = await fetch(proxy + encodeURIComponent(apiUrl));
+    if (!r.ok) return null;
+    const d    = await r.json();
+    const hits = d?.response?.hits || [];
+    const hit  = hits.find(h => h.type === 'song') || hits[0];
+    if (!hit) return null;
+
+    // Vérification basique de la correspondance titre/artiste
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const titleOk  = norm(hit.result.title).includes(norm(title))  || norm(title).includes(norm(hit.result.title));
+    const artistOk = norm(hit.result.primary_artist?.name||'').includes(norm(artist)) || norm(artist).includes(norm(hit.result.primary_artist?.name||''));
+    if (!titleOk && !artistOk) return null;
+
+    // Récupère la page Genius et extrait [data-lyrics-container]
+    const songUrl  = hit.result.url;
+    const pr = await fetch(proxy + encodeURIComponent(songUrl));
+    if (!pr.ok) return null;
+    const html = await pr.text();
+
+    const doc  = new DOMParser().parseFromString(html, 'text/html');
+    const containers = doc.querySelectorAll('[data-lyrics-container="true"]');
+    if (!containers.length) return null;
+
+    let plain = '';
+    containers.forEach(el => {
+      el.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+      plain += el.textContent + '\n';
+    });
+    plain = plain.replace(/\n{3,}/g, '\n\n').trim();
+    if (!plain || plain.length < 15) return null;
+
+    return { syncedLyrics: null, plainLyrics: plain, duration: 0, source: 'genius' };
+  } catch { return null; }
 }
 
 async function loadLyrics(artist, title) {
@@ -2891,14 +3015,32 @@ async function loadLyrics(artist, title) {
   $.lrcContainer.innerHTML = '<span class="lp-empty">' + (window.t ? window.t('lyrics_fetching') : 'Loading lyrics…') + '</span>';
   $.lpBody.classList.remove('lrc-mode');
   setLPBadge('');
+
   let lyrData = getLRCCache(artist, title);
-  if (!lyrData) { lyrData = await fetchLyricsFromLRCLIB(artist, title); if (lyrData) setLRCCache(artist, title, lyrData); }
+
+  if (!lyrData) {
+    // 1. LRCLIB toujours en premier
+    lyrData = await fetchLyricsFromLRCLIB(artist, title);
+    if (lyrData) setLRCCache(artist, title, lyrData);
+  }
+
+  // 2. Genius en fallback si activé et LRCLIB a échoué
+  if (!lyrData && S.lyricsSource === 'lrclib+genius' && S.geniusToken) {
+    const g = await fetchLyricsFromGenius(artist, title);
+    if (g) { lyrData = g; setLRCCache(artist, title, lyrData); }
+  }
+
   if (!lyrData) {
     const notFound = window.t ? window.t('lyrics_not_found') : 'No lyrics found.';
-    $.lrcContainer.innerHTML = `<span class="lp-empty">${notFound}<br/><a href="https://genius.com/search?q=${encodeURIComponent(artist+' '+title)}" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Genius →</a></span>`;
+    const gLink = `https://genius.com/search?q=${encodeURIComponent(artist+' '+title)}`;
+    $.lrcContainer.innerHTML = `<span class="lp-empty">${notFound}<br/><a href="${gLink}" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Genius →</a></span>`;
     setLPBadge('plain'); return;
   }
   if (lyrData.duration > 0) trackDuration = lyrData.duration;
+  // Badge source (lrclib / genius)
+  const _srcLabel = lyrData.source?.startsWith('genius')
+    ? '<span class="lp-source-badge genius">Genius</span>'
+    : '<span class="lp-source-badge">LRCLIB</span>';
   if (lyrData.syncedLyrics) {
     lrcLines = parseLRC(lyrData.syncedLyrics);
     if (lrcLines.length > 0) {
@@ -2907,21 +3049,21 @@ async function loadLyrics(artist, title) {
       const rm = S.lyricsRenderMode || 'phrase';
       if (rm === 'karaoke') renderLRCLinesKaraoke(lrcLines);
       else renderLRCLines(lrcLines);
-      setLPBadge('synced');
+      setLPBadge('synced', _srcLabel);
       cancelAnimationFrame(lrcRAF); tickLRC(); return;
     }
   }
   lrcSynced = false; $.lpBody.classList.remove('lrc-mode');
   const plain = lyrData.plainLyrics ? lyrData.plainLyrics.trim().replace(/</g,'&lt;').replace(/\n/g,'<br>') : '';
   $.lrcContainer.innerHTML = plain ? `<div class="plain-lyrics">${plain}</div>` : `<span class="lp-empty">${window.t ? window.t('lyrics_not_found') : 'No lyrics found.'}</span>`;
-  setLPBadge('plain');
+  setLPBadge('plain', _srcLabel);
 }
 
-function setLPBadge(type) {
+function setLPBadge(type, sourceBadge = '') {
   if (!$.lpBadge) return;
   $.lpBadge.className = 'lp-badge';
-  if (type === 'synced') { $.lpBadge.classList.add('synced'); $.lpBadge.textContent = window.t ? window.t('lyrics_synced_badge') : '● Synced'; }
-  else if (type === 'plain') { $.lpBadge.classList.add('plain'); $.lpBadge.textContent = window.t ? window.t('lyrics_plain_badge') : 'Plain text'; }
+  if (type === 'synced') { $.lpBadge.classList.add('synced'); $.lpBadge.innerHTML = (window.t ? window.t('lyrics_synced_badge') : '● Synced') + sourceBadge; }
+  else if (type === 'plain') { $.lpBadge.classList.add('plain'); $.lpBadge.innerHTML = (window.t ? window.t('lyrics_plain_badge') : 'Plain text') + sourceBadge; }
   else $.lpBadge.textContent = '';
 }
 
@@ -3146,6 +3288,70 @@ if ($.setVizFpsCustom) {
     saveSettings();
   }, { passive: true });
 }
+
+/* ── v11: Source paroles (LRCLIB / Genius) ──────────────────────────────── */
+(function wireGeniusSettings() {
+  // Injection dynamique des contrôles dans le panneau paroles s'ils n'existent pas dans le HTML
+  const lyricsTab = document.querySelector('.sp-pane[data-tab="lyrics"]') ||
+                    document.querySelector('#sp-lyrics') ||
+                    document.querySelector('.settings-pane');
+
+  const existingBlock = document.getElementById('sp-genius-block');
+  if (!existingBlock && lyricsTab) {
+    const block = document.createElement('div');
+    block.id = 'sp-genius-block';
+    block.style.cssText = 'border-top:1px solid rgba(255,255,255,.07);margin-top:1rem;padding-top:1rem';
+    block.innerHTML = `
+      <div class="sp-row sp-sub-header" style="margin-bottom:.6rem;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;opacity:.45">
+        Source paroles
+      </div>
+      <div class="sp-row">
+        <span class="sp-lbl">Fallback Genius</span>
+        <label class="sp-toggle" aria-label="Activer Genius comme source secondaire">
+          <input type="checkbox" id="sp-genius-toggle" ${S.lyricsSource === 'lrclib+genius' ? 'checked' : ''}>
+          <div class="sp-tt"></div><div class="sp-th"></div>
+        </label>
+      </div>
+      <div class="sp-row" id="sp-genius-token-row" style="flex-direction:column;align-items:flex-start;gap:.4rem;${S.lyricsSource !== 'lrclib+genius' ? 'display:none' : ''}">
+        <span class="sp-lbl" style="opacity:.6;font-size:.72rem">Token Genius (Client Access Token)</span>
+        <input type="password" id="sp-genius-token-input" autocomplete="off" spellcheck="false"
+          placeholder="Coller votre token Genius…"
+          value="${S.geniusToken || ''}"
+          style="width:100%;padding:.45rem .65rem;border-radius:8px;border:1px solid rgba(255,255,255,.12);
+                 background:rgba(255,255,255,.06);color:#fff;font-size:.8rem;outline:none">
+        <span style="opacity:.35;font-size:.64rem;line-height:1.4">
+          Obtenez un token gratuit sur <a href="https://genius.com/api-clients" target="_blank"
+            style="color:rgba(255,208,0,.7);text-decoration:none">genius.com/api-clients</a>
+        </span>
+      </div>`;
+    lyricsTab.appendChild(block);
+
+    document.getElementById('sp-genius-toggle')?.addEventListener('change', function() {
+      S.lyricsSource = this.checked ? 'lrclib+genius' : 'lrclib';
+      const row = document.getElementById('sp-genius-token-row');
+      if (row) row.style.display = this.checked ? '' : 'none';
+      saveSettings();
+    });
+    document.getElementById('sp-genius-token-input')?.addEventListener('input', function() {
+      S.geniusToken = this.value.trim();
+      saveSettings();
+    });
+  }
+
+  // Sync si les contrôles sont déjà dans le HTML
+  const toggleEl = document.getElementById('set-lyrics-source-genius') || document.getElementById('sp-genius-toggle');
+  const tokenEl  = document.getElementById('set-genius-token')         || document.getElementById('sp-genius-token-input');
+  if (toggleEl && !toggleEl._wired) {
+    toggleEl._wired = true;
+    toggleEl.checked = S.lyricsSource === 'lrclib+genius';
+    toggleEl.addEventListener('change', () => { S.lyricsSource = toggleEl.checked ? 'lrclib+genius' : 'lrclib'; saveSettings(); });
+  }
+  if (tokenEl && !tokenEl._wired) {
+    tokenEl._wired = true;
+    tokenEl.value = S.geniusToken || '';
+    tokenEl.addEventListener('input', () => { S.geniusToken = tokenEl.value.trim(); saveSettings(); });
+  }
+})();
 
 /* ============================================================
    PRESETS — configurations prédéfinies

@@ -1,191 +1,266 @@
-/* AURA Remote Control — remote.js v3
+/* AURA Remote Control — remote.js v4 (WebRTC P2P)
  * ─────────────────────────────────────────────────────────────────────────────
- * Transport unique : BroadcastChannel API (même navigateur, multi-onglets/fenêtres)
- * Fallback          : localStorage polling à 200ms (même origine)
+ * Transport : WebRTC DataChannel via PeerJS (connexion P2P cross-device)
+ *   · Display (PC/TV)     → crée un Peer → obtient un ID → génère lien+QR
+ *   · Remote (téléphone)  → ouvre le lien → connexion WebRTC directe
  *
- * ⚠ Fonctionne UNIQUEMENT entre onglets du même navigateur (même machine).
- *   Pour un usage cross-device (téléphone → PC), héberger l'app sur un serveur
- *   commun est suffisant : ouvrir AURA sur PC, copier le lien télécommande, l'ouvrir
- *   sur mobile depuis la même URL (réseau local ou serveur publié).
+ * Aucun serveur propre nécessaire — PeerJS open source signaling seulement.
+ * Fallback automatique : localStorage (même navigateur) si WebRTC bloqué.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-const RC_LS_PREFIX  = 'aura_rc_ch_';   // préfixe clé localStorage
-const RC_LS_POLL_MS = 150;             // intervalle polling fallback (ms)
-
-/* ── État interne ─────────────────────────────────────────────────────────── */
+/* ══ État interne ════════════════════════════════════════════════════════════ */
 let _rcMode      = null;   // null | 'display' | 'remote'
-let _rcCode      = '';
-let _rcBC        = null;   // BroadcastChannel instance
-let _rcPollTO    = null;   // intervalle localStorage polling
-let _rcPushTO    = null;   // debounce timer push display→remote
-let _rcSendTO    = null;   // debounce timer send remote→display
+let _rcPeerId    = '';
+let _peer        = null;   // instance Peer (PeerJS)
+let _conn        = null;   // DataConnection active
 let _rcConnDot   = null;
-let _rcLastTs    = 0;      // déduplique les messages localStorage
-let _rcLastState = null;   // dernier snapshot settings côté remote
+let _rcLastState = null;
+let _rcPushTO    = null;
+let _rcSendTO    = null;
 
-const _lsKey = c => RC_LS_PREFIX + c;
+/* Fallback localStorage */
+const RC_LS_KEY  = 'aura_rc_v4_';
+const RC_LS_POLL = 180;
+let _rcLsPoll    = null;
+let _rcLsLastTs  = 0;
+let _rcFallback  = false;
 
-/* ── Générateur de code 6 caractères ─────────────────────────────────────── */
-function _rcGenCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+/* ══ Chargement dynamique PeerJS ════════════════════════════════════════════ */
+let _pjLoading = false, _pjReady = false;
+const _pjCbs   = [];
+
+function _loadPeerJS(cb) {
+  if (_pjReady && window.Peer) { cb(); return; }
+  _pjCbs.push(cb);
+  if (_pjLoading) return;
+  _pjLoading = true;
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+  s.onload  = () => { _pjReady = true; _pjCbs.forEach(fn => fn()); _pjCbs.length = 0; };
+  s.onerror = () => {
+    console.warn('[AURA Remote] PeerJS CDN inaccessible → fallback localStorage');
+    _rcFallback = true; _pjCbs.forEach(fn => fn()); _pjCbs.length = 0;
+  };
+  document.head.appendChild(s);
 }
 
-/* ── Écriture vers tous les canaux disponibles ────────────────────────────── */
-function _rcWrite(payload) {
-  /* 1. BroadcastChannel — instantané, même navigateur */
-  if (_rcBC) { try { _rcBC.postMessage(payload); } catch {} }
-  /* 2. localStorage — fallback, même origine */
-  try { localStorage.setItem(_lsKey(_rcCode), JSON.stringify(payload)); } catch {}
+function _genShortId() {
+  const c = 'abcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({length:10}, () => c[Math.floor(Math.random()*c.length)]).join('');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MODE DISPLAY — l'AURA principal (PC/TV)
-   S'annonce et pousse ses settings ; écoute les commandes de la télécommande
-═══════════════════════════════════════════════════════════════════════════ */
+/* ══ localStorage helpers ════════════════════════════════════════════════════ */
+function _lsWrite(key, payload) {
+  try { localStorage.setItem(RC_LS_KEY + key, JSON.stringify({...payload, _ts: Date.now()})); } catch {}
+}
+function _lsRead(key) {
+  try { return JSON.parse(localStorage.getItem(RC_LS_KEY + key) || 'null'); } catch { return null; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MODE DISPLAY — PC / TV
+   Crée un Peer, publie son ID, affiche le QR code + lien partageable,
+   écoute les connexions entrantes WebRTC.
+══════════════════════════════════════════════════════════════════════════════ */
 function rcInitDisplay() {
-  _rcCode = localStorage.getItem('aura_rc_code') || _rcGenCode();
-  localStorage.setItem('aura_rc_code', _rcCode);
   _rcMode = 'display';
-
-  /* BroadcastChannel — réception commandes */
-  if (typeof BroadcastChannel !== 'undefined') {
-    _rcBC = new BroadcastChannel('aura_rc_' + _rcCode);
-    _rcBC.onmessage = ev => {
-      if (ev.data?._from === 'remote') _rcApplyRemoteData(ev.data);
-    };
-  }
-
-  /* Polling localStorage — réception commandes (_cmd) */
-  const _lsInKey = _lsKey(_rcCode + '_cmd');
-  _rcPollTO = setInterval(() => {
+  _loadPeerJS(() => {
+    if (_rcFallback || !window.Peer) {
+      _rcPeerId = localStorage.getItem('aura_rc_peer_id') || _genShortId();
+      localStorage.setItem('aura_rc_peer_id', _rcPeerId);
+      _rcStartLsFallbackDisplay();
+      rcRenderCodeBadge(_rcPeerId);
+      setTimeout(rcPushNow, 80);
+      return;
+    }
+    const savedId = localStorage.getItem('aura_rc_peer_id') || undefined;
     try {
-      const raw = localStorage.getItem(_lsInKey);
-      if (!raw) return;
-      const d = JSON.parse(raw);
-      if (!d || d._ts <= _rcLastTs) return;
-      _rcLastTs = d._ts;
-      if (d._from === 'remote') _rcApplyRemoteData(d);
-    } catch {}
-  }, RC_LS_POLL_MS);
-
-  /* Délai 50ms pour s'assurer que window.S est initialisé */
-  setTimeout(rcPushNow, 50);
-  rcRenderCodeBadge(_rcCode);
+      _peer = new Peer(savedId, {
+        debug: 0,
+        config: { iceServers: [
+          {urls:'stun:stun.l.google.com:19302'},
+          {urls:'stun:stun1.l.google.com:19302'}
+        ]}
+      });
+    } catch(e) {
+      _rcFallback = true;
+      _rcPeerId = savedId || _genShortId();
+      localStorage.setItem('aura_rc_peer_id', _rcPeerId);
+      _rcStartLsFallbackDisplay();
+      rcRenderCodeBadge(_rcPeerId);
+      setTimeout(rcPushNow, 80);
+      return;
+    }
+    _peer.on('open', id => {
+      _rcPeerId = id;
+      localStorage.setItem('aura_rc_peer_id', id);
+      rcRenderCodeBadge(id);
+      setTimeout(rcPushNow, 80);
+    });
+    _peer.on('connection', conn => { _conn = conn; _rcSetupDisplayConn(conn); });
+    _peer.on('error', err => {
+      if (err.type === 'unavailable-id') {
+        localStorage.removeItem('aura_rc_peer_id'); _peer.destroy(); rcInitDisplay();
+      } else if (['network','server-error','socket-error'].includes(err.type)) {
+        _rcFallback = true; _rcStartLsFallbackDisplay();
+      }
+    });
+    _peer.on('disconnected', () => {
+      setTimeout(() => { try { if (_peer && !_peer.destroyed) _peer.reconnect(); } catch {} }, 2000);
+    });
+  });
 }
 
-/* Planifie un push debounce (appelé par saveSettings) */
+function _rcSetupDisplayConn(conn) {
+  conn.on('open', () => { _rcUpdateDot(true); rcPushNow(); });
+  conn.on('data', data => { if (data?._from === 'remote') _rcApplyRemoteData(data); });
+  conn.on('close', () => { _rcUpdateDot(false); _conn = null; });
+  conn.on('error', () => { _rcUpdateDot(false); _conn = null; });
+}
+
+function _rcStartLsFallbackDisplay() {
+  clearInterval(_rcLsPoll);
+  _rcLsPoll = setInterval(() => {
+    const d = _lsRead(_rcPeerId + '_cmd');
+    if (!d || d._ts <= _rcLsLastTs) return;
+    _rcLsLastTs = d._ts;
+    if (d._from === 'remote') _rcApplyRemoteData(d);
+  }, RC_LS_POLL);
+}
+
+/* ── Push settings → Remote ─────────────────────────────────────────────── */
 function rcSchedulePush() {
   if (_rcMode !== 'display') return;
   clearTimeout(_rcPushTO);
   _rcPushTO = setTimeout(rcPushNow, 300);
 }
-
-/* Push immédiat des settings vers la télécommande */
 function rcPushNow() {
-  if (_rcMode !== 'display' || !_rcCode || !window.S) return;
-  _rcWrite({ ...window.S, _ts: Date.now(), _from: 'display' });
+  if (_rcMode !== 'display' || !window.S) return;
+  const payload = {...window.S, _ts: Date.now(), _from: 'display'};
+  if (_conn?.open) { try { _conn.send(payload); } catch {} }
+  _lsWrite(_rcPeerId, payload);
 }
 
-/* Applique les données reçues de la télécommande */
 function _rcApplyRemoteData(data) {
-  const skip = new Set(['_ts', '_from']);
+  const skip = new Set(['_ts','_from']);
   let changed = false;
   for (const k in data) {
     if (skip.has(k)) continue;
     if (Object.prototype.hasOwnProperty.call(window.S, k) && window.S[k] !== data[k]) {
-      window.S[k] = data[k];
-      changed = true;
+      window.S[k] = data[k]; changed = true;
     }
   }
-  if (changed) {
-    window.applySettings();
-    window.saveSettings(true /* noRc — évite la boucle */);
-  }
+  if (changed) { window.applySettings?.(); window.saveSettings?.(true); }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MODE REMOTE — l'appareil distant (téléphone, tablette…)
-   Se connecte avec le code, contrôle l'AURA display en temps réel
-═══════════════════════════════════════════════════════════════════════════ */
-async function rcEnterRemote(rawCode) {
-  _rcCode = (rawCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (_rcCode.length !== 6) { _rcErr('Code invalide — 6 caractères attendus.'); return; }
-
+/* ══════════════════════════════════════════════════════════════════════════════
+   MODE REMOTE — Téléphone / tablette
+   Reçoit l'ID Peer depuis l'URL → connexion WebRTC P2P directe.
+══════════════════════════════════════════════════════════════════════════════ */
+function rcEnterRemote(peerId) {
+  peerId = (peerId || '').trim();
+  if (!peerId) { _rcErr('ID / code manquant.'); return; }
   _rcShowLoading(true);
+  _loadPeerJS(() => {
+    if (_rcFallback || !window.Peer) { _rcEnterRemoteFallback(peerId); return; }
+    let rPeer;
+    try {
+      rPeer = new Peer({debug:0, config:{iceServers:[
+        {urls:'stun:stun.l.google.com:19302'},
+        {urls:'stun:stun1.l.google.com:19302'}
+      ]}});
+    } catch { _rcEnterRemoteFallback(peerId); return; }
 
-  /* Lecture de l'état initial depuis localStorage */
-  let initData = null;
-  try {
-    const raw = localStorage.getItem(_lsKey(_rcCode));
-    if (raw) {
-      const d = JSON.parse(raw);
-      if (d?._from === 'display') initData = d;
-    }
-  } catch {}
+    const timer = setTimeout(() => {
+      try { rPeer.destroy(); } catch {}
+      _rcEnterRemoteFallback(peerId);
+    }, 12000);
 
-  if (!initData) {
+    rPeer.on('open', () => {
+      const conn = rPeer.connect(peerId, {reliable:true, serialization:'json'});
+      conn.on('open', () => {
+        clearTimeout(timer);
+        _rcShowLoading(false);
+        _peer = rPeer; _conn = conn;
+        _rcMode = 'remote'; _rcPeerId = peerId;
+        _rcHideLogin();
+        conn.on('data', data => {
+          if (data?._from === 'display') {
+            _rcLastState = {...(_rcLastState||{}), ...data};
+            if (!document.getElementById('rc-panel')) _rcShowPanel(_rcLastState);
+            else _rcSyncPanel(_rcLastState);
+          }
+        });
+        conn.on('close', () => _rcUpdateDot(false));
+        conn.on('error', () => _rcUpdateDot(false));
+        _rcUpdateDot(true);
+      });
+      conn.on('error', err => {
+        clearTimeout(timer); try { rPeer.destroy(); } catch {}
+        _rcEnterRemoteFallback(peerId);
+      });
+    });
+    rPeer.on('error', err => {
+      clearTimeout(timer); try { rPeer.destroy(); } catch {}
+      _rcEnterRemoteFallback(peerId);
+    });
+  });
+}
+
+function _rcEnterRemoteFallback(peerId) {
+  _rcFallback = true;
+  const init = _lsRead(peerId);
+  if (!init || init._from !== 'display') {
     _rcShowLoading(false);
-    _rcErr('Aucun AURA trouvé avec ce code. Assurez-vous que le lecteur est ouvert dans un autre onglet du même navigateur.');
+    _rcErr('Aucun AURA trouvé. Vérifiez que le lecteur est ouvert et que vous utilisez le bon lien.');
     return;
   }
-
   _rcShowLoading(false);
-  _rcMode = 'remote';
-
-  /* Masque l'écran de login */
-  const loginEl = document.getElementById('s-login');
-  if (loginEl) {
-    loginEl.classList.add('out');
-    setTimeout(() => { loginEl.style.display = 'none'; }, 600);
-  }
-
-  /* BroadcastChannel — réception des mises à jour du display */
-  if (typeof BroadcastChannel !== 'undefined') {
-    _rcBC = new BroadcastChannel('aura_rc_' + _rcCode);
-    _rcBC.onmessage = ev => {
-      if (ev.data?._from === 'display') _rcSyncPanel(ev.data);
-    };
-  }
-
-  /* Polling localStorage — fallback sync display→remote */
-  _rcPollTO = setInterval(() => {
-    try {
-      const raw = localStorage.getItem(_lsKey(_rcCode));
-      if (!raw) return;
-      const d = JSON.parse(raw);
-      if (!d || d._ts <= _rcLastTs) return;
-      _rcLastTs = d._ts;
-      if (d._from === 'display') _rcSyncPanel(d);
-    } catch {}
-  }, RC_LS_POLL_MS);
-
-  _rcShowPanel(initData);
+  _rcMode = 'remote'; _rcPeerId = peerId;
+  _rcLastState = {...init};
+  _rcHideLogin(); _rcShowPanel(init);
+  clearInterval(_rcLsPoll);
+  _rcLsPoll = setInterval(() => {
+    const d = _lsRead(peerId);
+    if (!d || d._ts <= _rcLsLastTs) return;
+    _rcLsLastTs = d._ts;
+    if (d._from === 'display') { _rcLastState = {...(_rcLastState||{}), ...d}; _rcSyncPanel(_rcLastState); }
+  }, RC_LS_POLL);
 }
 
-/* Envoie un changement de paramètre vers le display */
+/* ── Envoi commande Remote → Display ────────────────────────────────────── */
 function _rcSend(key, value) {
   if (_rcMode !== 'remote') return;
-  const payload = { ...(_rcLastState || {}), [key]: value, _ts: Date.now(), _from: 'remote' };
-  /* BroadcastChannel */
-  if (_rcBC) { try { _rcBC.postMessage(payload); } catch {} }
-  /* localStorage — clé _cmd pour que le display la lise via polling */
-  try { localStorage.setItem(_lsKey(_rcCode + '_cmd'), JSON.stringify(payload)); } catch {}
+  const payload = {...(_rcLastState||{}), [key]:value, _ts:Date.now(), _from:'remote'};
+  if (_conn?.open) { try { _conn.send(payload); } catch {} }
+  _lsWrite(_rcPeerId + '_cmd', payload);
   if (_rcLastState) _rcLastState[key] = value;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PANEL REMOTE UI
-═══════════════════════════════════════════════════════════════════════════ */
+/* ══ UI helpers ══════════════════════════════════════════════════════════════ */
+function _rcHideLogin() {
+  const el = document.getElementById('s-login');
+  if (el) { el.classList.add('out'); setTimeout(() => { el.style.display = 'none'; }, 600); }
+}
+function _rcUpdateDot(connected) {
+  _rcConnDot = _rcConnDot || document.getElementById('rc-conn-dot');
+  if (_rcConnDot) _rcConnDot.classList.toggle('on', connected);
+}
+function _rcErr(msg) {
+  const el = document.getElementById('rc-error');
+  if (el) { el.textContent = msg; el.style.opacity = '1'; }
+}
+function _rcShowLoading(on) {
+  const btn = document.getElementById('btn-rc-connect');
+  if (btn) btn.textContent = on ? 'Connexion…' : 'Connecter →';
+}
+
+/* ══ PANEL REMOTE UI ════════════════════════════════════════════════════════ */
 function _rcShowPanel(d) {
-  _rcLastState = { ...d };
+  _rcLastState = {...d};
   let panel = document.getElementById('rc-panel');
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'rc-panel';
-    document.body.appendChild(panel);
-  }
+  if (!panel) { panel = document.createElement('div'); panel.id = 'rc-panel'; document.body.appendChild(panel); }
   panel.innerHTML = _rcBuildHTML(d);
   panel.classList.add('on');
   _rcConnDot = panel.querySelector('#rc-conn-dot');
@@ -193,9 +268,8 @@ function _rcShowPanel(d) {
   _rcWire(panel);
 }
 
-/* Synchronise les contrôles du panel quand le display envoie une mise à jour */
 function _rcSyncPanel(data) {
-  if (data._ts) _rcLastState = { ...(_rcLastState || {}), ...data };
+  if (data._ts) _rcLastState = {...(_rcLastState||{}), ...data};
   const panel = document.getElementById('rc-panel');
   if (!panel) return;
   panel.querySelectorAll('.rc-toggle input[data-key]').forEach(el => {
@@ -209,97 +283,69 @@ function _rcSyncPanel(data) {
     }
   });
   panel.querySelectorAll('.rc-opt-grp[data-key]').forEach(grp => {
-    const v = data[grp.dataset.key];
-    if (v === undefined) return;
-    grp.querySelectorAll('.rc-opt').forEach(b =>
-      b.classList.toggle('active', String(b.dataset.val) === String(v))
-    );
+    const v = data[grp.dataset.key]; if (v === undefined) return;
+    grp.querySelectorAll('.rc-opt').forEach(b => b.classList.toggle('active', String(b.dataset.val) === String(v)));
   });
   if ('accentColor' in data) {
-    panel.querySelectorAll('.rc-swatch').forEach(s =>
-      s.classList.toggle('active', s.dataset.color === data.accentColor)
-    );
+    panel.querySelectorAll('.rc-swatch').forEach(s => s.classList.toggle('active', s.dataset.color === data.accentColor));
   }
 }
 
-/* Câble tous les contrôles du panel */
 function _rcWire(panel) {
-  /* Déconnexion */
   panel.querySelector('#rc-disc')?.addEventListener('click', () => {
-    if (_rcBC) { try { _rcBC.close(); } catch {} _rcBC = null; }
-    clearInterval(_rcPollTO);
-    _rcMode = null;
+    if (_conn)  { try { _conn.close();   } catch {} _conn  = null; }
+    if (_peer)  { try { _peer.destroy(); } catch {} _peer  = null; }
+    clearInterval(_rcLsPoll); _rcMode = null; _rcFallback = false;
     panel.classList.remove('on');
     const loginEl = document.getElementById('s-login');
     if (loginEl) { loginEl.style.display = ''; loginEl.classList.remove('out'); }
   });
-
-  /* Toggles */
-  panel.querySelectorAll('.rc-toggle input[data-key]').forEach(el => {
-    el.addEventListener('change', () => _rcSend(el.dataset.key, el.checked));
-  });
-
-  /* Sliders */
+  panel.querySelectorAll('.rc-toggle input[data-key]').forEach(el =>
+    el.addEventListener('change', () => _rcSend(el.dataset.key, el.checked))
+  );
   panel.querySelectorAll('.rc-slider[data-key]').forEach(el => {
     el.addEventListener('input', () => {
       const lbl = panel.querySelector(`.rc-val[data-for="${el.id}"]`);
       if (lbl) lbl.textContent = el.value;
       clearTimeout(_rcSendTO);
       _rcSendTO = setTimeout(() => _rcSend(el.dataset.key, parseInt(el.value)), 60);
-    }, { passive: true });
+    }, {passive:true});
   });
-
-  /* Color pickers */
-  panel.querySelectorAll('.rc-color[data-key]').forEach(el => {
-    el.addEventListener('input', () => {
-      clearTimeout(_rcSendTO);
-      _rcSendTO = setTimeout(() => _rcSend(el.dataset.key, el.value), 60);
-    });
-  });
-
-  /* Option groups */
-  panel.querySelectorAll('.rc-opt-grp[data-key]').forEach(grp => {
-    grp.querySelectorAll('.rc-opt').forEach(btn => {
+  panel.querySelectorAll('.rc-color[data-key]').forEach(el =>
+    el.addEventListener('input', () => { clearTimeout(_rcSendTO); _rcSendTO = setTimeout(() => _rcSend(el.dataset.key, el.value), 60); })
+  );
+  panel.querySelectorAll('.rc-opt-grp[data-key]').forEach(grp =>
+    grp.querySelectorAll('.rc-opt').forEach(btn =>
       btn.addEventListener('click', () => {
         grp.querySelectorAll('.rc-opt').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const val = btn.dataset.val;
-        _rcSend(grp.dataset.key,
-          (isNaN(val) || val.includes('%') || val.includes('px')) ? val : parseInt(val)
-        );
-      });
-    });
-  });
-
-  /* Swatches */
-  panel.querySelectorAll('.rc-swatch').forEach(sw => {
+        _rcSend(grp.dataset.key, (isNaN(val)||val.includes('%')||val.includes('px')) ? val : parseInt(val));
+      })
+    )
+  );
+  panel.querySelectorAll('.rc-swatch').forEach(sw =>
     sw.addEventListener('click', () => {
       panel.querySelectorAll('.rc-swatch').forEach(s => s.classList.remove('active'));
-      sw.classList.add('active');
-      _rcSend('accentColor', sw.dataset.color);
-    });
-  });
-
-  /* Bouton "Appliquer tout" */
+      sw.classList.add('active'); _rcSend('accentColor', sw.dataset.color);
+    })
+  );
   panel.querySelector('#rc-apply-all')?.addEventListener('click', () => {
     if (!_rcLastState) return;
-    const payload = { ..._rcLastState, _ts: Date.now(), _from: 'remote' };
-    if (_rcBC) { try { _rcBC.postMessage(payload); } catch {} }
-    try { localStorage.setItem(_lsKey(_rcCode + '_cmd'), JSON.stringify(payload)); } catch {}
+    const payload = {..._rcLastState, _ts:Date.now(), _from:'remote'};
+    if (_conn?.open) { try { _conn.send(payload); } catch {} }
+    _lsWrite(_rcPeerId + '_cmd', payload);
     const btn = panel.querySelector('#rc-apply-all');
-    if (btn) {
-      btn.textContent = '✓ Appliqué';
-      setTimeout(() => { btn.textContent = 'Appliquer tout'; }, 1500);
-    }
+    if (btn) { btn.textContent = '✓ Appliqué'; setTimeout(() => { btn.textContent = 'Appliquer tout'; }, 1500); }
   });
 }
 
-/* ── Helpers pour construire le HTML ────────────────────────────────────── */
-const _sw  = (c, n, d) => `<button class="rc-swatch${d.accentColor===c?' active':''}" data-color="${c}" style="background:${c}" title="${n}" aria-label="${n}"></button>`;
-const _opt = (grpKey, pairs, d, wrap) => `<div class="rc-opt-grp${wrap?' rc-opt-grp-wrap':''}" data-key="${grpKey}">${pairs.map(([v,l]) => `<button class="rc-opt${String(d[grpKey])===String(v)?' active':''}" data-val="${v}">${l}</button>`).join('')}</div>`;
-const _tog = (key, label, d) => `<div class="rc-row"><span class="rc-lbl">${label}</span><label class="rc-toggle" aria-label="${label}"><input type="checkbox" data-key="${key}"${d[key]?' checked':''}><div class="rc-tt"></div><div class="rc-th"></div></label></div>`;
-const _sl  = (id, key, label, min, max, d, step) => `<div class="rc-slider-row"><span class="rc-lbl">${label} <span class="rc-val" data-for="${id}">${d[key]??0}</span></span><input id="${id}" class="rc-slider" type="range" min="${min}" max="${max}" step="${step||1}" value="${d[key]??0}" data-key="${key}" aria-label="${label}"/></div>`;
-const _cr  = (key, label, d) => `<div class="rc-row"><span class="rc-lbl">${label}</span><input type="color" class="rc-color" data-key="${key}" value="${d[key]||'#ffffff'}" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0" aria-label="${label}"/></div>`;
+/* ── HTML helpers ──────────────────────────────────────────────────────────── */
+const _sw  = (c,n,d) => `<button class="rc-swatch${d.accentColor===c?' active':''}" data-color="${c}" style="background:${c}" title="${n}" aria-label="${n}"></button>`;
+const _opt = (k,pairs,d,wrap) => `<div class="rc-opt-grp${wrap?' rc-opt-grp-wrap':''}" data-key="${k}">${pairs.map(([v,l])=>`<button class="rc-opt${String(d[k])===String(v)?' active':''}" data-val="${v}">${l}</button>`).join('')}</div>`;
+const _tog = (k,lbl,d) => `<div class="rc-row"><span class="rc-lbl">${lbl}</span><label class="rc-toggle" aria-label="${lbl}"><input type="checkbox" data-key="${k}"${d[k]?' checked':''}><div class="rc-tt"></div><div class="rc-th"></div></label></div>`;
+const _sl  = (id,k,lbl,mn,mx,d,step) => `<div class="rc-slider-row"><span class="rc-lbl">${lbl} <span class="rc-val" data-for="${id}">${d[k]??0}</span></span><input id="${id}" class="rc-slider" type="range" min="${mn}" max="${mx}" step="${step||1}" value="${d[k]??0}" data-key="${k}" aria-label="${lbl}"/></div>`;
+const _cr  = (k,lbl,d) => `<div class="rc-row"><span class="rc-lbl">${lbl}</span><input type="color" class="rc-color" data-key="${k}" value="${d[k]||'#ffffff'}" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0" aria-label="${lbl}"/></div>`;
 
 function _rcBuildHTML(d) {
   return `<div class="rc-wrap">
@@ -310,18 +356,17 @@ function _rcBuildHTML(d) {
       </div>
       <div class="rc-hdr-right">
         <span class="rc-dot" id="rc-conn-dot" title="Connecté"></span>
-        <span class="rc-code-tag">${_rcCode}</span>
+        <span class="rc-code-tag" style="font-size:.58rem;opacity:.4;letter-spacing:.03em">${_rcFallback?'LocalStorage':'P2P WebRTC'}</span>
         <button class="rc-disc" id="rc-disc" aria-label="Déconnecter">✕</button>
       </div>
     </div>
     <div class="rc-body">
-      <button class="rc-apply-all-btn" id="rc-apply-all" aria-label="Appliquer tous les réglages">Appliquer tout</button>
+      <button class="rc-apply-all-btn" id="rc-apply-all">Appliquer tout</button>
 
-      <!-- APPARENCE -->
       <div class="rc-section">
         <div class="rc-sh">🎨 Apparence</div>
         <div class="rc-lbl" style="margin-bottom:.5rem">Couleur accent</div>
-        <div class="rc-swatches" role="group" aria-label="Couleur accent">
+        <div class="rc-swatches" role="group">
           ${_sw('#e0245e','Rose',d)}${_sw('#7c3aed','Violet',d)}${_sw('#0891b2','Bleu',d)}
           ${_sw('#059669','Vert',d)}${_sw('#d97706','Orange',d)}${_sw('#ec4899','Rose clair',d)}${_sw('#ffffff','Blanc',d)}
         </div>
@@ -342,7 +387,6 @@ function _rcBuildHTML(d) {
         ${_sl('rc-mqspd','marqueeSpeed','Vitesse texte fond',10,60,d)}
       </div>
 
-      <!-- AFFICHAGE -->
       <div class="rc-section">
         <div class="rc-sh">📐 Affichage</div>
         <div class="rc-lbl" style="margin-bottom:.375rem">Vue</div>
@@ -361,10 +405,9 @@ function _rcBuildHTML(d) {
         ${_tog('showProgress','Barre de progression',d)}
       </div>
 
-      <!-- PAROLES -->
       <div class="rc-section">
         <div class="rc-sh">🎵 Paroles</div>
-        <div class="rc-lbl" style="margin-bottom:.375rem">Mode d'affichage</div>
+        <div class="rc-lbl" style="margin-bottom:.375rem">Mode</div>
         ${_opt('lyricsRenderMode',[['basic','Statique'],['scroll','Défilement'],['phrase','Phrase'],['karaoke','🎤 Karaoké']],d)}
         ${_tog('karaokeProgressiveFill','✨ Remplissage progressif',d)}
         ${_sl('rc-lsz','lyricsSize','Taille texte',70,160,d)}
@@ -376,7 +419,7 @@ function _rcBuildHTML(d) {
         ${_tog('lyricsColorAuto','Couleur auto (pochette)',d)}
         ${_cr('lyricsActiveColor','Ligne active',d)}
         ${_cr('lyricsInactiveColor','Autres lignes',d)}
-        <div class="rc-lbl" style="margin:.75rem 0 .375rem">Fond paroles</div>
+        <div class="rc-lbl" style="margin:.75rem 0 .375rem">Fond</div>
         ${_opt('lyricsBg',[['none','Aucun'],['dark','Sombre'],['custom','Perso'],['auto','🌈 Pochette']],d)}
         ${_sl('rc-lbgop','lyricsBgOpacity','Opacité fond',0,100,d)}
         <div class="rc-lbl" style="margin:.75rem 0 .375rem">Animation</div>
@@ -389,58 +432,76 @@ function _rcBuildHTML(d) {
         ${_sl('rc-loff','lyricsOffset','Décalage (ms)',-2000,2000,d,50)}
         ${_sl('rc-ladv','lyricsAdvanceMs','Base avance (ms)',0,1000,d,50)}
         ${_tog('lyricsAutoColor','Couleurs adaptatives',d)}
+        <div class="rc-lbl" style="margin:.75rem 0 .375rem">Source</div>
+        ${_opt('lyricsSource',[['lrclib','LRCLIB'],['lrclib+genius','+ Genius']],d)}
       </div>
     </div>
   </div>`;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   BADGE CODE — dans l'onglet Connexion des settings (mode display)
-═══════════════════════════════════════════════════════════════════════════ */
-function rcRenderCodeBadge(code) {
+/* ══ BADGE LIEN — mode display ═══════════════════════════════════════════════
+   Génère un QR code + lien ?rcpeer=<id> partageable par SMS, QR, etc.
+══════════════════════════════════════════════════════════════════════════════ */
+function rcRenderCodeBadge(peerId) {
   const el = document.getElementById('rc-display-section');
   if (!el) return;
-  const hasBc = typeof BroadcastChannel !== 'undefined';
-  const transport = hasBc ? '⚡ BroadcastChannel' : '📡 LocalStorage';
-  const remoteUrl = location.href.split('?')[0] + '?rcmode=remote&code=' + code;
+
+  const remoteUrl = _buildRemoteUrl(peerId);
+  const transport = _rcFallback ? '📡 localStorage (même navigateur)' : '⚡ WebRTC P2P (cross-device)';
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=8&color=ffffff&bgcolor=00000000&data=${encodeURIComponent(remoteUrl)}`;
 
   el.innerHTML = `
     <div class="rc-code-block">
-      <div class="rc-code-label">Code télécommande</div>
-      <div class="rc-code-value" aria-label="Code : ${code}">${code}</div>
-      <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="rc-copy-btn" id="rc-copy-btn">Copier le code</button>
-        <button class="rc-copy-btn" id="rc-copy-link-btn" style="flex:1">Copier le lien</button>
+      <div class="rc-code-label">Télécommande ${_rcFallback ? '(mode local)' : 'P2P'}</div>
+
+      <div style="display:flex;justify-content:center;margin:.6rem 0">
+        <a href="${remoteUrl}" target="_blank" title="Scanner pour ouvrir">
+          <img src="${qrSrc}" width="150" height="150" alt="QR Code AURA Remote"
+               style="border-radius:12px;background:rgba(255,255,255,.05);display:block"
+               onerror="this.closest('a').innerHTML='<span style=\"opacity:.4;font-size:.7rem\">QR indisponible</span>'">
+        </a>
       </div>
+
+      <div style="font-size:.68rem;opacity:.55;word-break:break-all;text-align:center;margin-bottom:.5rem;padding:0 .25rem">
+        ${remoteUrl.length > 72 ? remoteUrl.slice(0, 72) + '…' : remoteUrl}
+      </div>
+
+      <div style="display:flex;gap:6px;margin-bottom:.5rem">
+        <button class="rc-copy-btn" id="rc-copy-link-btn" style="flex:1">📋 Copier</button>
+        <button class="rc-copy-btn" id="rc-share-btn" style="flex:1">↗ Partager</button>
+      </div>
+
       <p class="rc-code-hint">
-        ${transport} — Fonctionne entre onglets du même navigateur.<br>
-        <span style="opacity:.55;font-size:.65rem">Pour utiliser sur mobile, ouvrez le lien dans un nouvel onglet sur le même réseau (ex : via votre serveur local).</span>
+        ${transport}<br>
+        <span style="opacity:.45;font-size:.64rem">
+          Scannez le QR ou partagez le lien pour ouvrir la télécommande sur votre téléphone.
+        </span>
       </p>
     </div>`;
 
-  document.getElementById('rc-copy-btn')?.addEventListener('click', function () {
-    navigator.clipboard.writeText(code)
-      .then(() => { this.textContent = '✓ Copié !'; setTimeout(() => { this.textContent = 'Copier le code'; }, 1500); })
-      .catch(() => {});
-  });
   document.getElementById('rc-copy-link-btn')?.addEventListener('click', function () {
     navigator.clipboard.writeText(remoteUrl)
-      .then(() => { this.textContent = '✓ Lien copié !'; setTimeout(() => { this.textContent = 'Copier le lien'; }, 1500); })
-      .catch(() => {});
+      .then(() => { this.textContent = '✓ Copié !'; setTimeout(() => { this.textContent = '📋 Copier'; }, 1800); })
+      .catch(() => { prompt('Lien télécommande :', remoteUrl); });
+  });
+
+  document.getElementById('rc-share-btn')?.addEventListener('click', function () {
+    if (navigator.share) {
+      navigator.share({ title: 'AURA Télécommande', url: remoteUrl }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(remoteUrl)
+        .then(() => { this.textContent = '✓ Copié !'; setTimeout(() => { this.textContent = '↗ Partager'; }, 1800); })
+        .catch(() => { prompt('Lien télécommande :', remoteUrl); });
+    }
   });
 }
 
-/* ── Helpers UI ─────────────────────────────────────────────────────────── */
-function _rcErr(msg) {
-  const el = document.getElementById('rc-error');
-  if (el) { el.textContent = msg; el.style.opacity = '1'; }
-}
-function _rcShowLoading(on) {
-  const btn = document.getElementById('btn-rc-connect');
-  if (btn) btn.textContent = on ? 'Connexion…' : 'Connecter →';
+function _buildRemoteUrl(peerId) {
+  const base = location.href.split('?')[0].split('#')[0];
+  return `${base}?rcpeer=${encodeURIComponent(peerId)}`;
 }
 
-/* ── Init login card ─────────────────────────────────────────────────────── */
+/* ══ Init login ══════════════════════════════════════════════════════════════ */
 (function rcInit() {
   const toggleBtn  = document.getElementById('btn-rc-toggle');
   const form       = document.getElementById('rc-form');
@@ -457,28 +518,22 @@ function _rcShowLoading(on) {
     });
   }
   if (input) {
-    input.addEventListener('input', () => {
-      input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-      if (errorEl) errorEl.style.opacity = '0';
-    });
+    input.addEventListener('input', () => { if (errorEl) errorEl.style.opacity = '0'; });
     input.addEventListener('keydown', e => { if (e.key === 'Enter') connectBtn?.click(); });
   }
   if (connectBtn) {
-    connectBtn.addEventListener('click', () => { if (input) rcEnterRemote(input.value); });
+    connectBtn.addEventListener('click', () => { if (input) rcEnterRemote(input.value.trim()); });
   }
 
-  /* Auto-connexion via URL param ?rcmode=remote&code=XXXXXX */
+  /* Auto-connexion via ?rcpeer=<id> (nouveau) ou ?rcmode=remote&code=<id> (legacy) */
   const params = new URLSearchParams(location.search);
-  if (params.get('rcmode') === 'remote') {
-    const code = params.get('code') || '';
-    setTimeout(() => {
-      if (input) input.value = code;
-      connectBtn?.click();
-    }, 800);
+  const rcPeer = params.get('rcpeer') || (params.get('rcmode') === 'remote' ? params.get('code') : null);
+  if (rcPeer) {
+    setTimeout(() => { if (input) input.value = rcPeer; rcEnterRemote(rcPeer); }, 600);
   }
 })();
 
-/* ── Exports ────────────────────────────────────────────────────────────── */
+/* ══ Exports ════════════════════════════════════════════════════════════════ */
 window.rcInitDisplay  = rcInitDisplay;
 window.rcSchedulePush = rcSchedulePush;
 window.rcEnterRemote  = rcEnterRemote;

@@ -14,8 +14,10 @@
    ─────────────────────────────────────────────────────────────────────────────
 */
 
-/* ---- LYRICS TIMING OFFSET ---- */
-const LYRICS_ADVANCE_MS = 500; // Show lyrics 500ms earlier to compensate delay
+/* ---- LYRICS TIMING OFFSET (valeur par défaut — remplacée par S.lyricsAdvanceMs) ---- */
+// La constante ci-dessous est conservée pour rétro-compatibilité au démarrage.
+// La valeur réelle utilisée est S.lyricsAdvanceMs (réglable dans les paramètres).
+const LYRICS_ADVANCE_MS_DEFAULT = 500;
 
 /* ---- PERF HELPERS ---- */
 function debounce(fn, ms) {
@@ -84,6 +86,9 @@ const S = {
   lyricsWeight: 400,              // 100-900 font weight
   lyricsLetterSpacing: 0,         // -2 to 8 (units of 0.01em)
   lyricsLineHeight: 180,          // 120-260 (%)
+  // v10c — réglages supplémentaires
+  lyricsAdvanceMs: 500,           // décalage de base paroles (ms) — remplace LYRICS_ADVANCE_MS
+  vizFpsCustom: 60,               // FPS personnalisé visualiseur (10-144)
 };
 
 /* ---- DOM REFS ---- */
@@ -92,7 +97,7 @@ const $ = {
   player:          document.getElementById('s-player'),
   loading:         document.getElementById('loading'),
   globalNoise:     document.getElementById('global-noise'),
-  orbBg:           document.getElementById('orb-bg'),
+  orbBg:           null, // orbs supprimés (v10c)
   inUser:          document.getElementById('in-user'),
   inKey:           document.getElementById('in-key'),
   btnConnect:      document.getElementById('btn-connect'),
@@ -235,6 +240,11 @@ const $ = {
   valLyricsLetterSpacing:document.getElementById('val-lyrics-letter-spacing'),
   setLyricsLineHeight:   document.getElementById('set-lyrics-line-height'),
   valLyricsLineHeight:   document.getElementById('val-lyrics-line-height'),
+  // v10c
+  setLyricsAdvanceMs:    document.getElementById('set-lyrics-advance-ms'),
+  valLyricsAdvanceMs:    document.getElementById('val-lyrics-advance-ms'),
+  setVizFpsCustom:       document.getElementById('set-viz-fps-custom'),
+  valVizFpsCustom:       document.getElementById('val-viz-fps-custom'),
 };
 
 /* ---- CACHE / PERSISTENCE ---- */
@@ -534,7 +544,7 @@ function applySettings() {
   document.body.classList.add('f-' + S.fontChoice);
 
   /* Orbs / bg animation */
-  $.orbBg.style.opacity = (S.bgAnimation === 'blobs') ? '1' : '0';
+  if ($.orbBg) $.orbBg.style.opacity = (S.bgAnimation === 'blobs') ? '1' : '0';
   document.body.classList.remove('bg-legere', 'bg-energique', 'bg-flottante');
   if (S.bgAnimation === 'legere')    document.body.classList.add('bg-legere');
   if (S.bgAnimation === 'energique') document.body.classList.add('bg-energique');
@@ -551,6 +561,11 @@ function applySettings() {
   /* FPS row */
   const fpsRow = document.getElementById('sp-fps-row');
   if (fpsRow) fpsRow.classList.toggle('fps-visible', S.canvasViz);
+
+  /* FPS personnalisé */
+  const customFps = S.vizFpsCustom ?? 60;
+  if ($.setVizFpsCustom) { $.setVizFpsCustom.value = customFps; updateSliderFill($.setVizFpsCustom); }
+  if ($.valVizFpsCustom) $.valVizFpsCustom.textContent = customFps + ' fps';
 
   /* Lanyard */
   if ($.setLanyardId) $.setLanyardId.value = S.lanyardId || '';
@@ -758,6 +773,11 @@ function applyLyricsSettings() {
   const off = S.lyricsOffset || 0;
   if ($.setLyricsOffset) { $.setLyricsOffset.value = off; updateSliderFill($.setLyricsOffset); }
   if ($.valLyricsOffset) $.valLyricsOffset.textContent = (off >= 0 ? '+' : '') + off + 'ms';
+
+  /* Avance de base paroles (lyricsAdvanceMs) */
+  const adv = S.lyricsAdvanceMs ?? 500;
+  if ($.setLyricsAdvanceMs) { $.setLyricsAdvanceMs.value = adv; updateSliderFill($.setLyricsAdvanceMs); }
+  if ($.valLyricsAdvanceMs) $.valLyricsAdvanceMs.textContent = adv + 'ms';
 
   /* Auto color toggle */
   if ($.setLyricsAutoColor) $.setLyricsAutoColor.checked = !!S.lyricsAutoColor;
@@ -1109,6 +1129,27 @@ $.inUser.addEventListener('input',   clearError);
 $.inKey.addEventListener('input',    clearError);
 $.inUser.addEventListener('keydown', e => { if (e.key === 'Enter') $.inKey.focus(); });
 $.inKey.addEventListener('keydown',  e => { if (e.key === 'Enter') attemptConnect(); });
+
+/* ---- SHOW / HIDE API KEY ---- */
+(function() {
+  const btn = document.getElementById('btn-toggle-key');
+  const inp = $.inKey;
+  if (!btn || !inp) return;
+  btn.addEventListener('click', () => {
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.setAttribute('aria-label', show ? 'Masquer la clé API' : 'Afficher la clé API');
+    /* Swap icon */
+    const icon = document.getElementById('eye-icon');
+    if (icon) {
+      icon.innerHTML = show
+        /* eye-off */
+        ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+        /* eye */
+        : '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>';
+    }
+  });
+})();
 
 /* ============================================================
    STATUS BAR — bottom-left dot + text
@@ -2653,10 +2694,14 @@ function renderHistory(tracks) {
 
 /* ---- LAST.FM API ---- */
 async function fetchUserInfo(u, k) {
-  const r = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getInfo&user=${encodeURIComponent(u)}&api_key=${k}&format=json`);
-  if (!r.ok) throw new Error('Network error.');
+  let r;
+  try { r = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getInfo&user=${encodeURIComponent(u)}&api_key=${k}&format=json`); }
+  catch { throw new Error(window.t ? window.t('status_network_err') : 'Network error.'); }
+  if (r.status === 403) throw new Error(window.t ? window.t('login_err_key') : 'Invalid API key (403 Forbidden).');
+  if (r.status >= 500) throw new Error(`Last.fm server error (${r.status}) — try again later.`);
+  if (!r.ok) throw new Error(`HTTP ${r.status} — ${window.t ? window.t('status_network_err') : 'Network error.'}`);
   const d = await r.json();
-  if (d.error) throw new Error(d.message || 'Last.fm error ' + d.error);
+  if (d.error) throw new Error(d.message || `Last.fm error ${d.error}`);
   return d.user;
 }
 async function fetchRecentTracks(limit = 10) {
@@ -2730,7 +2775,7 @@ function renderLRCLinesKaraoke(lines) {
 function tickLRC() {
   if (!lyricsOpen || !lrcSynced || !lrcLines.length) { lrcRAF = null; return; }
   if (isPaused) { lrcRAF = requestAnimationFrame(tickLRC); return; }
-  const ms = getElapsedMs() + LYRICS_ADVANCE_MS + (S.lyricsOffset || 0);
+  const ms = getElapsedMs() + (S.lyricsAdvanceMs ?? LYRICS_ADVANCE_MS_DEFAULT) + (S.lyricsOffset || 0);
   let ni = -1;
   for (let i = lrcLines.length-1; i >= 0; i--) { if (ms >= lrcLines[i].timeMs) { ni = i; break; } }
   if (ni !== lrcActiveIndex) { lrcActiveIndex = ni; updateLRCDisplay(); }
@@ -2946,8 +2991,10 @@ function startCanvasViz() { if (vizRAF) cancelAnimationFrame(vizRAF); vizLastFra
 function stopCanvasViz()  { cancelAnimationFrame(vizRAF); vizRAF=null; if ($.vizCanvas) $.vizCanvas.getContext('2d').clearRect(0,0,$.vizCanvas.width,$.vizCanvas.height); }
 
 function vizLoop(ts) {
-  const interval = 1000/(S.vizFPS===30?30:60);
-  if (ts - vizLastFrame < interval - 1) { if (S.canvasViz) vizRAF=requestAnimationFrame(vizLoop); return; }
+  /* Utilise vizFpsCustom (10-144) en priorité, vizFPS (30|60) en fallback */
+  const targetFps = (S.vizFpsCustom && S.vizFpsCustom > 0) ? S.vizFpsCustom : (S.vizFPS || 60);
+  const interval = 1000 / Math.min(Math.max(targetFps, 10), 144);
+  if (ts - vizLastFrame < interval - 1) { if (S.canvasViz) vizRAF = requestAnimationFrame(vizLoop); return; }
   vizLastFrame = ts;
   const cv=$.vizCanvas; if (!cv) return;
   const ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
@@ -3082,6 +3129,84 @@ const _typoApply = debounce(() => { applyLyricsSettings(); saveSettings(); }, 40
 if ($.setLyricsWeight)        $.setLyricsWeight.addEventListener('input',        () => { S.lyricsWeight        = parseInt($.setLyricsWeight.value);        _typoApply(); }, { passive: true });
 if ($.setLyricsLetterSpacing) $.setLyricsLetterSpacing.addEventListener('input', () => { S.lyricsLetterSpacing  = parseInt($.setLyricsLetterSpacing.value);  _typoApply(); }, { passive: true });
 if ($.setLyricsLineHeight)    $.setLyricsLineHeight.addEventListener('input',    () => { S.lyricsLineHeight     = parseInt($.setLyricsLineHeight.value);     _typoApply(); }, { passive: true });
+
+/* v10c: lyricsAdvanceMs slider */
+if ($.setLyricsAdvanceMs) {
+  $.setLyricsAdvanceMs.addEventListener('input', () => {
+    S.lyricsAdvanceMs = parseInt($.setLyricsAdvanceMs.value);
+    if ($.valLyricsAdvanceMs) $.valLyricsAdvanceMs.textContent = S.lyricsAdvanceMs + 'ms';
+    saveSettings();
+  }, { passive: true });
+}
+/* v10c: vizFpsCustom slider */
+if ($.setVizFpsCustom) {
+  $.setVizFpsCustom.addEventListener('input', () => {
+    S.vizFpsCustom = parseInt($.setVizFpsCustom.value);
+    if ($.valVizFpsCustom) $.valVizFpsCustom.textContent = S.vizFpsCustom + ' fps';
+    saveSettings();
+  }, { passive: true });
+}
+
+/* ============================================================
+   PRESETS — configurations prédéfinies
+   ============================================================ */
+const PRESETS = {
+  /* Apple Music : typographie large, flous, couleurs vives */
+  'apple-music': {
+    bgMode: 'album', bgAnimation: 'flottante', appleMode: true,
+    blur: 55, brightness: 60, saturate: 20, fluidGradient: true, showGrain: false,
+    colorThief: true, fontChoice: 'default',
+    lyricsBlurMode: 'apple', lyricsAnimStyle: 'blur', lyricsRenderMode: 'phrase',
+    lyricsSize: 130, lyricsWeight: 600, lyricsLineHeight: 160,
+    lyricsPosition: 'right', lyricsBg: 'none', lyricsAutoColor: true,
+    albumAnim: true, showGlow: true, animatedGlow: true, artShape: '22px',
+    titleAnimStyle: 'blur-in', showProgress: true,
+  },
+  /* Spotify Canvas : sombre, épuré, sobre */
+  'spotify-canvas': {
+    bgMode: 'dark', bgAnimation: 'none', appleMode: false,
+    blur: 0, brightness: 15, saturate: 0, fluidGradient: false, showGrain: true,
+    colorThief: false, fontChoice: 'inter', accentColor: '#1DB954',
+    lyricsBlurMode: 'standard', lyricsAnimStyle: 'fade', lyricsRenderMode: 'scroll',
+    lyricsSize: 100, lyricsWeight: 400, lyricsLineHeight: 190,
+    lyricsPosition: 'right', lyricsBg: 'none', lyricsAutoColor: false,
+    lyricsActiveColor: '#1DB954', lyricsInactiveColor: '#ffffff',
+    albumAnim: false, showGlow: false, animatedGlow: false, artShape: '6px',
+    titleAnimStyle: 'fade-up', showProgress: true,
+  },
+  /* Vinyl Retro : pochette ronde, grain, fond sombre chaud */
+  'vinyl-retro': {
+    bgMode: 'album', bgAnimation: 'legere', appleMode: false,
+    blur: 80, brightness: 35, saturate: 12, fluidGradient: false, showGrain: true,
+    colorThief: true, fontChoice: 'serif', accentColor: '#d97706',
+    lyricsBlurMode: 'standard', lyricsAnimStyle: 'fade', lyricsRenderMode: 'phrase',
+    lyricsSize: 110, lyricsWeight: 400, lyricsLineHeight: 200,
+    lyricsPosition: 'right', lyricsBg: 'dark', lyricsAutoColor: false,
+    lyricsActiveColor: '#d97706', lyricsInactiveColor: '#ffffff',
+    albumAnim: true, showGlow: true, animatedGlow: false, artShape: '50%',
+    vinylMode: true, titleAnimStyle: 'fade-up', showProgress: true,
+  },
+};
+
+function applyPreset(name) {
+  const preset = PRESETS[name];
+  if (!preset) return;
+  Object.assign(S, preset);
+  applySettings();
+  saveSettings();
+}
+
+/* Câblage boutons preset */
+document.querySelectorAll('[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    applyPreset(btn.dataset.preset);
+    /* Feedback visuel */
+    const prev = btn.closest('.sp-section')?.querySelector('.sp-preset-btn.active');
+    if (prev) prev.classList.remove('active');
+    btn.classList.add('active');
+    setTimeout(() => btn.classList.remove('active'), 1200);
+  });
+});
 
 /* ── Globals pour remote.js ── */
 window.S = S;

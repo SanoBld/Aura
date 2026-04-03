@@ -295,6 +295,47 @@
 
       /* Language section */
       sync_section_lang:    'Language',
+      /* Remote control */
+      login_rc_btn:         'Remote Control',
+      sync_section_rc:      'Remote Control',
+      /* v10 — New settings tabs */
+      tab_artwork:          'Artwork',
+      tab_bg:               'Background',
+      tab_effects:          'Effects',
+      /* v10 — Lyrics render modes */
+      lyr_render_mode:      '🎬 Render mode',
+      lyr_render_basic:     'Static',
+      lyr_render_scroll:    'Scroll',
+      lyr_render_phrase:    'Phrase',
+      lyr_render_karaoke:   '🎤 Karaoke',
+      lyr_karaoke_fill:     '✨ Progressive fill',
+      /* v10 — Typography */
+      lyr_weight:           'Weight',
+      lyr_weight_thin:      'Thin',
+      lyr_weight_bold:      'Bold',
+      lyr_letter_spacing:   'Letter spacing',
+      lyr_letter_tight:     'Tight',
+      lyr_letter_wide:      'Wide',
+      lyr_line_height:      'Line height',
+      lyr_line_compact:     'Compact',
+      lyr_line_airy:        'Airy',
+      /* v10 — Lyrics advance */
+      lyr_advance_ms:       '⏱ Base advance (ms)',
+      lyr_advance_desc:     'Global compensation before fine offset.',
+      /* v10 — Presets */
+      presets_title:        '🎛 Presets',
+      preset_apple_name:    'Apple Music',
+      preset_apple_desc:    'Vibrant · Blur · Large text',
+      preset_spotify_name:  'Spotify Canvas',
+      preset_spotify_desc:  'Dark · Clean · Minimal',
+      preset_vinyl_name:    'Vinyl Retro',
+      preset_vinyl_desc:    'Grain · Warm · Round artwork',
+      /* v10 — FPS custom */
+      app_fps_custom:       'Custom FPS',
+      app_fps_custom_desc:  'Overrides preset. Ideal for 120Hz/144Hz screens.',
+      /* v10 — titlecolor ambiance */
+      app_titlecolor_brightness: 'Brightness',
+      app_titlecolor_contrast:   'Contrast',
 
       /* Ctx menu */
       ctx_lastfm: 'Last.fm',
@@ -596,6 +637,47 @@
 
       /* Language section */
       sync_section_lang:    'Langue',
+      /* Remote control */
+      login_rc_btn:         'Mode Télécommande',
+      sync_section_rc:      'Télécommande',
+      /* v10 — Nouveaux onglets */
+      tab_artwork:          'Pochette',
+      tab_bg:               'Fond',
+      tab_effects:          'Effets',
+      /* v10 — Modes paroles */
+      lyr_render_mode:      '🎬 Mode d\'affichage',
+      lyr_render_basic:     'Statique',
+      lyr_render_scroll:    'Défilement',
+      lyr_render_phrase:    'Phrase',
+      lyr_render_karaoke:   '🎤 Karaoké',
+      lyr_karaoke_fill:     '✨ Remplissage progressif',
+      /* v10 — Typographie */
+      lyr_weight:           'Graisse',
+      lyr_weight_thin:      'Fin',
+      lyr_weight_bold:      'Gras',
+      lyr_letter_spacing:   'Espacement',
+      lyr_letter_tight:     'Serré',
+      lyr_letter_wide:      'Large',
+      lyr_line_height:      'Interligne',
+      lyr_line_compact:     'Compact',
+      lyr_line_airy:        'Aéré',
+      /* v10 — Avance paroles */
+      lyr_advance_ms:       '⏱ Avance de base (ms)',
+      lyr_advance_desc:     'Compensation globale avant le décalage fin.',
+      /* v10 — Presets */
+      presets_title:        '🎛 Presets',
+      preset_apple_name:    'Apple Music',
+      preset_apple_desc:    'Vibrant · Flous · Grands titres',
+      preset_spotify_name:  'Spotify Canvas',
+      preset_spotify_desc:  'Sombre · Épuré · Sobre',
+      preset_vinyl_name:    'Vinyl Rétro',
+      preset_vinyl_desc:    'Grain · Chaud · Pochette ronde',
+      /* v10 — FPS perso */
+      app_fps_custom:       'FPS personnalisé',
+      app_fps_custom_desc:  'Prioritaire sur les presets. Idéal pour les écrans 120Hz/144Hz.',
+      /* v10 — Ambiance titlecolor */
+      app_titlecolor_brightness: 'Luminosité',
+      app_titlecolor_contrast:   'Contraste',
 
       /* Ctx menu */
       ctx_lastfm: 'Last.fm',

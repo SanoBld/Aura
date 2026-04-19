@@ -47,8 +47,11 @@ const S = {
   vinylMode: false, colorThief: false, fluidGradient: false,
   eqViz: false, canvasViz: false,
   heroScale: 100, heroLayout: 'standard', heroAlign: 'center',
-  lanyardId: '', sourcePriority: 'lanyard', vizFPS: 60, showExtendedStats: false, showOwnStats: false,
+  lanyardId: '', sourcePriority: 'lanyard', vizFPS: 60, showExtendedStats: true, showOwnStats: false,
   statsType: 'artist', // 'artist' | 'album'
+  statsColor: '#ffffff',        // stats global value color — '#hex' or 'accent'
+  statsPersonalColor: 'accent', // stats personal plays color — '#hex' or 'accent'
+  statsOnlyMine: false,         // show only personal plays, hide global
   lyricsSize: 100, lyricsFontChoice: 'serif', lyricsAnim: true,
   albumAnim: true,
   // NEW v7
@@ -91,7 +94,8 @@ const S = {
   vizFpsCustom: 60,               // FPS personnalisé visualiseur (10-144)
   // v11 — sources paroles
   lyricsSource: 'lrclib',         // 'lrclib' | 'lrclib+genius'
-  geniusToken: '',                // Genius client access token (optionnel)
+  geniusToken: '',                // Genius client access token
+  musixmatchToken: '',            // Musixmatch user token (for word-level lyrics)
 };
 
 /* ---- DOM REFS ---- */
@@ -359,7 +363,9 @@ function gcLRCCache() {
       background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
       border: 1px solid rgba(255,255,255,0.1);
     }
-    .lp-source-badge.genius { background: rgba(255,208,0,0.12); color: #ffd000; border-color: rgba(255,208,0,0.25); }
+    .lp-source-badge.genius    { background: rgba(255,208,0,0.12);  color: #ffd000; border-color: rgba(255,208,0,0.25); }
+    .lp-source-badge.netease   { background: rgba(220,60,60,0.12);   color: #ff6b6b; border-color: rgba(220,60,60,0.25); }
+    .lp-source-badge.musixmatch{ background: rgba(34,197,94,0.12);   color: #4ade80; border-color: rgba(34,197,94,0.25); }
   `;
   document.head.appendChild(style);
 })();
@@ -626,8 +632,12 @@ function applySettings() {
   /* Priority buttons + extended stats */
   syncPriorityButtons();
   syncStatsTypeButtons();
+  syncStatsColorSwatches();
+  applyStatsColorVar();
   if ($.setExtendedStats) $.setExtendedStats.checked = !!S.showExtendedStats;
   if ($.setOwnStats)      $.setOwnStats.checked      = !!S.showOwnStats;
+  const onlyMineEl = document.getElementById('set-stats-only-mine');
+  if (onlyMineEl) onlyMineEl.checked = !!S.statsOnlyMine;
 
   /* Hero scale */
   const scale = (S.heroScale || 100) / 100;
@@ -1082,7 +1092,7 @@ document.querySelectorAll('[data-bg]').forEach(b        => b.addEventListener('c
 document.querySelectorAll('[data-panel]').forEach(b     => b.addEventListener('click', () => { S.defaultPanel   = b.dataset.panel;     applySettings(); saveSettings(); }));
 document.querySelectorAll('[data-art-shape]').forEach(b => b.addEventListener('click', () => { S.artShape       = b.dataset.artShape;  applySettings(); saveSettings(); }));
 document.querySelectorAll('[data-color]').forEach(b     => b.addEventListener('click', () => { S.accentColor    = b.dataset.color;     applySettings(); saveSettings(); }));
-/* Stats type buttons (artiste / album) */
+/* Stats type buttons (artist / album) */
 document.querySelectorAll('[data-stats-type]').forEach(b => b.addEventListener('click', () => {
   S.statsType = b.dataset.statsType; saveSettings(); syncStatsTypeButtons();
   if (S.showExtendedStats && currentTrack) {
@@ -1092,6 +1102,66 @@ document.querySelectorAll('[data-stats-type]').forEach(b => b.addEventListener('
     animateSubStats(() => fetchExtendedStats(a, al, t));
   }
 }));
+
+/* Stats color swatches */
+document.querySelectorAll('[data-stats-color]').forEach(b => b.addEventListener('click', () => {
+  S.statsColor = b.dataset.statsColor;
+  saveSettings();
+  syncStatsColorSwatches();
+  _refreshStats();
+}));
+
+/* Personal plays color swatches */
+document.querySelectorAll('[data-stats-my-color]').forEach(b => b.addEventListener('click', () => {
+  S.statsPersonalColor = b.dataset.statsMyColor;
+  saveSettings();
+  syncStatsColorSwatches();
+  _refreshStats();
+}));
+
+/* Only-mine toggle — when active, show only personal plays card */
+const statsOnlyMineEl = document.getElementById('set-stats-only-mine');
+if (statsOnlyMineEl) {
+  statsOnlyMineEl.addEventListener('change', () => {
+    S.statsOnlyMine = statsOnlyMineEl.checked;
+    if (S.statsOnlyMine && !S.showOwnStats) {
+      S.showOwnStats = true;
+      if ($.setOwnStats) $.setOwnStats.checked = true;
+    }
+    saveSettings();
+    _refreshStats();
+  });
+}
+
+function _refreshStats() {
+  if (S.showExtendedStats && currentTrack) {
+    const a  = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
+    const al = currentTrack.album?.['#text'] || '';
+    const t  = currentTrack.name || '';
+    fetchExtendedStats(a, al, t);
+  }
+}
+
+function syncStatsColorSwatches() {
+  const cur   = S.statsColor         || '#ffffff';
+  const curMy = S.statsPersonalColor || 'accent';
+  document.querySelectorAll('[data-stats-color]').forEach(b => {
+    b.classList.toggle('active', b.dataset.statsColor === cur);
+  });
+  document.querySelectorAll('[data-stats-my-color]').forEach(b => {
+    b.classList.toggle('active', b.dataset.statsMyColor === curMy);
+  });
+  const el = document.getElementById('set-stats-only-mine');
+  if (el) el.checked = !!S.statsOnlyMine;
+  applyStatsColorVar();
+}
+
+function applyStatsColorVar() {
+  const c  = S.statsColor         === 'accent' ? 'var(--accent)' : (S.statsColor         || '#ffffff');
+  const cm = S.statsPersonalColor === 'accent' ? 'var(--accent)' : (S.statsPersonalColor || 'var(--accent)');
+  document.documentElement.style.setProperty('--stats-val-color', c);
+  document.documentElement.style.setProperty('--stats-my-color',  cm);
+}
 
 document.querySelectorAll('[data-anim]').forEach(b      => b.addEventListener('click', () => { S.bgAnimation    = b.dataset.anim;      applySettings(); saveSettings(); }));
 document.querySelectorAll('[data-f]').forEach(b         => b.addEventListener('click', () => { S.fontChoice     = b.dataset.f;         applySettings(); saveSettings(); }));
@@ -1224,12 +1294,13 @@ function setStatus(state, text) {
    Works for both login card button AND settings panel selector
    ============================================================ */
 function syncLangButtons(lang) {
-  /* Login card mini-toggle */
+  // Login card mini-toggle
   const btn = document.getElementById('lang-toggle');
   if (btn) btn.textContent = lang === 'fr' ? 'EN' : 'FR';
-  /* Settings panel pill selector */
-  document.querySelectorAll('[data-lang]').forEach(b => {
+  // Settings panel pill selector — only <button> elements
+  document.querySelectorAll('button[data-lang]').forEach(b => {
     b.classList.toggle('active', b.dataset.lang === lang);
+    b.setAttribute('aria-pressed', b.dataset.lang === lang ? 'true' : 'false');
   });
 }
 
@@ -1237,31 +1308,35 @@ function initLangToggle() {
   const currentLang = window.getLang ? window.getLang() : 'en';
   syncLangButtons(currentLang);
 
-  /* Login card button */
-  const btn = document.getElementById('lang-toggle');
-  if (btn) {
-    btn.addEventListener('click', () => {
+  // Single handler for all language-switching buttons
+  function handleLangClick(code) {
+    if (!code || !(code === 'en' || code === 'fr')) return;
+    if (window.setLang) window.setLang(code);   // updates _lang + calls applyI18n()
+    syncLangButtons(code);
+    applyDynamicI18n();
+  }
+
+  // Login card EN/FR toggle
+  const loginBtn = document.getElementById('lang-toggle');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
       const next = (window.getLang && window.getLang() === 'fr') ? 'en' : 'fr';
-      if (window.setLang) window.setLang(next);
-      syncLangButtons(next);
-      applyDynamicI18n();
+      handleLangClick(next);
     });
   }
 
-  /* Settings panel language buttons */
-  document.querySelectorAll('[data-lang]').forEach(b => {
-    b.addEventListener('click', () => {
-      const lang = b.dataset.lang;
-      if (!lang) return;
-      if (window.setLang) window.setLang(lang);
-      syncLangButtons(lang);
-      applyDynamicI18n();
-    });
+  // Settings panel language pill buttons
+  document.querySelectorAll('button[data-lang]').forEach(b => {
+    b.addEventListener('click', () => handleLangClick(b.dataset.lang));
   });
 }
 
 /* Re-apply script-generated strings when language changes */
 function applyDynamicI18n() {
+  // Refresh all [data-i18n] elements via i18n.js
+  if (window.applyI18n) window.applyI18n();
+  // Sync lang buttons active state
+  syncLangButtons(window.getLang ? window.getLang() : 'en');
   /* Status bar */
   if ($.stText) {
     const current = $.stText.textContent;
@@ -1308,7 +1383,10 @@ function updateLyricsPositionDesc() {
 }
 
 /* Listen for language change events from i18n.js */
-document.addEventListener('aura:langchange', () => applyDynamicI18n());
+document.addEventListener('aura:langchange', (e) => {
+  applyDynamicI18n();
+  syncLangButtons(e.detail?.lang || (window.getLang ? window.getLang() : 'en'));
+});
 
 /* ---- INIT ---- */
 (function init() {
@@ -1890,14 +1968,18 @@ async function fetchExtendedStats(artist, albumTitle, trackTitle) {
       ? (statsType === 'artist' ? myArtPlays : myTrkPlays)
       : 0;
 
-    if (globalVal > 0 && $.subStats) {
-      const switchLabel = tStr(statsType === 'artist' ? 'stats_switch_album' : 'stats_switch_artist');
+    // Decide what to show based on settings
+    const showGlobal = !S.statsOnlyMine && globalVal > 0;
+    const showMine   = S.showOwnStats && username && myVal > 0;
+    const hasContent = showGlobal || showMine;
 
-      /* Build HTML */
+    if (hasContent && $.subStats) {
+      applyStatsColorVar();
       let html = `<div class="ss-cards">`;
 
-      /* Card 1 — Global plays */
-      html += `
+      /* Global plays card — hidden in only-mine mode */
+      if (showGlobal) {
+        html += `
         <div class="ss-card ss-card-global">
           <div class="ss-card-icon">
             <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zM2 8a6 6 0 1112 0A6 6 0 012 8z" opacity=".4"/><path d="M8 4v4.5l3 1.5-.5.87L7 9V4h1z"/></svg>
@@ -1907,48 +1989,25 @@ async function fetchExtendedStats(artist, albumTitle, trackTitle) {
             <span class="ss-label">${globalScope}</span>
           </div>
         </div>`;
-
-      /* Card 2 — My plays (only if enabled and > 0) */
-      if (myVal > 0) {
-        const myLabel = statsType === 'artist'
-          ? tStr('stats_my_artist')
-          : tStr('stats_my_track');
-        html += `
-          <div class="ss-card ss-card-personal">
-            <div class="ss-card-icon">
-              <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 13c0-3.31 2.69-5 6-5s6 1.69 6 5H2z"/></svg>
-            </div>
-            <div class="ss-card-body">
-              <span class="ss-val ss-val-accent">${fmtK(myVal)}</span>
-              <span class="ss-label">${myLabel}</span>
-            </div>
-          </div>`;
       }
 
-      /* Switch button */
-      html += `
-        <button class="ss-switch" data-next-type="${nextArrow}" title="Switch to ${switchLabel}">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-            <path d="M3 5h10M3 8h7M3 11h4"/>
-          </svg>
-          ${switchLabel}
-        </button>`;
+      /* Personal plays card */
+      if (showMine) {
+        const myLabel = statsType === 'artist' ? tStr('stats_my_artist') : tStr('stats_my_track');
+        html += `
+        <div class="ss-card ss-card-personal">
+          <div class="ss-card-icon">
+            <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 13c0-3.31 2.69-5 6-5s6 1.69 6 5H2z"/></svg>
+          </div>
+          <div class="ss-card-body">
+            <span class="ss-val ss-val-my">${fmtK(myVal)}</span>
+            <span class="ss-label">${myLabel}</span>
+          </div>
+        </div>`;
+      }
 
       html += `</div>`;
-
       $.subStats.innerHTML = html;
-
-      /* Wire switch button */
-      $.subStats.querySelector('.ss-switch')?.addEventListener('click', () => {
-        S.statsType = nextArrow; saveSettings();
-        syncStatsTypeButtons();
-        if (currentTrack) {
-          const a  = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
-          const al = currentTrack.album?.['#text'] || '';
-          const t  = currentTrack.name || '';
-          animateSubStats(() => fetchExtendedStats(a, al, t));
-        }
-      });
       showSubStats();
     } else {
       hideSubStats();
@@ -1983,20 +2042,20 @@ function syncStatsTypeButtons() {
 }
 
 function applyExtendedStats() {
+  // Keep legacy extended-stats element in sync if it exists
   if ($.extendedStats) {
     $.extendedStats.classList.toggle('on', S.showExtendedStats);
-    if (!S.showExtendedStats) {
-      $.extendedStats.textContent = '';
-      hideSubStats();
-    } else if (currentTrack) {
-      const artist = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
-      const album  = currentTrack.album?.['#text'] || '';
-      const title  = currentTrack.name || '';
-      fetchExtendedStats(artist, album, title);
-    }
+    if (!S.showExtendedStats) $.extendedStats.textContent = '';
+  }
+  if (!S.showExtendedStats) {
+    hideSubStats();
+  } else if (currentTrack) {
+    const artist = currentTrack.artist?.name || currentTrack.artist?.['#text'] || '';
+    const album  = currentTrack.album?.['#text'] || '';
+    const title  = currentTrack.name || '';
+    fetchExtendedStats(artist, album, title);
   }
   syncStatsTypeButtons();
-  /* Afficher/masquer la row statsType selon si les stats sont activées */
   const row = document.getElementById('sp-sub-stats-row');
   if (row) row.style.opacity = S.showExtendedStats ? '1' : '0.35';
 }
@@ -2503,7 +2562,18 @@ const FLUID_FALLBACK = [
   { r:40,  g:160, b:140 },
 ];
 
+/* Dynamic color extraction — only runs when colorThief or fluidGradient is enabled */
+let _colorThiefReady = true; // extractDominantColors is built-in, no external script needed
+
+function loadColorThiefIfNeeded(cb) {
+  // extractDominantColors is built into script.js; no external load required.
+  // This function exists as a hook in case a heavier library is added later.
+  cb();
+}
+
 function triggerColorThief() {
+  if (!S.colorThief && !S.fluidGradient) return; // skip entirely when both features are off
+  loadColorThiefIfNeeded(() => {
   const activeImg = artSlot === 'a' ? $.artA : $.artB;
   let colors = null;
   if (activeImg && activeImg.naturalWidth) colors = extractDominantColors(activeImg, 4);
@@ -2545,6 +2615,7 @@ function triggerColorThief() {
   if (S.bgMode === 'titlecolor' && colors) startTitleColorBg(colors);
   else stopTitleColorBg();
   updateDots();
+  }); // end loadColorThiefIfNeeded
 }
 
 /* ============================================================
@@ -2791,19 +2862,50 @@ let lrcWordRAF = null; // karaoke word-fill RAF
 const LRC_META = /^\[(ar|ti|al|au|by|offset|re|ve|length):/i;
 
 function parseLRC(lrcText) {
-  const result = [], timeRe = /\[(\d{1,2}):(\d{2})[.:](\d{2,3})\]/g;
+  const result = [];
+  const lineRe = /\[(\d{1,2}):(\d{2})[.:](\d{2,3})\]/g;
+  const wordRe = /<(\d{1,2}):(\d{2})[.:](\d{2,3})>/g;
+
+  function toMs(m1, m2, m3) {
+    return (parseInt(m1) * 60 + parseInt(m2)) * 1000
+         + parseInt((m3 + '000').slice(0, 3));
+  }
+
   for (const line of lrcText.split('\n')) {
     if (LRC_META.test(line.trim())) continue;
-    const matches = [...line.matchAll(timeRe)];
-    const text = line.replace(/\[\d{1,2}:\d{2}[.:]\d{2,3}\]/g, '').trim();
-    if (matches.length > 0) {
-      for (const m of matches) {
-        const ms = (parseInt(m[1])*60 + parseInt(m[2]))*1000 + parseInt(m[3].padEnd(3,'0').slice(0,3));
-        result.push({ timeMs: ms, text: text || '♪' });
+    const lineMatches = [...line.matchAll(lineRe)];
+    if (!lineMatches.length) continue;
+
+    // Strip line timestamps to get the content payload
+    const payload = line.replace(/\[\d{1,2}:\d{2}[.:]\d{2,3}\]/g, '').trim();
+
+    // Detect inline word-level timestamps: <mm:ss.xx>word
+    const wMatches = [...payload.matchAll(wordRe)];
+    let wordTokens = null;
+
+    if (wMatches.length > 0) {
+      const parts = payload.split(/<\d{1,2}:\d{2}[.:]\d{2,3}>/);
+      wordTokens = [];
+      for (let i = 0; i < wMatches.length; i++) {
+        const wMs   = toMs(wMatches[i][1], wMatches[i][2], wMatches[i][3]);
+        const wText = (parts[i + 1] || '').replace(/<[^>]+>/g, '').trim();
+        if (wText) wordTokens.push({ timeMs: wMs, word: wText });
       }
+      if (!wordTokens.length) wordTokens = null;
+    }
+
+    // Clean visible text (strip all angle-bracket tags)
+    const text = payload.replace(/<[^>]+>/g, '').trim() || '\u266a';
+
+    for (const m of lineMatches) {
+      result.push({
+        timeMs:     toMs(m[1], m[2], m[3]),
+        text,
+        wordTokens, // null when no inline word timestamps available
+      });
     }
   }
-  return result.sort((a,b) => a.timeMs - b.timeMs);
+  return result.sort((a, b) => a.timeMs - b.timeMs);
 }
 
 /* ── Mode basic / scroll / phrase ── */
@@ -2818,23 +2920,27 @@ function renderLRCLines(lines) {
   });
 }
 
-/* ── Mode karaoke : split words, chaque mot = <span class="kw"> ── */
+/* ── Karaoke mode: each word becomes a <span class="kw"> with a fill bar ── */
 function renderLRCLinesKaraoke(lines) {
   $.lrcContainer.innerHTML = '';
   lines.forEach((line, i) => {
     const div = document.createElement('div');
     div.className = 'lrc-line'; div.dataset.index = i;
-    const words = line.text.split(' ');
-    words.forEach((word, wi) => {
-      if (!word) return;
+
+    // Use word tokens from wordTokens if available; otherwise split on spaces
+    const tokens = line.wordTokens
+      ? line.wordTokens.map(t => t.word)
+      : line.text.split(/\s+/).filter(Boolean);
+
+    tokens.forEach((word, wi) => {
       const span = document.createElement('span');
       span.className = 'kw';
       span.textContent = word;
-      span.dataset.word = word;  // used by ::after pseudo for overlay text
-      span.dataset.wi = wi;
+      span.dataset.text = word; // used by ::after pseudo for the fill overlay
+      span.dataset.wi = String(wi);
       span.style.setProperty('--kw-fill', '0%');
       div.appendChild(span);
-      if (wi < words.length - 1) div.appendChild(document.createTextNode(' '));
+      if (wi < tokens.length - 1) div.appendChild(document.createTextNode('\u00a0'));
     });
     div.addEventListener('click', () => { lrcActiveIndex = i; updateLRCDisplay(); });
     $.lrcContainer.appendChild(div);
@@ -2856,26 +2962,59 @@ function tickLRC() {
   lrcRAF = requestAnimationFrame(tickLRC);
 }
 
-/* Karaoke progressive fill per word */
+/* Karaoke: real word-by-word progressive fill
+   Priority 1 — use inline word timestamps from LRCLIB (wordTokens)
+   Priority 2 — distribute time proportionally to each word's char length */
 function updateKaraokeWords(ms) {
   if (lrcActiveIndex < 0 || lrcActiveIndex >= lrcLines.length) return;
+
   const activeLine = lrcLines[lrcActiveIndex];
   const nextLine   = lrcLines[lrcActiveIndex + 1];
   const lineStart  = activeLine.timeMs;
-  const lineEnd    = nextLine ? nextLine.timeMs : lineStart + 3000;
-  const lineDur    = lineEnd - lineStart;
-  const words = $.lrcContainer.querySelectorAll('.lrc-line.active .kw');
-  if (!words.length) return;
-  const elapsed = ms - lineStart;
-  const wordDur = lineDur / words.length;
-  words.forEach((kw, i) => {
-    const wStart = i * wordDur;
-    const wEnd   = wStart + wordDur;
+  const lineEnd    = nextLine ? nextLine.timeMs : lineStart + 3500;
+  const elapsed    = ms - lineStart;
+
+  const kwEls = $.lrcContainer.querySelectorAll('.lrc-line.active .kw');
+  if (!kwEls.length) return;
+
+  // --- Path A: real per-word timestamps from LRCLIB ---
+  if (activeLine.wordTokens && activeLine.wordTokens.length === kwEls.length) {
+    const tokens = activeLine.wordTokens;
+    kwEls.forEach((kw, i) => {
+      const wStart = tokens[i].timeMs - lineStart;
+      const wEnd   = i + 1 < tokens.length
+        ? tokens[i + 1].timeMs - lineStart
+        : lineEnd - lineStart;
+      const dur = Math.max(wEnd - wStart, 80); // at least 80ms per word
+      if (elapsed >= wEnd) {
+        kw.style.setProperty('--kw-fill', '100%');
+      } else if (elapsed > wStart) {
+        kw.style.setProperty('--kw-fill', ((elapsed - wStart) / dur * 100).toFixed(2) + '%');
+      } else {
+        kw.style.setProperty('--kw-fill', '0%');
+      }
+    });
+    return;
+  }
+
+  // --- Path B: proportional distribution by word character length ---
+  // Longer words get more fill-time; each word gets a minimum 60ms.
+  const lineDur  = Math.max(lineEnd - lineStart, 500);
+  const MIN_DUR  = 60;
+  const lengths  = Array.from(kwEls).map(kw => Math.max(kw.textContent.length, 1));
+  const total    = lengths.reduce((s, l) => s + l, 0);
+  const budget   = lineDur - MIN_DUR * lengths.length;  // remaining time after minimums
+  let cursor = 0;
+
+  kwEls.forEach((kw, i) => {
+    const wDur   = MIN_DUR + (budget > 0 ? (lengths[i] / total) * budget : 0);
+    const wStart = cursor;
+    const wEnd   = cursor + wDur;
+    cursor = wEnd;
     if (elapsed >= wEnd) {
       kw.style.setProperty('--kw-fill', '100%');
     } else if (elapsed > wStart) {
-      const pct = ((elapsed - wStart) / wordDur * 100).toFixed(1);
-      kw.style.setProperty('--kw-fill', pct + '%');
+      kw.style.setProperty('--kw-fill', ((elapsed - wStart) / wDur * 100).toFixed(2) + '%');
     } else {
       kw.style.setProperty('--kw-fill', '0%');
     }
@@ -2914,8 +3053,13 @@ function updateLRCDisplay() {
   /* phrase + karaoke: full active/near treatment */
   all.forEach((line, i) => {
     line.classList.remove('active', 'near');
-    if (i === lrcActiveIndex) line.classList.add('active');
-    else if (Math.abs(i - lrcActiveIndex) <= 2) line.classList.add('near');
+    if (i === lrcActiveIndex) {
+      line.classList.add('active');
+    } else {
+      // Reset karaoke fill on all non-active lines
+      line.querySelectorAll('.kw').forEach(kw => kw.style.setProperty('--kw-fill', '0%'));
+      if (Math.abs(i - lrcActiveIndex) <= 2) line.classList.add('near');
+    }
   });
   if (lrcActiveIndex >= 0 && S.autoScroll) {
     const activeLine = all[lrcActiveIndex];
@@ -2933,11 +3077,11 @@ function stopLRC() {
   $.lpBody.classList.remove('lrc-mode');
 }
 
-/* ---- LYRICS LOADING (v11 — LRCLIB primary · Genius secondary) ---- */
+/* ---- LYRICS ENGINE (LRCLIB priority 1 · NetEase priority 2 · Genius fallback) ---- */
 
-/* LRCLIB — source principale avec signature enrichie (album + durée) */
+/* Priority 1: LRCLIB — synced lyrics with enriched signature (album + duration) */
 async function fetchLyricsFromLRCLIB(artist, title) {
-  // Tentative 1 : /api/get — match exact avec métadonnées
+  // Attempt 1: /api/get — exact match with metadata
   try {
     const track  = currentTrack;
     const album  = track?.album?.['#text'] || '';
@@ -2952,7 +3096,7 @@ async function fetchLyricsFromLRCLIB(artist, title) {
         return { syncedLyrics: d.syncedLyrics||null, plainLyrics: d.plainLyrics||null, duration: d.duration, source: 'lrclib' };
     }
   } catch {}
-  // Tentative 2 : /api/search — fuzzy match
+  // Attempt 2: /api/search — fuzzy match
   try {
     const r = await fetch(`https://lrclib.net/api/search?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`);
     if (r.ok) {
@@ -2967,7 +3111,104 @@ async function fetchLyricsFromLRCLIB(artist, title) {
   return null;
 }
 
-/* GENIUS — source secondaire (paroles plain-text via token Genius + CORS proxy) */
+/* Priority 2: Musixmatch — word-level synced lyrics (real per-word timestamps)
+   Uses the unofficial Musixmatch web token. User can provide their own in settings. */
+async function fetchLyricsFromMusixmatch(artist, title) {
+  const token = (S.musixmatchToken || '').trim();
+  if (!token) return null;
+  try {
+    const proxy = 'https://corsproxy.io/?url=';
+    const q = encodeURIComponent(`${artist} ${title}`);
+    // Search for the track
+    const searchUrl = `https://apic-desktop.musixmatch.com/ws/1.1/track.search?q_track_artist=${q}&page_size=3&page=1&s_track_rating=desc&app_id=web-desktop-app-v1.0&usertoken=${encodeURIComponent(token)}`;
+    const sr = await fetch(proxy + encodeURIComponent(searchUrl));
+    if (!sr.ok) return null;
+    const sd = await sr.json();
+    const tracks = sd?.message?.body?.track_list;
+    if (!Array.isArray(tracks) || !tracks.length) return null;
+
+    // Find best match
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const hit = tracks.find(t => {
+      const ti = t.track;
+      return norm(ti.track_name).includes(norm(title)) || norm(title).includes(norm(ti.track_name));
+    }) || tracks[0];
+    const trackId = hit?.track?.track_id;
+    if (!trackId) return null;
+
+    // Fetch word-synced subtitle (richsync)
+    const richUrl = `https://apic-desktop.musixmatch.com/ws/1.1/track.richsync.get?track_id=${trackId}&app_id=web-desktop-app-v1.0&usertoken=${encodeURIComponent(token)}`;
+    const rr = await fetch(proxy + encodeURIComponent(richUrl));
+    if (!rr.ok) return null;
+    const rd = await rr.json();
+    const richBody = rd?.message?.body?.richsync;
+
+    if (richBody?.richsync_body) {
+      // Parse Musixmatch richsync JSON → Enhanced LRC with word timestamps
+      const richLines = JSON.parse(richBody.richsync_body);
+      let lrcText = '';
+      for (const line of richLines) {
+        const lMs = Math.round(line.ts * 1000);
+        const mm  = String(Math.floor(lMs / 60000)).padStart(2, '0');
+        const ss  = String(Math.floor((lMs % 60000) / 1000)).padStart(2, '0');
+        const cs  = String(Math.floor((lMs % 1000) / 10)).padStart(2, '0');
+        let lineStr = `[${mm}:${ss}.${cs}]`;
+        for (const word of line.l || []) {
+          const wMs = Math.round((line.ts + (word.o || 0)) * 1000);
+          const wm  = String(Math.floor(wMs / 60000)).padStart(2, '0');
+          const ws  = String(Math.floor((wMs % 60000) / 1000)).padStart(2, '0');
+          const wc  = String(Math.floor((wMs % 1000) / 10)).padStart(2, '0');
+          lineStr  += `<${wm}:${ws}.${wc}>${word.c}`;
+        }
+        lrcText += lineStr + '\n';
+      }
+      return { syncedLyrics: lrcText, plainLyrics: null, duration: 0, source: 'musixmatch' };
+    }
+
+    // Fallback: plain synced LRC from Musixmatch subtitle
+    const subUrl = `https://apic-desktop.musixmatch.com/ws/1.1/track.subtitle.get?track_id=${trackId}&subtitle_format=lrc&app_id=web-desktop-app-v1.0&usertoken=${encodeURIComponent(token)}`;
+    const subr = await fetch(proxy + encodeURIComponent(subUrl));
+    if (!subr.ok) return null;
+    const subd = await subr.json();
+    const lrc = subd?.message?.body?.subtitle?.subtitle_body;
+    if (!lrc) return null;
+    return { syncedLyrics: lrc, plainLyrics: null, duration: 0, source: 'musixmatch-lrc' };
+  } catch { return null; }
+}
+
+/* Priority 3: NetEase Cloud Music — fallback for synced lyrics */
+async function fetchLyricsFromNetEase(artist, title) {
+  try {
+    const proxy = 'https://corsproxy.io/?url=';
+    const searchUrl = `https://music.163.com/api/search/get?s=${encodeURIComponent(artist + ' ' + title)}&type=1&limit=5`;
+    const sr = await fetch(proxy + encodeURIComponent(searchUrl));
+    if (!sr.ok) return null;
+    const sd = await sr.json();
+    const songs = sd?.result?.songs;
+    if (!Array.isArray(songs) || !songs.length) return null;
+
+    // Find best match by title similarity
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const song = songs.find(s =>
+      norm(s.name).includes(norm(title)) || norm(title).includes(norm(s.name))
+    ) || songs[0];
+    if (!song?.id) return null;
+
+    const lyrUrl = `https://music.163.com/api/song/lyric?id=${song.id}&lv=1&kv=1&tv=-1`;
+    const lr = await fetch(proxy + encodeURIComponent(lyrUrl));
+    if (!lr.ok) return null;
+    const ld = await lr.json();
+
+    // Prefer time-synced LRC over plain text
+    const synced = ld?.lrc?.lyric || null;
+    const plain  = ld?.nolyric ? null : (ld?.lyric?.lyric || null);
+
+    if (!synced && !plain) return null;
+    return { syncedLyrics: synced, plainLyrics: plain, duration: 0, source: 'netease' };
+  } catch { return null; }
+}
+
+/* Priority 3 (last resort): Genius — plain text via CORS proxy + user token */
 async function fetchLyricsFromGenius(artist, title) {
   const token = (S.geniusToken || '').trim();
   if (!token) return null;
@@ -2982,18 +3223,16 @@ async function fetchLyricsFromGenius(artist, title) {
     const hit  = hits.find(h => h.type === 'song') || hits[0];
     if (!hit) return null;
 
-    // Vérification basique de la correspondance titre/artiste
+    // Basic title/artist match check
     const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     const titleOk  = norm(hit.result.title).includes(norm(title))  || norm(title).includes(norm(hit.result.title));
     const artistOk = norm(hit.result.primary_artist?.name||'').includes(norm(artist)) || norm(artist).includes(norm(hit.result.primary_artist?.name||''));
     if (!titleOk && !artistOk) return null;
 
-    // Récupère la page Genius et extrait [data-lyrics-container]
-    const songUrl  = hit.result.url;
-    const pr = await fetch(proxy + encodeURIComponent(songUrl));
+    // Fetch Genius page and extract lyrics containers
+    const pr = await fetch(proxy + encodeURIComponent(hit.result.url));
     if (!pr.ok) return null;
     const html = await pr.text();
-
     const doc  = new DOMParser().parseFromString(html, 'text/html');
     const containers = doc.querySelectorAll('[data-lyrics-container="true"]');
     if (!containers.length) return null;
@@ -3019,12 +3258,24 @@ async function loadLyrics(artist, title) {
   let lyrData = getLRCCache(artist, title);
 
   if (!lyrData) {
-    // 1. LRCLIB toujours en premier
+    // 1. LRCLIB — primary source (line-level + word-level when available)
     lyrData = await fetchLyricsFromLRCLIB(artist, title);
     if (lyrData) setLRCCache(artist, title, lyrData);
   }
 
-  // 2. Genius en fallback si activé et LRCLIB a échoué
+  // 2. Musixmatch — real word-level timestamps (requires user token)
+  if (!lyrData && S.musixmatchToken) {
+    lyrData = await fetchLyricsFromMusixmatch(artist, title);
+    if (lyrData) setLRCCache(artist, title, lyrData);
+  }
+
+  // 3. NetEase — fallback if LRCLIB + Musixmatch returned nothing
+  if (!lyrData) {
+    lyrData = await fetchLyricsFromNetEase(artist, title);
+    if (lyrData) setLRCCache(artist, title, lyrData);
+  }
+
+  // 4. Genius — last resort plain text if token is configured
   if (!lyrData && S.lyricsSource === 'lrclib+genius' && S.geniusToken) {
     const g = await fetchLyricsFromGenius(artist, title);
     if (g) { lyrData = g; setLRCCache(artist, title, lyrData); }
@@ -3037,9 +3288,13 @@ async function loadLyrics(artist, title) {
     setLPBadge('plain'); return;
   }
   if (lyrData.duration > 0) trackDuration = lyrData.duration;
-  // Badge source (lrclib / genius)
+  // Source badge
   const _srcLabel = lyrData.source?.startsWith('genius')
     ? '<span class="lp-source-badge genius">Genius</span>'
+    : lyrData.source?.startsWith('musixmatch')
+    ? '<span class="lp-source-badge musixmatch">Musixmatch ✦</span>'
+    : lyrData.source?.startsWith('netease')
+    ? '<span class="lp-source-badge netease">NetEase</span>'
     : '<span class="lp-source-badge">LRCLIB</span>';
   if (lyrData.syncedLyrics) {
     lrcLines = parseLRC(lyrData.syncedLyrics);
@@ -3291,7 +3546,6 @@ if ($.setVizFpsCustom) {
 
 /* ── v11: Source paroles (LRCLIB / Genius) ──────────────────────────────── */
 (function wireGeniusSettings() {
-  // Injection dynamique des contrôles dans le panneau paroles s'ils n'existent pas dans le HTML
   const lyricsTab = document.querySelector('.sp-pane[data-tab="lyrics"]') ||
                     document.querySelector('#sp-lyrics') ||
                     document.querySelector('.settings-pane');
@@ -3303,29 +3557,51 @@ if ($.setVizFpsCustom) {
     block.style.cssText = 'border-top:1px solid rgba(255,255,255,.07);margin-top:1rem;padding-top:1rem';
     block.innerHTML = `
       <div class="sp-row sp-sub-header" style="margin-bottom:.6rem;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;opacity:.45">
-        Source paroles
+        Lyrics sources
       </div>
+
+      <!-- Musixmatch — word-level timestamps -->
+      <div class="sp-row" style="margin-bottom:.35rem">
+        <span class="sp-lbl" style="font-size:.8rem">✦ Musixmatch <span style="opacity:.4;font-size:.7rem">(word-by-word)</span></span>
+      </div>
+      <div class="sp-row" style="flex-direction:column;align-items:flex-start;gap:.4rem;margin-bottom:.875rem">
+        <input type="password" id="sp-mxm-token-input" autocomplete="off" spellcheck="false"
+          placeholder="Paste your Musixmatch token…"
+          value="${S.musixmatchToken || ''}"
+          style="width:100%;padding:.45rem .65rem;border-radius:8px;border:1px solid rgba(255,255,255,.12);
+                 background:rgba(255,255,255,.06);color:#fff;font-size:.8rem;outline:none">
+        <span style="opacity:.35;font-size:.64rem;line-height:1.4">
+          Get your token from the Musixmatch desktop app: DevTools → Network → any API call → <code style="color:rgba(34,197,94,.8)">usertoken</code> param.<br>
+          Enables real word-by-word karaoke timing.
+        </span>
+      </div>
+
+      <!-- Genius fallback -->
       <div class="sp-row">
-        <span class="sp-lbl">Fallback Genius</span>
-        <label class="sp-toggle" aria-label="Activer Genius comme source secondaire">
+        <span class="sp-lbl">Genius fallback</span>
+        <label class="sp-toggle" aria-label="Enable Genius as secondary source">
           <input type="checkbox" id="sp-genius-toggle" ${S.lyricsSource === 'lrclib+genius' ? 'checked' : ''}>
           <div class="sp-tt"></div><div class="sp-th"></div>
         </label>
       </div>
       <div class="sp-row" id="sp-genius-token-row" style="flex-direction:column;align-items:flex-start;gap:.4rem;${S.lyricsSource !== 'lrclib+genius' ? 'display:none' : ''}">
-        <span class="sp-lbl" style="opacity:.6;font-size:.72rem">Token Genius (Client Access Token)</span>
+        <span class="sp-lbl" style="opacity:.6;font-size:.72rem">Genius Client Access Token</span>
         <input type="password" id="sp-genius-token-input" autocomplete="off" spellcheck="false"
-          placeholder="Coller votre token Genius…"
+          placeholder="Paste your Genius token…"
           value="${S.geniusToken || ''}"
           style="width:100%;padding:.45rem .65rem;border-radius:8px;border:1px solid rgba(255,255,255,.12);
                  background:rgba(255,255,255,.06);color:#fff;font-size:.8rem;outline:none">
         <span style="opacity:.35;font-size:.64rem;line-height:1.4">
-          Obtenez un token gratuit sur <a href="https://genius.com/api-clients" target="_blank"
+          Get a free token at <a href="https://genius.com/api-clients" target="_blank"
             style="color:rgba(255,208,0,.7);text-decoration:none">genius.com/api-clients</a>
         </span>
       </div>`;
     lyricsTab.appendChild(block);
 
+    document.getElementById('sp-mxm-token-input')?.addEventListener('input', function() {
+      S.musixmatchToken = this.value.trim();
+      saveSettings();
+    });
     document.getElementById('sp-genius-toggle')?.addEventListener('change', function() {
       S.lyricsSource = this.checked ? 'lrclib+genius' : 'lrclib';
       const row = document.getElementById('sp-genius-token-row');
@@ -3338,9 +3614,10 @@ if ($.setVizFpsCustom) {
     });
   }
 
-  // Sync si les contrôles sont déjà dans le HTML
+  // Sync if controls already exist in HTML
   const toggleEl = document.getElementById('set-lyrics-source-genius') || document.getElementById('sp-genius-toggle');
   const tokenEl  = document.getElementById('set-genius-token')         || document.getElementById('sp-genius-token-input');
+  const mxmEl    = document.getElementById('set-mxm-token')            || document.getElementById('sp-mxm-token-input');
   if (toggleEl && !toggleEl._wired) {
     toggleEl._wired = true;
     toggleEl.checked = S.lyricsSource === 'lrclib+genius';
@@ -3350,6 +3627,11 @@ if ($.setVizFpsCustom) {
     tokenEl._wired = true;
     tokenEl.value = S.geniusToken || '';
     tokenEl.addEventListener('input', () => { S.geniusToken = tokenEl.value.trim(); saveSettings(); });
+  }
+  if (mxmEl && !mxmEl._wired) {
+    mxmEl._wired = true;
+    mxmEl.value = S.musixmatchToken || '';
+    mxmEl.addEventListener('input', () => { S.musixmatchToken = mxmEl.value.trim(); saveSettings(); });
   }
 })();
 
@@ -3445,3 +3727,24 @@ window.saveSettings   = saveSettings;
   const origClose = closeAllPanels;
   window._mnavSyncHook = syncMnav;
 })();
+
+/* ---- VISIBILITY CHANGE — pause RAF when tab is hidden ---- */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Stop progress RAF and LRC tick when tab is hidden
+    cancelAnimationFrame(progressRAF);
+    progressRAF = null;
+    cancelAnimationFrame(lrcRAF);
+    lrcRAF = null;
+  } else {
+    // Resume only if music is actually playing
+    if (!isPaused && currentTrack) {
+      cancelAnimationFrame(progressRAF);
+      progressRAF = requestAnimationFrame(updateTrackProgress);
+      if (lrcSynced && lyricsOpen) {
+        cancelAnimationFrame(lrcRAF);
+        tickLRC();
+      }
+    }
+  }
+});

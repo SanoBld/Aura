@@ -7,6 +7,32 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>AURA</title>
+<!-- Detect language before render to avoid flash of wrong language -->
+<script>
+  (function() {
+    var stored = null;
+    try { stored = localStorage.getItem('aura_lang'); } catch {}
+    var lang;
+    if (stored === 'fr' || stored === 'en') {
+      lang = stored; // localStorage always wins
+    } else {
+      // No saved preference — fall back to browser language
+      var nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
+      lang = nav.startsWith('fr') ? 'fr' : 'en';
+    }
+    document.documentElement.lang = lang; // accessibility attribute only
+  })();
+</script>
+<!-- PWA manifest -->
+<link rel="manifest" href="manifest.json"/>
+<!-- Register service worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').catch(function() {});
+    });
+  }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;700&family=JetBrains+Mono&family=Playfair+Display:ital,wght@0,700;1,700&family=Outfit:wght@400;800&display=swap" rel="stylesheet"/>
@@ -44,21 +70,10 @@
     </div>
     <div id="l-error"></div>
 
-    <!-- REMOTE MODE -->
-    <div class="l-rc-divider"></div>
-    <button class="l-rc-toggle" id="btn-rc-toggle" type="button">
-      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M17 1H7C5.9 1 5 1.9 5 3v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm-5 20c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm5-4H7V4h10v13z"/></svg>
-      <span data-i18n="login_rc_btn">Mode Télécommande</span>
-    </button>
-    <div class="l-rc-form" id="rc-form" style="display:none">
-      <input type="text" id="rc-code-input" placeholder="Code (ex: AB3F7K)" maxlength="6" autocomplete="off" spellcheck="false" inputmode="text"/>
-      <button class="l-rc-connect" id="btn-rc-connect" type="button">Connecter →</button>
-      <div class="l-rc-error" id="rc-error"></div>
-    </div>
-
     <button id="lang-toggle" class="l-lang-toggle" aria-label="Switch language">FR</button>
   </div>
 </div>
+
 
 <!-- LOADING -->
 <div id="loading" style="opacity:0;pointer-events:none">
@@ -238,6 +253,29 @@
             <span class="sp-row-label" data-i18n="sync_own_stats">Mes stats personnelles</span>
             <label class="toggle"><input type="checkbox" id="set-own-stats"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
           </div>
+          <div class="sync-card-label" style="margin-bottom:0.5rem;margin-top:0.875rem">Couleur des stats</div>
+          <div class="sp-swatches" id="stats-color-swatches" role="group" style="margin-bottom:0.5rem">
+            <button class="sp-swatch" data-stats-color="#ffffff" style="background:#fff" title="White"></button>
+            <button class="sp-swatch" data-stats-color="#e0245e" style="background:#e0245e" title="Pink"></button>
+            <button class="sp-swatch" data-stats-color="#7c3aed" style="background:#7c3aed" title="Violet"></button>
+            <button class="sp-swatch" data-stats-color="#0891b2" style="background:#0891b2" title="Blue"></button>
+            <button class="sp-swatch" data-stats-color="#059669" style="background:#059669" title="Green"></button>
+            <button class="sp-swatch" data-stats-color="#d97706" style="background:#d97706" title="Orange"></button>
+            <button class="sp-swatch" data-stats-color="accent" style="background:linear-gradient(135deg,#e0245e,#7c3aed)" title="Accent auto"></button>
+          </div>
+          <div class="sync-card-label" style="margin-bottom:0.5rem;margin-top:0.875rem">Couleur de "mes écoutes"</div>
+          <div class="sp-swatches" id="stats-my-color-swatches" role="group" style="margin-bottom:0.5rem">
+            <button class="sp-swatch" data-stats-my-color="#ffffff" style="background:#fff" title="White"></button>
+            <button class="sp-swatch active" data-stats-my-color="accent" style="background:linear-gradient(135deg,#e0245e,#7c3aed)" title="Accent auto"></button>
+            <button class="sp-swatch" data-stats-my-color="#e0245e" style="background:#e0245e" title="Pink"></button>
+            <button class="sp-swatch" data-stats-my-color="#7c3aed" style="background:#7c3aed" title="Violet"></button>
+            <button class="sp-swatch" data-stats-my-color="#4ade80" style="background:#4ade80" title="Green"></button>
+            <button class="sp-swatch" data-stats-my-color="#facc15" style="background:#facc15" title="Yellow"></button>
+          </div>
+          <div class="sp-row" style="margin-top:0.5rem">
+            <span class="sp-row-label" style="font-size:0.8rem">Afficher uniquement "mes écoutes"</span>
+            <label class="toggle"><input type="checkbox" id="set-stats-only-mine"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
         </div>
         <div class="sync-card-label" style="margin-bottom:0.5rem;margin-top:1rem" data-i18n="sync_open_on_start">Ouvrir au démarrage</div>
         <div class="sp-option-group">
@@ -263,10 +301,6 @@
 
       <button class="sp-logout" id="btn-logout" data-i18n="sync_logout">Se déconnecter</button>
 
-      <div class="sync-section-header" data-i18n="sync_section_rc">Télécommande</div>
-      <div class="sync-card" id="rc-display-section">
-        <div class="rc-config-note" style="font-size:.75rem;opacity:.45">Chargement…</div>
-      </div>
     </div>
 
     <!-- TAB 2: POCHETTE -->
@@ -649,37 +683,6 @@
         </div>
       </div>
 
-      <div class="sp-section">
-        <div class="sp-section-label">✦ Points lumineux</div>
-        <div class="sp-row">
-          <span class="sp-row-label">Afficher les points</span>
-          <label class="toggle"><input type="checkbox" id="set-title-dots" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="sp-row">
-          <span class="sp-row-label" style="font-size:0.75rem">Couleur</span>
-          <input type="color" id="set-dots-color" value="#e0245e" style="width:36px;height:28px;border:none;border-radius:6px;cursor:pointer;background:transparent;padding:0"/>
-        </div>
-        <div style="margin-top:0.625rem">
-          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Luminosité <span class="sp-slider-val" id="val-dots-brightness">70%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-brightness" min="10" max="100" value="70"/>
-          <div class="sp-slider-label"><span>Dim</span><span>Bright</span></div>
-        </div>
-        <div style="margin-top:0.625rem">
-          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Taille <span class="sp-slider-val" id="val-dots-size">50%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-size" min="10" max="100" value="50"/>
-        </div>
-        <div style="margin-top:0.625rem">
-          <div class="sp-section-label" style="margin-bottom:0.5rem;border-bottom:none;padding-bottom:0">Vitesse <span class="sp-slider-val" id="val-dots-speed">50%</span></div>
-          <input type="range" class="sp-slider" id="set-dots-speed" min="10" max="100" value="50"/>
-        </div>
-        <div class="sp-option-group" style="margin-top:0.75rem;flex-wrap:wrap">
-          <button class="sp-option active" data-dots-anim="orbit">Orbite</button>
-          <button class="sp-option" data-dots-anim="pulse">Pulse</button>
-          <button class="sp-option" data-dots-anim="wave">Vague</button>
-          <button class="sp-option" data-dots-anim="sparkle">Étincelle</button>
-        </div>
-      </div>
-
     </div>
 
     <!-- TAB 5: EFFETS -->
@@ -799,7 +802,5 @@
 
 <script src="i18n.js"></script>
 <script src="script.js"></script>
-<script src="share.js"></script>
-<script src="remote.js"></script>
 </body>
 </html>

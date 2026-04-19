@@ -71,7 +71,7 @@
   --ui-solid:   rgba(255, 255, 255, 1.00);
   --ui-bright:  rgba(255, 255, 255, 0.85);
   --ui-mid:     rgba(255, 255, 255, 0.60);
-  --ui-dim:     rgba(255, 255, 255, 0.35);
+  --ui-dim:     rgba(255, 255, 255, 0.65);
   --ui-soft:    rgba(255, 255, 255, 0.08);
   --ui-ghost:   rgba(255, 255, 255, 0.10);
   --ui-faint:   rgba(255, 255, 255, 0.04);
@@ -202,50 +202,6 @@ svg[aria-hidden="true"] { pointer-events: none; }
 
 #l-error { margin-top: 0.75rem; font-size: 0.75rem; color: var(--accent); text-align: center; min-height: 1.125rem; opacity: 0; transition: opacity .3s; }
 #l-error.on { opacity: 1; }
-
-/* ── LOGIN — Mode Télécommande ────────────────────────────────────────────── */
-.l-rc-divider {
-  margin: 1.5rem 0 1rem;
-  border: none; border-top: 1px solid var(--ui-ghost);
-}
-.l-rc-toggle {
-  width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: var(--ui-faint); border: 1px solid var(--ui-ghost); border-radius: 0.625rem;
-  color: var(--ui-dim);
-  font-family: 'Instrument Sans', sans-serif; font-size: 0.75rem; font-weight: 500; letter-spacing: .04em;
-  cursor: pointer;
-  transition: background var(--t1), color var(--t1), border-color var(--t1);
-}
-.l-rc-toggle:hover, .l-rc-toggle.active { background: var(--ui-soft); color: var(--ui-bright); border-color: rgba(255,255,255,.18); }
-.l-rc-toggle svg { flex-shrink: 0; opacity: .6; }
-
-.l-rc-form {
-  margin-top: 0.75rem;
-  flex-direction: column; gap: 0.5rem;
-}
-.l-rc-form input {
-  width: 100%; padding: 0.75rem 1rem;
-  background: var(--ui-soft); border: 1px solid var(--ui-ghost); border-radius: 0.625rem;
-  color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 1.125rem;
-  text-align: center; letter-spacing: .25em; text-transform: uppercase;
-  outline: none;
-  transition: border-color var(--t1), box-shadow var(--t1);
-}
-.l-rc-form input:focus { border-color: rgba(255,255,255,.3); box-shadow: 0 0 0 3px var(--ui-faint); }
-.l-rc-form input::placeholder { color: rgba(255,255,255,.15); letter-spacing: .1em; text-transform: none; font-size: .8rem; font-family: 'Instrument Sans', sans-serif; }
-.l-rc-connect {
-  width: 100%; padding: 0.8125rem;
-  background: var(--accent); color: #fff; border: none; border-radius: 0.625rem;
-  font-family: 'Instrument Sans', sans-serif; font-weight: 600; font-size: 0.875rem;
-  cursor: pointer; transition: opacity var(--t1), transform var(--t1) var(--spring);
-}
-.l-rc-connect:hover  { opacity: .85; }
-.l-rc-connect:active { transform: scale(.97); }
-.l-rc-error {
-  font-size: 0.7rem; color: var(--accent); text-align: center;
-  min-height: 1rem; opacity: 0; transition: opacity .3s;
-}
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2247,11 +2203,12 @@ body.dots-sparkle .title-dot:nth-child(5) { top: 85%; left: 50%; transform: tran
   font-family: 'Instrument Sans', sans-serif;
   font-size: clamp(0.8125rem, 1.5vw, 0.9375rem);
   font-weight: 700;
-  color: #fff;
+  color: var(--stats-val-color, #fff);
   line-height: 1;
   letter-spacing: -.01em;
 }
 .ss-val-accent { color: var(--accent); }
+.ss-val-my     { color: var(--stats-my-color, var(--accent)); }
 .ss-label {
   font-family: 'Instrument Sans', sans-serif;
   font-size: clamp(0.5rem, 0.9vw, 0.5625rem);
@@ -2420,213 +2377,6 @@ body.dots-sparkle .title-dot:nth-child(5) { top: 85%; left: 50%; transform: tran
   .lp-body { max-height: 75vh; }
 }
 
-
-/* ════════════════════════════════════════════════════════════════════════════
-   TÉLÉCOMMANDE — code affiché dans le settings panel (display device)
-════════════════════════════════════════════════════════════════════════════ */
-.rc-config-note {
-  font-size: .75rem; color: var(--ui-dim); line-height: 1.5;
-}
-.rc-config-note code { font-family: 'JetBrains Mono', monospace; color: var(--accent); }
-
-.rc-code-block { display: flex; flex-direction: column; gap: .5rem; }
-.rc-code-label { font-size: .625rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ui-dim); font-weight: 500; }
-.rc-code-value {
-  font-family: 'JetBrains Mono', monospace; font-size: 1.75rem;
-  letter-spacing: .3em; color: #fff; font-weight: 700;
-  padding: .625rem 1rem; background: var(--ui-soft);
-  border: 1px solid var(--ui-ghost); border-radius: .5rem;
-  text-align: center;
-}
-.rc-copy-btn {
-  padding: .5rem .875rem; font-size: .6875rem; font-weight: 600;
-  background: var(--ui-soft); border: 1px solid var(--ui-ghost); border-radius: .375rem;
-  color: var(--ui-mid); cursor: pointer; align-self: flex-start;
-  transition: background var(--t1), color var(--t1);
-  font-family: 'Instrument Sans', sans-serif;
-}
-.rc-copy-btn:hover { background: var(--ui-ghost); color: #fff; }
-.rc-code-hint { font-size: .7rem; color: var(--ui-dim); line-height: 1.5; }
-
-
-/* ════════════════════════════════════════════════════════════════════════════
-   TÉLÉCOMMANDE — panel plein écran (remote device)
-════════════════════════════════════════════════════════════════════════════ */
-#rc-panel {
-  position: fixed; inset: 0; z-index: 300;
-  background: #06060a;
-  display: none; flex-direction: column;
-  font-family: 'Instrument Sans', sans-serif;
-  overflow: hidden;
-}
-#rc-panel.on { display: flex; }
-
-/* Wrapper interne */
-.rc-wrap {
-  display: flex; flex-direction: column;
-  height: 100%; width: 100%; max-width: 520px; margin: 0 auto;
-}
-
-/* Header */
-.rc-hdr {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 1.125rem 1.25rem 1rem;
-  background: rgba(8,8,14,.97);
-  border-bottom: 1px solid rgba(255,255,255,.07);
-  flex-shrink: 0;
-}
-.rc-hdr-left { display: flex; align-items: center; gap: .625rem; }
-.rc-wordmark {
-  font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem;
-  letter-spacing: .06em; color: #fff; line-height: 1;
-}
-.rc-badge {
-  font-size: .5625rem; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--ui-dim); font-weight: 500; padding: .25rem .5rem;
-  background: var(--ui-faint); border: 1px solid var(--ui-ghost); border-radius: .25rem;
-}
-.rc-hdr-right { display: flex; align-items: center; gap: .75rem; }
-
-/* Dot de connexion */
-.rc-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: rgba(255,255,255,.15);
-  transition: background .4s;
-}
-.rc-dot.on {
-  background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34,197,94,.2);
-  animation: rcDotPulse 2.5s ease-in-out infinite;
-}
-@keyframes rcDotPulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(34,197,94,.2); }
-  50%       { box-shadow: 0 0 0 6px rgba(34,197,94,.05); }
-}
-
-.rc-code-tag {
-  font-family: 'JetBrains Mono', monospace; font-size: .8125rem;
-  letter-spacing: .2em; color: var(--ui-mid);
-}
-.rc-disc {
-  background: var(--ui-faint); border: 1px solid var(--ui-ghost); border-radius: .375rem;
-  color: var(--ui-dim); font-size: .875rem; padding: .3rem .55rem;
-  cursor: pointer; line-height: 1;
-  transition: background var(--t1), color var(--t1);
-}
-.rc-disc:hover { background: rgba(255,60,60,.12); color: #ff6060; border-color: rgba(255,60,60,.25); }
-
-/* Body scrollable */
-.rc-body {
-  flex: 1; overflow-y: auto;
-  padding: .75rem 1.25rem 2rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,.07) transparent;
-  -webkit-overflow-scrolling: touch;
-}
-.rc-body::-webkit-scrollbar       { width: 3px; }
-.rc-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.09); border-radius: 2px; }
-.rc-body::-webkit-scrollbar-track { background: transparent; }
-
-/* Sections */
-.rc-section {
-  margin-bottom: .5rem; padding: 1rem 0;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-}
-.rc-section:last-child { border-bottom: none; }
-.rc-sh {
-  font-size: .6rem; letter-spacing: .18em; text-transform: uppercase;
-  color: var(--accent); font-weight: 600; margin-bottom: .875rem;
-}
-.rc-sub-sh {
-  font-size: .5875rem; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--ui-dim); font-weight: 500; margin-bottom: .5rem;
-}
-
-/* Label */
-.rc-lbl {
-  font-size: .6875rem; color: var(--ui-dim); font-weight: 500;
-  margin-bottom: .4rem; display: block;
-}
-
-/* Row: label + toggle side by side */
-.rc-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: .4375rem 0; border-bottom: 1px solid rgba(255,255,255,.03);
-}
-.rc-row:last-of-type { border-bottom: none; }
-.rc-row .rc-lbl { margin: 0; color: var(--ui-mid); font-size: .75rem; }
-
-/* Toggle (réutilise la logique du settings panel) */
-.rc-toggle {
-  position: relative; display: inline-flex;
-  width: 38px; height: 22px; cursor: pointer; flex-shrink: 0;
-}
-.rc-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-.rc-tt {
-  position: absolute; inset: 0; border-radius: 99px;
-  background: rgba(255,255,255,.12);
-  transition: background .25s var(--ease);
-}
-.rc-th {
-  position: absolute; top: 3px; left: 3px;
-  width: 16px; height: 16px; border-radius: 50%; background: #fff;
-  transition: transform .22s var(--spring), box-shadow .22s;
-  box-shadow: 0 1px 4px rgba(0,0,0,.35);
-}
-.rc-toggle input:checked ~ .rc-tt { background: var(--accent); }
-.rc-toggle input:checked ~ .rc-th { transform: translateX(16px); box-shadow: 0 1px 8px rgba(0,0,0,.5); }
-
-/* Option group */
-.rc-opt-grp {
-  display: flex; gap: 4px; flex-wrap: nowrap;
-  margin-bottom: .25rem;
-}
-.rc-opt-grp-wrap { flex-wrap: wrap; }
-.rc-opt {
-  flex: 1; min-width: 0;
-  padding: .4375rem .375rem; font-size: .6375rem; font-weight: 500; letter-spacing: .04em;
-  background: var(--ui-faint); border: 1px solid var(--ui-ghost); border-radius: .375rem;
-  color: var(--ui-dim); cursor: pointer; white-space: nowrap;
-  transition: background var(--t1), color var(--t1), border-color var(--t1);
-  font-family: 'Instrument Sans', sans-serif;
-}
-.rc-opt:hover  { background: var(--ui-soft); color: var(--ui-mid); }
-.rc-opt.active { background: var(--accent); color: #fff; border-color: transparent; }
-
-/* Sliders */
-.rc-slider-row { margin-bottom: .625rem; }
-.rc-slider-row .rc-lbl { margin-bottom: .3rem; }
-.rc-val { color: var(--ui-mid); font-weight: 400; }
-.rc-slider {
-  width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
-  background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--pct,50%), rgba(255,255,255,.12) var(--pct,50%));
-  border-radius: 99px; outline: none; cursor: pointer;
-}
-.rc-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px; height: 16px; border-radius: 50%;
-  background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.4);
-  cursor: pointer; transition: transform .15s var(--spring);
-}
-.rc-slider::-webkit-slider-thumb:hover  { transform: scale(1.15); }
-.rc-slider::-moz-range-thumb {
-  width: 16px; height: 16px; border-radius: 50%;
-  background: #fff; border: none; box-shadow: 0 1px 6px rgba(0,0,0,.4);
-  cursor: pointer;
-}
-
-/* Swatches accent */
-.rc-swatches { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: .75rem; }
-.rc-swatch {
-  width: 26px; height: 26px; border-radius: 50%;
-  border: 2px solid transparent; cursor: pointer;
-  transition: transform .15s var(--spring), border-color .15s;
-  flex-shrink: 0;
-}
-.rc-swatch:hover  { transform: scale(1.18); }
-.rc-swatch.active { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 0 3px rgba(255,255,255,.18); }
-
-
 /* ════════════════════════════════════════════════════════════════════════════
    v10 — LYRICS RENDER MODES
 ════════════════════════════════════════════════════════════════════════════ */
@@ -2702,14 +2452,14 @@ body.karaoke-fill .lrc-line.active .kw {
   color: color-mix(in srgb, var(--lyrics-inactive-color) 60%, transparent);
 }
 body.karaoke-fill .lrc-line.active .kw::after {
-  content: attr(data-word);
+  content: attr(data-text);
   position: absolute;
   left: 0; top: 0;
   color: var(--lyrics-active-color);
   white-space: pre;
   /* Clip reveals left→right based on --kw-fill */
   clip-path: inset(0 calc(100% - var(--kw-fill, 0%)) 0 0);
-  transition: clip-path 0.06s linear;
+  transition: clip-path 0.05s linear;
   pointer-events: none;
   font: inherit;
   letter-spacing: inherit;
@@ -2788,23 +2538,6 @@ body.lyrics-apple-mode .lrc-line.active::before {
   transition: background .5s var(--ease);
 }
 body.lyrics-apple-mode .lrc-line { position: relative; }
-
-/* rc-apply-all button */
-.rc-apply-all-btn {
-  width: 100%;
-  margin-bottom: .875rem;
-  padding: .625rem;
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  border-radius: .5rem;
-  color: var(--accent);
-  font-family: 'Instrument Sans', sans-serif;
-  font-size: .75rem; font-weight: 600; letter-spacing: .06em;
-  cursor: pointer;
-  transition: background var(--t1), opacity var(--t1);
-}
-.rc-apply-all-btn:hover  { background: color-mix(in srgb, var(--accent) 28%, transparent); }
-.rc-apply-all-btn:active { opacity: .75; }
 
 
 /* ════════════════════════════════════════════════════════════════════════════

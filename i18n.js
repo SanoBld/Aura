@@ -1,8 +1,8 @@
 /* ============================================================
-   AURA — i18n.js  v1.0
+   AURA — i18n.js
    Bilingual support: English (default) · French
-   Auto-detects from navigator.language, falls back to 'en'.
-   Manual override stored in localStorage as 'aura_lang'.
+   Language detection: checks localStorage first, then navigator.language.
+   Language class is applied before body render to avoid flash.
    ============================================================ */
 
 (function () {
@@ -727,6 +727,9 @@
   /** getLang() — returns current language code */
   window.getLang = function () { return _lang; };
 
+  /** applyI18n() — force-refresh all [data-i18n] elements (callable from outside) */
+  window.applyI18n = applyI18n;
+
   /* ────────── DOM APPLICATION ────────── */
   function applyI18n() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -738,13 +741,23 @@
       } else if (el.getAttribute('data-i18n-attr')) {
         el.setAttribute(el.getAttribute('data-i18n-attr'), val);
       } else {
-        el.textContent = val;
+        // Only set textContent when the element has no child element nodes
+        // (avoids wiping icons/flags inside buttons like .lang-btn)
+        const hasChildElements = Array.from(el.childNodes).some(n => n.nodeType === 1);
+        if (!hasChildElements) {
+          el.textContent = val;
+        }
       }
     });
 
-    // Language toggle button label
+    // Language toggle button label (login card)
     const langBtn = document.getElementById('lang-toggle');
     if (langBtn) langBtn.textContent = _lang === 'fr' ? 'EN' : 'FR';
+
+    // Sync lang-btn active states in settings panel
+    document.querySelectorAll('button[data-lang]').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === _lang);
+    });
 
     // html lang attribute
     document.documentElement.lang = _lang;
@@ -752,6 +765,7 @@
 
   /* Apply on DOM ready */
   if (document.readyState === 'loading') {
+    document.documentElement.lang = _lang; // accessibility only, no data-lang
     document.addEventListener('DOMContentLoaded', applyI18n);
   } else {
     applyI18n();

@@ -27,6 +27,22 @@ function throttle(fn, ms) {
   let last = 0; return (...args) => { const now = Date.now(); if (now - last >= ms) { last = now; fn(...args); } };
 }
 
+/* ---- MULTI-ARTIST PARSER ---- */
+/**
+ * Découpe une chaîne artiste en tableau d'artistes individuels.
+ * Gère : feat., ft., featuring, &, ×, vs., +, virgule entre artistes.
+ * Limite à 3 artistes max pour l'affichage.
+ */
+function splitArtists(str) {
+  if (!str) return [];
+  const parts = str
+    .split(/\s*(?:feat\.?|ft\.?|featuring|&|×|vs\.?(?=\s)|with(?=\s)|\+)\s*/i)
+    .flatMap(s => s.split(/\s*,\s*/))
+    .map(a => a.replace(/^\s*[\(\[]\s*/,'').replace(/\s*[\)\]]\s*$/,'').trim())
+    .filter(Boolean);
+  return parts.length > 1 ? parts.slice(0, 3) : parts;
+}
+
 /* ---- STATE ---- */
 let apiKey = '', username = '', originalUser = '', currentTrack = null, artSlot = 'a', bgSlot = 'a';
 let lyricsOpen = false, histOpen = false, settingsOpen = false;
@@ -1628,7 +1644,104 @@ function getAvatarFromStorage(a) {
 function setAvatarInStorage(a, url) {
   try { localStorage.setItem(avatarCacheKey(a), JSON.stringify({ url, ts: Date.now() })); } catch {}
 }
+/* ============================================================
+   MUSICBRAINZ — helpers : artiste + pochette d'album
+   Priorité absolue sur toutes les autres sources d'images.
+   Rate-limit auto : 1 req/s (règle MusicBrainz pour les anonymes).
+   ============================================================ */
+let _mbLastCall = 0;
+async function _mbFetch(url) {
+  const now = Date.now(), delay = Math.max(0, 1050 - (now - _mbLastCall));
+  if (delay > 0) await new Promise(r => setTimeout(r, delay));
+  _mbLastCall = Date.now();
+  return fetch(url, { headers: { 'User-Agent': 'AURA/9.0 (music-dashboard; contact@aura.local)' } });
+}
+
+/**
+ * Récupère la photo d'un artiste via MusicBrainz → Wikidata → Wikimedia Commons.
+ * Chaîne : MB artist search → MBID → url-rels Wikidata → claim P18 → Commons FilePath
+ */
+async function fetchMusicBrainzArtistImage(artist) {
+  try {
+    const searchRes = await _mbFetch(
+      `https://musicbrainz.org/ws/2/artist/?query=artist:"${encodeURIComponent(artist)}"&limit=1&fmt=json`
+    );
+    if (!searchRes.ok) return null;
+    const searchData = await searchRes.json();
+    const mbid = searchData.artists?.[0]?.id;
+    if (!mbid) return null;
+
+    const artRes = await _mbFetch(
+      `https://musicbrainz.org/ws/2/artist/${mbid}?inc=url-rels&fmt=json`
+    );
+    if (!artRes.ok) return null;
+    const artData = await artRes.json();
+
+    /* Cherche la relation Wikidata */
+    const wikiRel = (artData.relations || []).find(r =>
+      r.url?.resource?.includes('wikidata.org/wiki/Q')
+    );
+    const qid = wikiRel?.url?.resource?.split('/').pop();
+    if (!qid || !/^Q\d+$/.test(qid)) return null;
+
+    /* Récupère la propriété P18 (image) depuis Wikidata */
+    const wdRes = await fetch(
+      `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims&format=json&origin=*`
+    );
+    if (!wdRes.ok) return null;
+    const wdData = await wdRes.json();
+    const p18 = wdData.entities?.[qid]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+    if (!p18) return null;
+
+    /* Construit l'URL Wikimedia Commons avec largeur 600px */
+    const fname = p18.replace(/ /g, '_');
+    return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fname)}?width=600`;
+  } catch { return null; }
+}
+
+/**
+ * Récupère la pochette d'album via MusicBrainz Cover Art Archive.
+ * Cherche par artiste + titre de release, retourne l'URL front cover.
+ */
+async function fetchMusicBrainzAlbumArt(artist, album) {
+  if (!album || !artist) return null;
+  try {
+    const q = `artist:"${artist}" AND release:"${album}"`;
+    const res = await _mbFetch(
+      `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(q)}&limit=1&fmt=json`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const mbid = data.releases?.[0]?.id;
+    if (!mbid) return null;
+    /* URL directe Cover Art Archive — suit un 307 vers l'image réelle */
+    return `https://coverartarchive.org/release/${mbid}/front-500`;
+  } catch { return null; }
+}
+
+/* Cache MB album art (TTL 7 jours) */
+function getMbAlbumArtCache(artist, album) {
+  try {
+    const k = 'aura_mb_art_' + btoa(unescape(encodeURIComponent((artist + '|' + album).toLowerCase()))).slice(0,60);
+    const d = JSON.parse(localStorage.getItem(k) || 'null');
+    if (d && Date.now() - d.ts < 7*24*3600*1000) return d.url;
+    return null;
+  } catch { return null; }
+}
+function setMbAlbumArtCache(artist, album, url) {
+  try {
+    const k = 'aura_mb_art_' + btoa(unescape(encodeURIComponent((artist + '|' + album).toLowerCase()))).slice(0,60);
+    localStorage.setItem(k, JSON.stringify({ url, ts: Date.now() }));
+  } catch {}
+}
+
 async function fetchArtistAvatarHD(artist) {
+  /* 0. MusicBrainz → Wikidata → Wikimedia Commons — priorité absolue */
+  try {
+    const mbImg = await fetchMusicBrainzArtistImage(artist);
+    if (mbImg) return mbImg;
+  } catch {}
+
   /* 1. Wikipedia EN — source la plus fiable pour les photos d'artistes */
   try {
     const r = await fetch(
@@ -1693,38 +1806,183 @@ async function fetchArtistAvatarHD(artist) {
   } catch {}
   return null;
 }
+/* ---- SINGLE-ARTIST APPLY (legacy helper, utilisé en interne) ---- */
 function applyAvatarUrl(url) {
   if (!url) return;
-  /* Pas de crossOrigin — évite les erreurs CORS sur certaines sources (iTunes, Deezer) */
   $.artistAvatar.src = url;
   $.artistAvatar.classList.add('loaded');
   if ($.avatarFallback) $.avatarFallback.style.opacity = '0';
 }
-async function updateArtistAvatar(artist) {
+
+/* ============================================================
+   MULTI-ARTIST AVATAR — affiche 1 à 3 cercles côte à côte
+   Injecte un style unique au premier appel.
+   ============================================================ */
+(function _injectMultiAvatarStyle() {
+  if (document.getElementById('aura-multi-avatar-style')) return;
+  const st = document.createElement('style');
+  st.id = 'aura-multi-avatar-style';
+  st.textContent = `
+    /* Conteneur multi-avatar */
+    .avatar-multi-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .avatar-multi-wrap .av-item {
+      position: relative;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: rgba(255,255,255,.08);
+      border: 1.5px solid rgba(255,255,255,.15);
+      transition: transform .25s, box-shadow .25s;
+    }
+    .avatar-multi-wrap .av-item:hover { transform: scale(1.08); }
+    .avatar-multi-wrap .av-item img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity .35s;
+    }
+    .avatar-multi-wrap .av-item img.av-loaded { opacity: 1; }
+    .avatar-multi-wrap .av-item .av-fb {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+      color: rgba(255,255,255,.75);
+      transition: opacity .3s;
+    }
+    /* tooltip discret sur hover */
+    .avatar-multi-wrap .av-item[title]:hover::after {
+      content: attr(title);
+      position: absolute; bottom: calc(100% + 6px); left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.78);
+      color: #fff; font-size: .65rem; padding: 3px 7px;
+      border-radius: 6px; white-space: nowrap; pointer-events: none;
+      z-index: 20;
+    }
+  `;
+  document.head.appendChild(st);
+})();
+
+/**
+ * Render one or multiple artist avatars inside #avatar-circle.
+ * Supports up to 3 artists side by side.
+ * @param {string[]} artists - array of artist name strings
+ */
+function renderMultiAvatars(artists) {
+  if (!$.avatarCircle) return;
+  if (artists.length <= 1) {
+    /* Single artist — restore original markup structure */
+    $.avatarCircle.innerHTML = `
+      <img id="artist-avatar" class="artist-avatar" alt="" aria-hidden="true" />
+      <div id="avatar-fallback" class="avatar-fallback"></div>
+    `;
+    $.artistAvatar = document.getElementById('artist-avatar');
+    $.avatarFallback = document.getElementById('avatar-fallback');
+    return;
+  }
+
+  /* Multiple artists — build side-by-side circles */
+  const wrap = document.createElement('div');
+  wrap.className = 'avatar-multi-wrap';
+
+  artists.forEach(name => {
+    const item = document.createElement('div');
+    item.className = 'av-item';
+    item.title = name;
+
+    const fb = document.createElement('div');
+    fb.className = 'av-fb';
+    fb.style.background = fallbackGradient(name);
+    fb.textContent = fallbackLetter(name);
+
+    const img = document.createElement('img');
+    img.alt = name;
+    img.setAttribute('aria-label', name);
+
+    item.appendChild(fb);
+    item.appendChild(img);
+    wrap.appendChild(item);
+  });
+
+  $.avatarCircle.innerHTML = '';
+  $.avatarCircle.appendChild(wrap);
+
+  /* Fetch & fill each avatar async */
+  artists.forEach((name, idx) => {
+    const item = wrap.children[idx];
+    if (!item) return;
+    const img = item.querySelector('img');
+    const fb  = item.querySelector('.av-fb');
+
+    /* Check cache first */
+    const cached = avatarSWRCache[name] || getAvatarFromStorage(name);
+    if (cached) {
+      img.onload = () => { img.classList.add('av-loaded'); if (fb) fb.style.opacity = '0'; };
+      img.src = cached;
+      if (img.complete && img.naturalWidth) { img.classList.add('av-loaded'); if (fb) fb.style.opacity = '0'; }
+    }
+
+    fetchArtistAvatarHD(name).then(url => {
+      if (!url) return;
+      avatarSWRCache[name] = url; setAvatarInStorage(name, url);
+      /* Only update if this track is still active */
+      const trackArtist = currentTrack?.artist?.name || currentTrack?.artist?.['#text'] || '';
+      if (!splitArtists(trackArtist).includes(name)) return;
+      img.onload = () => { img.classList.add('av-loaded'); if (fb) fb.style.opacity = '0'; };
+      img.src = url;
+      if (img.complete && img.naturalWidth) { img.classList.add('av-loaded'); if (fb) fb.style.opacity = '0'; }
+    }).catch(() => {});
+  });
+}
+
+/**
+ * Main entry-point : met à jour le ou les avatars d'artiste.
+ * Détecte automatiquement les artistes multiples.
+ * @param {string} artistStr - chaîne brute ex: "Artist A feat. Artist B"
+ */
+async function updateArtistAvatar(artistStr) {
   if (!S.showAvatar) return;
-  // Check cache FIRST — avoids flicker if image is already available
-  const cached = avatarSWRCache[artist] || getAvatarFromStorage(artist);
+
+  const artists = splitArtists(artistStr);
+  const primaryArtist = artists[0] || artistStr;
+
+  $.avatarCircle.classList.add('on');
+
+  if (artists.length > 1) {
+    /* Rendu multi-artistes */
+    renderMultiAvatars(artists);
+    return;
+  }
+
+  /* === Single artist — comportement SWR original === */
+  renderMultiAvatars([primaryArtist]); // restore original structure
+
+  const cached = avatarSWRCache[primaryArtist] || getAvatarFromStorage(primaryArtist);
   if (cached) {
-    // We already have a URL: just apply it smoothly without resetting
     $.avatarCircle.classList.add('on');
     applyAvatarUrl(cached);
   } else {
-    // No cache: reset to fallback while we fetch
     $.avatarCircle.classList.remove('on');
     $.artistAvatar.classList.remove('loaded');
     $.artistAvatar.src = '';
     if ($.avatarFallback) {
-      $.avatarFallback.style.background = fallbackGradient(artist);
-      $.avatarFallback.textContent = fallbackLetter(artist);
+      $.avatarFallback.style.background = fallbackGradient(primaryArtist);
+      $.avatarFallback.textContent = fallbackLetter(primaryArtist);
       $.avatarFallback.style.opacity = '1';
     }
     $.avatarCircle.classList.add('on');
   }
   try {
-    const fresh = await fetchArtistAvatarHD(artist);
+    const fresh = await fetchArtistAvatarHD(primaryArtist);
     if (fresh) {
-      avatarSWRCache[artist] = fresh; setAvatarInStorage(artist, fresh);
-      if ((currentTrack?.artist?.name || currentTrack?.artist?.['#text'] || '') === artist) applyAvatarUrl(fresh);
+      avatarSWRCache[primaryArtist] = fresh; setAvatarInStorage(primaryArtist, fresh);
+      const trackArtist = currentTrack?.artist?.name || currentTrack?.artist?.['#text'] || '';
+      if (trackArtist === artistStr || trackArtist === primaryArtist) applyAvatarUrl(fresh);
     }
   } catch {}
 }
@@ -2530,9 +2788,34 @@ function handleTrack(track, fromLanyard = false) {
     }
     if (imgUrl) imgUrl = imgUrl.replace('/300x300/', '/600x600/').replace('34s', '600x600');
   }
+
+  /* Affiche l'image existante immédiatement (SWR) */
   swapArt(imgUrl, artist, title);
   updateArtistAvatar(artist);
   if (lyricsOpen) loadLyrics(artist, title);
+
+  /* ── MusicBrainz Cover Art Archive — source prioritaire pour les pochettes ──
+     Lancé en parallèle ; si une meilleure image est trouvée, on la swap. */
+  const _mbTrackId = id;
+  const _mbAlbum = track.album?.['#text'] || '';
+  if (artist && _mbAlbum) {
+    const _mbCached = getMbAlbumArtCache(artist, _mbAlbum);
+    if (_mbCached && _mbCached !== imgUrl) {
+      /* Image MB déjà en cache — applique directement */
+      swapArt(_mbCached, artist, title);
+    } else if (!_mbCached) {
+      fetchMusicBrainzAlbumArt(artist, _mbAlbum).then(mbUrl => {
+        if (!mbUrl || mbUrl === imgUrl) return;
+        setMbAlbumArtCache(artist, _mbAlbum, mbUrl);
+        /* Vérifie que le morceau est toujours actif avant de swapper */
+        if (currentTrackId !== _mbTrackId) return;
+        const probe = new Image();
+        probe.onload = () => { if (currentTrackId === _mbTrackId) swapArt(mbUrl, artist, title); };
+        probe.onerror = () => {};
+        probe.src = mbUrl;
+      }).catch(() => {});
+    }
+  }
 
   /* Extended stats — fetch en arrière-plan avec animation */
   const album = track.album?.['#text'] || '';
